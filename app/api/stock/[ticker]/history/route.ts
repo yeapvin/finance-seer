@@ -1,0 +1,52 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getHistoricalData } from '@/lib/yahoo'
+import { calculateAllIndicators } from '@/lib/indicators'
+import { detectPatterns } from '@/lib/patterns'
+
+export const dynamic = 'force-dynamic'
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { ticker: string } },
+) {
+  try {
+    const ticker = (params.ticker as string).toUpperCase()
+    const period = (request.nextUrl.searchParams.get('period') || '1mo') as
+      | '1d'
+      | '5d'
+      | '1mo'
+      | '3mo'
+      | '6mo'
+      | '1y'
+      | '5y'
+
+    const history = await getHistoricalData(ticker, period)
+
+    const prices = history.map((h) => h.close)
+    const highs = history.map((h) => h.high)
+    const lows = history.map((h) => h.low)
+    const opens = history.map((h) => h.open)
+
+    const indicators = calculateAllIndicators(prices, highs, lows)
+    const patterns = detectPatterns(prices, { open: opens, high: highs, low: lows, close: prices })
+
+    const response = NextResponse.json({
+      ticker,
+      period,
+      history,
+      indicators,
+      patterns,
+    })
+
+    // Cache successful responses at the edge for 1 hour
+    response.headers.set('Cache-Control', 'public, max-age=3600')
+
+    return response
+  } catch (error) {
+    console.error(`Error fetching history for ${params.ticker}:`, error)
+    return NextResponse.json(
+      { error: 'Failed to fetch historical data' },
+      { status: 500 },
+    )
+  }
+}

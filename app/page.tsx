@@ -83,7 +83,7 @@ export default function Home() {
   const selectStock = (ticker: string) => {
     setQuery(''); setResults([]); setOpen(false)
     setSelectedTicker(ticker.toUpperCase())
-    setAnalysis(null); setPeriod('1mo'); setCurrentData(null)
+    setAnalysis(null); setPeriod('1d'); setCurrentData(null)
   }
 
   const fetchPeriod = async (ticker: string, p: Period): Promise<PeriodData | null> => {

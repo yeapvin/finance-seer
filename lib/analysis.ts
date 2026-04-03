@@ -130,14 +130,9 @@ Technical Indicators:
 - SMA 200: $${fmt(data.indicators.sma200)}
 - Bollinger Bands: Upper $${fmt(data.indicators.bollingerBands?.upper)}, Middle $${fmt(data.indicators.bollingerBands?.middle)}, Lower $${fmt(data.indicators.bollingerBands?.lower)}
 
-Detected Patterns:
-${data.patterns.length > 0 ? data.patterns.map((p) => `- ${p}`).join('\n') : '- No significant patterns detected'}
-
-Support Levels: ${data.support.length > 0 ? data.support.map((s) => `$${s.toFixed(2)}`).join(', ') : 'N/A'}
-Resistance Levels: ${data.resistance.length > 0 ? data.resistance.map((r) => `$${r.toFixed(2)}`).join(', ') : 'N/A'}
-
-Recent News Sentiment:
-${data.news.slice(0, 5).map((n) => `- ${n}`).join('\n')}
+Detected Patterns: ${data.patterns.length > 0 ? data.patterns.slice(0, 5).join(', ') : 'None'}
+Support: ${data.support.slice(0, 3).map((s) => `$${s.toFixed(2)}`).join(', ') || 'N/A'} | Resistance: ${data.resistance.slice(0, 3).map((r) => `$${r.toFixed(2)}`).join(', ') || 'N/A'}
+News: ${data.news.slice(0, 3).map((n) => n.substring(0, 80)).join(' | ') || 'No recent news'}
 
 Respond with ONLY a JSON object. Keep each field under 100 words. No markdown, no code blocks.
 {
@@ -182,7 +177,17 @@ async function callLLM(prompt: string, stock: StockData, rsi: number, macd: numb
 
     if (!response.ok) return generateDataDrivenAnalysis(stock, rsi, macd, macdSignal, sma20, sma50, sma200, bb, patterns, support, resistance, news, volumes)
     const data = await response.json()
-    return data.choices[0].message.content
+    const content = data.choices?.[0]?.message?.content || ''
+    // Validate JSON is complete before using it
+    try {
+      const match = content.match(/\{[\s\S]*\}/)
+      if (!match) throw new Error('No JSON found')
+      JSON.parse(match[0]) // validate it parses cleanly
+      return content
+    } catch {
+      // Truncated or invalid JSON — fall back to data-driven
+      return generateDataDrivenAnalysis(stock, rsi, macd, macdSignal, sma20, sma50, sma200, bb, patterns, support, resistance, news, volumes)
+    }
   } catch {
     return generateDataDrivenAnalysis(stock, rsi, macd, macdSignal, sma20, sma50, sma200, bb, patterns, support, resistance, news, volumes)
   }

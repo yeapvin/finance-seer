@@ -163,38 +163,6 @@ export default function Home() {
         {/* ── LEFT COLUMN: Search + Portfolio ── */}
         <aside style={{ borderRight: '1px solid rgba(255,255,255,0.06)', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'sticky', top: '56px', height: 'calc(100vh - 56px)', overflowY: 'auto' }}>
 
-          {/* Search */}
-          <div ref={searchBoxRef} style={{ position: 'relative' }}>
-            <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', padding: '10px 14px', gap: '10px' }}>
-              <Search size={16} style={{ color: '#52525b', flexShrink: 0 }} />
-              <input
-                type='text' value={query}
-                onChange={e => searchStocks(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && query.trim()) selectStock(query.trim()) }}
-                onFocus={() => results.length > 0 && setOpen(true)}
-                placeholder='Search ticker or company name...'
-                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '14px' }}
-                autoFocus
-              />
-              {searchLoading && <Loader size={14} className='animate-spin' style={{ color: '#3b82f6', flexShrink: 0 }} />}
-            </div>
-            {open && results.length > 0 && (
-              <div style={{ position: 'absolute', left: 0, right: 0, top: 'calc(100% + 4px)', background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', zIndex: 50, overflow: 'hidden' }}>
-                {results.map((s, i) => (
-                  <div key={i} onClick={() => selectStock(s.ticker)}
-                    style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                    className='hover:bg-white/5'>
-                    <div>
-                      <span style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>{s.ticker}</span>
-                      <span style={{ color: '#71717a', fontSize: '12px', marginLeft: '8px' }}>{s.name}</span>
-                    </div>
-                    <span style={{ color: '#3b82f6', fontSize: '11px' }}>{s.exchange}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* Portfolio Summary */}
           {portfolio && (
             <a href='/portfolio' style={{ textDecoration: 'none' }}>
@@ -235,6 +203,38 @@ export default function Home() {
               </div>
             </a>
           )}
+
+          {/* Search */}
+          <div ref={searchBoxRef} style={{ position: 'relative' }}>
+            <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', padding: '10px 14px', gap: '10px' }}>
+              <Search size={16} style={{ color: '#52525b', flexShrink: 0 }} />
+              <input
+                type='text' value={query}
+                onChange={e => searchStocks(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && query.trim()) selectStock(query.trim()) }}
+                onFocus={() => results.length > 0 && setOpen(true)}
+                placeholder='Search ticker or company name...'
+                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '14px' }}
+                autoFocus
+              />
+              {searchLoading && <Loader size={14} className='animate-spin' style={{ color: '#3b82f6', flexShrink: 0 }} />}
+            </div>
+            {open && results.length > 0 && (
+              <div style={{ position: 'absolute', left: 0, right: 0, top: 'calc(100% + 4px)', background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', zIndex: 50, overflow: 'hidden' }}>
+                {results.map((s, i) => (
+                  <div key={i} onClick={() => selectStock(s.ticker)}
+                    style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    className='hover:bg-white/5'>
+                    <div>
+                      <span style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>{s.ticker}</span>
+                      <span style={{ color: '#71717a', fontSize: '12px', marginLeft: '8px' }}>{s.name}</span>
+                    </div>
+                    <span style={{ color: '#3b82f6', fontSize: '11px' }}>{s.exchange}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Empty state */}
           {!selectedTicker && !portfolio && (

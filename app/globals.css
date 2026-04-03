@@ -445,18 +445,19 @@ html, body {
   }
 }
 
-/* Hide empty right panel on mobile only */
-@media (max-width: 767px) {
-  .right-panel-empty {
-    display: none;
-  }
+/* Empty state: hide on mobile, show centered on desktop */
+.empty-state {
+  display: none;
 }
 
-/* Always show on desktop even when empty */
 @media (min-width: 768px) {
-  .right-panel-empty {
+  .empty-state {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    height: 100%;
+    color: #27272a;
+    gap: 12px;
   }
 }

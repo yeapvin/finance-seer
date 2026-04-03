@@ -275,10 +275,10 @@ export default function Home() {
         </aside>
 
         {/* ── RIGHT COLUMN: Chart + Analysis ── */}
-        <main className={`right-panel ${!selectedTicker ? 'right-panel-empty' : ''}`} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <main className='right-panel' style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {!selectedTicker ? (
-            <div style={{ color: '#27272a', textAlign: 'center' }}>
-              <Zap size={40} style={{ margin: '0 auto 12px' }} />
+            <div className='empty-state'>
+              <Zap size={40} />
               <p style={{ fontSize: '14px' }}>Select a stock to get started</p>
             </div>
           ) : stockLoading ? (

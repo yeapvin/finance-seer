@@ -207,7 +207,6 @@ export default function Home() {
                 onFocus={() => results.length > 0 && setOpen(true)}
                 placeholder='Search ticker or company name...'
                 style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '14px' }}
-                autoFocus
               />
               {searchLoading && <Loader size={14} className='animate-spin' style={{ color: '#3b82f6', flexShrink: 0 }} />}
             </div>

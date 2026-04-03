@@ -392,42 +392,51 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ── Mobile fixes ── */
-* {
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-body {
+html, body {
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .left-panel {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   padding: 16px;
+  /* Do NOT use height/overflow on mobile — keyboard resize breaks it */
 }
 
 .right-panel {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   padding: 16px;
 }
 
 /* Ensure nothing overflows on mobile */
-.left-panel > * {
-  max-width: 100%;
-  min-width: 0;
-}
-
+.left-panel > *,
 .right-panel > * {
   max-width: 100%;
   min-width: 0;
+  word-break: break-word;
 }
 
 @media (min-width: 768px) {
   .left-panel {
     padding: 24px 20px;
+    /* Only apply sticky + fixed height on desktop where keyboard doesn't resize viewport */
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
   }
   .right-panel {
     padding: 24px;
+    max-height: calc(100vh - 56px);
+    overflow-y: auto;
   }
 }

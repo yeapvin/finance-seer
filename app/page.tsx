@@ -210,7 +210,7 @@ export default function Home() {
                 onKeyDown={e => { if (e.key === 'Enter' && query.trim()) selectStock(query.trim()) }}
                 onFocus={() => results.length > 0 && setOpen(true)}
                 placeholder='Search ticker or company name...'
-                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '14px' }}
+                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '16px' }}
               />
               {searchLoading && <Loader size={14} className='animate-spin' style={{ color: '#3b82f6', flexShrink: 0 }} />}
             </div>

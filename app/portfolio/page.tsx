@@ -186,24 +186,6 @@ export default function PortfolioPage() {
             <PortfolioValueChart data={valueHistory} startingCapital={data.startingCapital || 100000} />
           </div>
 
-          {/* Strategy Notes */}
-          {strategyNotes.length > 0 && (
-            <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                <FileText size={14} style={{ color: '#f59e0b' }} />
-                <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Strategy Notes</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {strategyNotes.slice().reverse().map((note: any, i: number) => (
-                  <div key={i} style={{ borderLeft: '2px solid rgba(99,102,241,0.3)', paddingLeft: '10px' }}>
-                    <div style={{ color: '#52525b', fontSize: '10px', marginBottom: '2px' }}>{note.date}</div>
-                    <p style={{ color: '#a1a1aa', fontSize: '12px', lineHeight: '1.5', margin: 0 }}>{note.note}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Disclaimer */}
           <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '10px 12px' }}>
             <p style={{ color: '#3f3f46', fontSize: '10px', lineHeight: '1.5', margin: 0 }}>
@@ -262,6 +244,24 @@ export default function PortfolioPage() {
                       <div><div style={{ color: '#3f3f46', fontSize: '10px' }}>Proceeds</div><div style={{ color: 'white', fontSize: '12px', fontWeight: 600 }}>{fmt(cp.sellPrice * cp.shares)}</div></div>
                     </div>
                     <div style={{ color: '#3f3f46', fontSize: '10px' }}>{cp.reason}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Strategy Notes */}
+          {strategyNotes.length > 0 && (
+            <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                <FileText size={14} style={{ color: '#f59e0b' }} />
+                <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Strategy Notes</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {strategyNotes.slice().reverse().map((note: any, i: number) => (
+                  <div key={i} style={{ borderLeft: '2px solid rgba(99,102,241,0.3)', paddingLeft: '10px' }}>
+                    <div style={{ color: '#52525b', fontSize: '10px', marginBottom: '2px' }}>{note.date}</div>
+                    <p style={{ color: '#a1a1aa', fontSize: '12px', lineHeight: '1.5', margin: 0 }}>{note.note}</p>
                   </div>
                 ))}
               </div>

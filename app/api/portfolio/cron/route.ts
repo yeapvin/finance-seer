@@ -58,47 +58,46 @@ export async function GET(request: NextRequest) {
     const { actions, summary, fxRate } = result
     const session = marketSession()
 
-    // Filter only actionable signals (BUY/SELL, not HOLD)
     const urgent = actions.filter((a: any) => a.urgent)
     const sells = actions.filter((a: any) => a.type === 'SELL' && !a.urgent)
     const buys = actions.filter((a: any) => a.type === 'BUY')
     const holds = actions.filter((a: any) => a.type === 'HOLD')
+    const toExecute = [...urgent, ...sells, ...buys]
 
-    // Always send a summary at scheduled times
+    // Auto-execute all BUY and SELL signals
+    const executed: any[] = []
+    for (const action of toExecute) {
+      try {
+        const execRes = await fetch(`${baseUrl}/api/portfolio/monitor`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action })
+        })
+        const execResult = await execRes.json()
+        if (execResult.success) executed.push(action)
+      } catch (e) {
+        console.error(`Failed to execute ${action.type} ${action.ticker}:`, e)
+      }
+    }
+
+    // Send Telegram summary
     if (token && chatId) {
       let msg = `*Finance Seer — ${session}*\n`
       msg += `Portfolio: USD $${summary?.totalValueUSD?.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || 'N/A'} | SGD/USD: ${fxRate?.toFixed(4) || 'N/A'}\n\n`
 
-      if (urgent.length > 0) {
-        msg += `🚨 *URGENT ACTIONS (${urgent.length})*\n`
-        urgent.forEach((a: any) => {
-          msg += `• ${a.type} ${a.ticker} @ ${a.currency} $${a.currentPrice?.toFixed(2)} — ${a.reason.replace(/[*_`]/g, '').substring(0, 80)}\n`
+      if (executed.length > 0) {
+        msg += `⚡ *${executed.length} Trade${executed.length > 1 ? 's' : ''} Executed*\n`
+        executed.forEach((a: any) => {
+          const emoji = a.type === 'BUY' ? '🟢' : '🔴'
+          msg += `${emoji} ${a.type} ${a.ticker} — ${a.shares} shares @ ${a.currency} $${a.currentPrice?.toFixed(2)}\n`
+          msg += `   _${a.reason.replace(/[*_`]/g, '').substring(0, 80)}_\n`
         })
         msg += '\n'
-      }
-
-      if (sells.length > 0) {
-        msg += `📉 *SELL Signals (${sells.length})*\n`
-        sells.forEach((a: any) => {
-          msg += `• ${a.ticker} @ ${a.currency} $${a.currentPrice?.toFixed(2)} — ${a.reason.replace(/[*_`]/g, '').substring(0, 80)}\n`
-        })
-        msg += '\n'
-      }
-
-      if (buys.length > 0) {
-        msg += `📈 *BUY Opportunities (${buys.length})*\n`
-        buys.forEach((a: any) => {
-          msg += `• ${a.ticker} ${a.shares} shares @ ${a.currency} $${a.currentPrice?.toFixed(2)} (cost: ${a.currency} $${a.cost?.toFixed(0)}) — ${a.reason.replace(/[*_`]/g, '').substring(0, 60)}\n`
-        })
-        msg += '\n'
-      }
-
-      if (urgent.length === 0 && sells.length === 0 && buys.length === 0) {
+      } else {
         msg += `✅ All ${holds.length} positions HOLD — no action needed.\n`
       }
 
-      msg += `\n_View portfolio: finance-seer.vercel.app/portfolio_`
-
+      msg += `_View portfolio: finance-seer.vercel.app/portfolio_`
       await sendTelegram(token, chatId, msg)
     }
 

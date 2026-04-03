@@ -147,18 +147,7 @@ export default function PortfolioPage() {
                       <span style={{ color: '#71717a', fontSize: '13px' }}>${action.currentPrice?.toFixed(2)} · {action.shares} shares</span>
                       {action.urgent && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239,68,68,0.2)', color: '#f87171' }}>URGENT</span>}
                     </div>
-                    {action.type !== 'HOLD' && (
-                      <button
-                        onClick={() => executeAction(action)}
-                        disabled={executing === action.ticker + action.type}
-                        style={{
-                          padding: '6px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', border: 'none',
-                          background: action.type === 'BUY' ? '#059669' : '#dc2626', color: '#fff'
-                        }}
-                      >
-                        {executing === action.ticker + action.type ? '...' : `Execute ${action.type}`}
-                      </button>
-                    )}
+                    <span style={{ fontSize: '11px', color: '#52525b', fontStyle: 'italic' }}>Auto-executed</span>
                   </div>
                   <p style={{ color: '#71717a', fontSize: '12px', marginTop: '6px' }}>{action.reason}</p>
                   {action.type === 'BUY' && action.cost && (

@@ -170,7 +170,7 @@ async function callLLM(prompt: string, stock: StockData, rsi: number, macd: numb
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: 'You are a senior financial analyst. Provide extremely detailed, actionable investment analysis in JSON format. Be specific with numbers, levels, and reasoning. Include specific entry/exit strategies with exact price levels.' },
           { role: 'user', content: prompt },

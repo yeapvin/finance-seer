@@ -38,7 +38,7 @@ function RecommendationBadge({ rec }: { rec: string }) {
   )
 }
 
-export function AnalysisReportComponent({ report }: { report: AnalysisReport }) {
+export function AnalysisReportComponent({ report, patterns }: { report: AnalysisReport; patterns?: any[] }) {
   const downloadPDF = () => {
     const doc = new jsPDF()
     let y = 20
@@ -151,6 +151,35 @@ export function AnalysisReportComponent({ report }: { report: AnalysisReport }) 
               ))}
             </div>
           </div>
+          {/* Detected Patterns — right under Trading Strategy */}
+          {patterns && patterns.length > 0 && (
+            <div style={{ marginTop: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
+                <span style={{ color: '#6366f1' }}>⬡</span>
+                <h4 style={{ color: '#a5b4fc', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>Detected Patterns</h4>
+                <span style={{ color: '#3f3f46', fontSize: '10px' }}>{patterns.length} found · 1yr</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {patterns.map((pattern: any, i: number) => (
+                  <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pattern.type === 'bullish' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: '8px', padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {pattern.type === 'bullish'
+                          ? <span style={{ color: '#34d399', fontSize: '12px' }}>▲</span>
+                          : <span style={{ color: '#f87171', fontSize: '12px' }}>▼</span>}
+                        <span style={{ color: 'white', fontWeight: 600, fontSize: '12px' }}>{pattern.name}</span>
+                      </div>
+                      <span style={{ color: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#71717a', fontSize: '11px', fontWeight: 700 }}>{pattern.confidence?.toFixed(0)}%</span>
+                    </div>
+                    <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)', borderRadius: '1px', marginBottom: '4px' }}>
+                      <div style={{ height: '100%', borderRadius: '1px', width: `${Math.min(pattern.confidence, 100)}%`, background: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#52525b' }} />
+                    </div>
+                    <p style={{ color: '#52525b', fontSize: '10px', margin: 0 }}>{pattern.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

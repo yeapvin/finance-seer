@@ -277,35 +277,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Detected Patterns — left column, under stock details */}
-          {currentData && currentData.patterns.length > 0 && (
-            <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '12px' }}>
-                <span style={{ color: '#6366f1', fontSize: '14px' }}>⬡</span>
-                <span style={{ color: 'white', fontWeight: 700, fontSize: '13px' }}>Detected Patterns</span>
-                <span style={{ color: '#3f3f46', fontSize: '10px' }}>{currentData.patterns.length} found</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {currentData.patterns.map((pattern: any, i: number) => (
-                  <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pattern.type === 'bullish' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: '8px', padding: '10px 12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {pattern.type === 'bullish'
-                          ? <TrendingUp size={12} style={{ color: '#34d399' }} />
-                          : <TrendingDown size={12} style={{ color: '#f87171' }} />}
-                        <span style={{ color: 'white', fontWeight: 600, fontSize: '12px' }}>{pattern.name}</span>
-                      </div>
-                      <span style={{ color: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#71717a', fontSize: '11px', fontWeight: 700 }}>{pattern.confidence?.toFixed(0)}%</span>
-                    </div>
-                    <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)', borderRadius: '1px', marginBottom: '4px' }}>
-                      <div style={{ height: '100%', borderRadius: '1px', width: `${Math.min(pattern.confidence, 100)}%`, background: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#52525b' }} />
-                    </div>
-                    <p style={{ color: '#52525b', fontSize: '10px', margin: 0 }}>{pattern.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </aside>
 
         {/* ── RIGHT COLUMN: Chart + Analysis ── */}
@@ -402,7 +373,7 @@ export default function Home() {
                     <span style={{ fontSize: '14px' }}>Generating analysis...</span>
                   </div>
                 ) : analysis ? (
-                  <AnalysisReport report={analysis} />
+                  <AnalysisReport report={analysis} patterns={currentData?.patterns} />
                 ) : null}
               </div>
 

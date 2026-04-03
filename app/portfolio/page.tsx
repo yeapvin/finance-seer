@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Calendar, BarChart3, FileText, Clock, LineChart } from 'lucide-react'
+import { Loader, ArrowLeft, TrendingUp, TrendingDown, DollarSign, Calendar, BarChart3, FileText, Clock, LineChart } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 const PortfolioValueChart = dynamic(() => import('@/components/PortfolioValueChart'), { ssr: false })

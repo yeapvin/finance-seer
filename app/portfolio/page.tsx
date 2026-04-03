@@ -177,8 +177,8 @@ export default function PortfolioPage() {
             </div>
           </div>
 
-          {/* Portfolio Value Chart */}
-          <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px' }}>
+          {/* Portfolio Value Chart — fixed height, won't grow */}
+          <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
               <LineChart size={14} style={{ color: '#6366f1' }} />
               <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portfolio Value</span>
@@ -187,7 +187,7 @@ export default function PortfolioPage() {
           </div>
 
           {/* Disclaimer */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '10px 12px' }}>
+          <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '10px 12px', marginTop: 'auto' }}>
             <p style={{ color: '#3f3f46', fontSize: '10px', lineHeight: '1.5', margin: 0 }}>
               Simulated portfolio for educational purposes. No real money invested. Not financial advice.
             </p>

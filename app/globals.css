@@ -390,3 +390,44 @@ input:focus, select:focus, textarea:focus {
   grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
+
+/* ── Mobile fixes ── */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.left-panel {
+  width: 100%;
+  max-width: 100%;
+  padding: 16px;
+}
+
+.right-panel {
+  width: 100%;
+  max-width: 100%;
+  padding: 16px;
+}
+
+/* Ensure nothing overflows on mobile */
+.left-panel > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.right-panel > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .left-panel {
+    padding: 24px 20px;
+  }
+  .right-panel {
+    padding: 24px;
+  }
+}

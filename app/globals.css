@@ -317,23 +317,27 @@ input:focus, select:focus, textarea:focus {
 
 /* ── Responsive two-column layout ── */
 .main-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 .left-panel {
   border-bottom: 1px solid rgba(255,255,255,0.06);
+  width: 100%;
 }
 
 .right-panel {
-  min-height: 0;
+  width: 100%;
 }
 
-/* Desktop: equal 50/50 split, sticky left panel */
+/* Desktop: side-by-side, sticky left panel */
 @media (min-width: 768px) {
   .main-grid {
+    display: grid;
     grid-template-columns: 1fr 1fr;
     min-height: calc(100vh - 56px);
+    flex-direction: unset;
   }
 
   .left-panel {
@@ -351,7 +355,7 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
-/* Large desktop: slightly favour right (chart needs more space) */
+/* Large desktop: slightly favour right */
 @media (min-width: 1280px) {
   .main-grid {
     grid-template-columns: 2fr 3fr;
@@ -362,12 +366,13 @@ input:focus, select:focus, textarea:focus {
 .analysis-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
+  gap: 20px;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 900px) {
   .analysis-grid {
     grid-template-columns: 1fr 1fr;
+    gap: 24px;
   }
 }
 
@@ -378,7 +383,7 @@ input:focus, select:focus, textarea:focus {
   gap: 10px;
 }
 
-@media (min-width: 480px) {
+@media (min-width: 600px) {
   .patterns-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -407,7 +412,6 @@ html, body {
   max-width: 100%;
   min-width: 0;
   padding: 16px;
-  /* Do NOT use height/overflow on mobile — keyboard resize breaks it */
 }
 
 .right-panel {

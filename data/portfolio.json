@@ -1,0 +1,184 @@
+{
+  "startDate": "2026-03-29",
+  "startingCapital": 100000,
+  "cash": 62584.28,
+  "positions": [
+    {
+      "ticker": "NVDA",
+      "shares": 119,
+      "avgCost": 167.52,
+      "buyDate": "2026-03-29",
+      "buyPrice": 167.52,
+      "currentPrice": 176.34,
+      "stopLoss": 160,
+      "takeProfit": 178,
+      "signal": "BUY",
+      "reason": "Contrarian buy at support $167. RSI oversold. High beta. Resistance $178."
+    },
+    {
+      "ticker": "AAPL",
+      "shares": 80,
+      "avgCost": 248.8,
+      "buyDate": "2026-03-29",
+      "buyPrice": 248.8,
+      "currentPrice": 254.06,
+      "stopLoss": 245,
+      "takeProfit": 258,
+      "signal": "BUY",
+      "reason": "Blue chip at tight support $248. Near 52-week low. Resistance $258."
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-03-29",
+      "action": "BUY",
+      "ticker": "GOOGL",
+      "shares": 36,
+      "price": 274.34,
+      "total": 9876.24,
+      "reason": "HOLD signal \u2014 best technical setup."
+    },
+    {
+      "date": "2026-03-29",
+      "action": "BUY",
+      "ticker": "COST",
+      "shares": 20,
+      "price": 983.86,
+      "total": 19677.2,
+      "reason": "HOLD signal \u2014 defensive positioning."
+    },
+    {
+      "date": "2026-03-29",
+      "action": "BUY",
+      "ticker": "NVDA",
+      "shares": 119,
+      "price": 167.52,
+      "total": 19934.88,
+      "reason": "Contrarian buy at support $167."
+    },
+    {
+      "date": "2026-03-29",
+      "action": "BUY",
+      "ticker": "AAPL",
+      "shares": 80,
+      "price": 248.8,
+      "total": 19904.0,
+      "reason": "Blue chip at tight support $248."
+    },
+    {
+      "date": "2026-03-29",
+      "action": "BUY",
+      "ticker": "AMZN",
+      "shares": 100,
+      "price": 199.34,
+      "total": 19934.0,
+      "reason": "At support $199. Oversold."
+    },
+    {
+      "date": "2026-03-31",
+      "action": "SELL",
+      "ticker": "COST",
+      "shares": 20,
+      "price": 1007.78,
+      "total": 20155.6,
+      "reason": "Take-profit hit at $1004 (current $1007.78). Profit: $478.40 (+2.43%)."
+    },
+    {
+      "date": "2026-04-01",
+      "action": "SELL",
+      "ticker": "GOOGL",
+      "shares": 36,
+      "price": 294.25,
+      "total": 10593.0,
+      "reason": "Take-profit hit at $291 (current $294.25). Profit: $716.76 (+7.26%)."
+    },
+    {
+      "date": "2026-04-01",
+      "action": "SELL",
+      "ticker": "AMZN",
+      "shares": 100,
+      "price": 211.62,
+      "total": 21162.0,
+      "reason": "Take-profit hit at $211 (current $211.62). Profit: $1228.0 (+6.16%)."
+    }
+  ],
+  "closedPositions": [
+    {
+      "ticker": "COST",
+      "shares": 20,
+      "buyDate": "2026-03-29",
+      "buyPrice": 983.86,
+      "sellDate": "2026-03-31",
+      "sellPrice": 1007.78,
+      "profit": 478.4,
+      "profitPct": 2.43,
+      "pnl": 478.4,
+      "pnlPct": 2.43,
+      "reason": "Take-profit hit."
+    },
+    {
+      "ticker": "GOOGL",
+      "shares": 36,
+      "buyDate": "2026-03-29",
+      "buyPrice": 274.34,
+      "sellDate": "2026-04-01",
+      "sellPrice": 294.25,
+      "profit": 716.76,
+      "profitPct": 7.26,
+      "pnl": 716.76,
+      "pnlPct": 7.26,
+      "reason": "Take-profit hit."
+    },
+    {
+      "ticker": "AMZN",
+      "shares": 100,
+      "buyDate": "2026-03-29",
+      "buyPrice": 199.34,
+      "sellDate": "2026-04-01",
+      "sellPrice": 211.62,
+      "profit": 1228.0,
+      "profitPct": 6.16,
+      "pnl": 1228.0,
+      "pnlPct": 6.16,
+      "reason": "Take-profit hit."
+    }
+  ],
+  "cooldowns": {},
+  "strategyNotes": [
+    {
+      "date": "2026-03-29",
+      "note": "Initial portfolio setup. Market broadly bearish. Strategy: contrarian buys at key support levels for 3 stocks (NVDA, AAPL, AMZN) plus 2 defensive HOLD-signal picks (GOOGL, COST). Position sizing ~$20K each."
+    },
+    {
+      "date": "2026-03-30",
+      "note": "Growth mandate: capital ceiling = total portfolio market value (positions + cash). Only deploy up to this ceiling. 3-day settlement after selling before proceeds can be reused. Stop-losses and take-profits set per position. No adding capital."
+    },
+    {
+      "date": "2026-03-31",
+      "note": "Sold COST at take-profit ($1007.78 vs TP $1004). First closed trade. +$478.40. Cash now $30,829.28. 3-day cooldown on COST until 2026-04-03."
+    },
+    {
+      "date": "2026-04-01",
+      "note": "Sold GOOGL at take-profit ($294.25 vs TP $291). +$716.76 (+7.26%). Cash now $41422.28. GOOGL cooldown until 2026-04-04. NVDA approaching TP $178 (at $175.71). AAPL approaching TP $258 (at $255.30)."
+    },
+    {
+      "date": "2026-04-01",
+      "note": "Sold AMZN at take-profit ($211.62 vs TP $211). +$1228.0 (+6.16%). Cash now $62584.28. Two positions remaining: NVDA ($176.34, TP $178) and AAPL ($254.06, TP $258)."
+    }
+  ],
+  "monthlyReviews": [],
+  "valueHistory": [
+    {
+      "date": "2026-03-29",
+      "value": 100000.0
+    },
+    {
+      "date": "2026-03-31",
+      "value": 102407.64
+    },
+    {
+      "date": "2026-04-01",
+      "value": 103893.54
+    }
+  ]
+}

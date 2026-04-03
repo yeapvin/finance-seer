@@ -2,6 +2,7 @@ node_modules/
 .next/
 .env.local
 .env
-data/
+data/*.db
+data/*.sqlite
 *.tar.gz
 *.zip

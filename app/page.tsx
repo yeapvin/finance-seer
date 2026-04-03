@@ -34,7 +34,7 @@ export default function Home() {
   const [portfolio, setPortfolio] = useState<any>(null)
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null)
   const [stock, setStock] = useState<any>(null)
-  const [period, setPeriod] = useState<Period>('1mo')
+  const [period, setPeriod] = useState<Period>('1d')
   const [stockLoading, setStockLoading] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState<any>(null)
@@ -106,7 +106,7 @@ export default function Home() {
       periodCache.current[selectedTicker] = {}
       const [sRes, defaultData] = await Promise.all([
         fetch(`/api/stock/${selectedTicker}`).then(r => r.ok ? r.json() : null).catch(() => null),
-        fetchPeriod(selectedTicker, '1mo'),
+        fetchPeriod(selectedTicker, '1d'),
       ])
       if (cancelled) return
       if (sRes) setStock(sRes)
@@ -116,7 +116,7 @@ export default function Home() {
       fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticker: selectedTicker }) })
         .then(r => r.ok ? r.json() : null).then(data => { if (!cancelled && data) setAnalysis(data) })
         .catch(() => {}).finally(() => { if (!cancelled) setAnalyzing(false) })
-      const remaining = PERIODS.filter(p => p !== '1mo')
+      const remaining = PERIODS.filter(p => p !== '1d')
       setLoadingPeriods(new Set(remaining))
       await Promise.all(remaining.map(async (p) => {
         await fetchPeriod(selectedTicker, p)
@@ -293,68 +293,42 @@ export default function Home() {
             <>
               {/* Period Selector + Indicator Toggles + Chart — all in one card */}
               <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '20px' }}>
-                {/* Row 1: Period buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                  <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px' }}>Price Chart</h3>
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {PERIODS.map(p => {
-                      const cached = !!periodCache.current[selectedTicker]?.[p]
-                      const loading = loadingPeriods.has(p)
-                      return (
-                        <button key={p} onClick={() => setPeriod(p)}
-                          style={{
-                            padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none',
-                            background: period === p ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : 'rgba(255,255,255,0.06)',
-                            color: period === p ? 'white' : '#71717a',
-                            opacity: !cached && loading ? 0.5 : 1
-                          }}>
-                          {p.toUpperCase()}
-                        </button>
-                      )
-                    })}
+                {/* Price Chart header: period left, overlays right */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  {/* Left: title + period selector */}
+                  <div>
+                    <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px', marginBottom: '8px' }}>Price Chart</h3>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {PERIODS.map(p => {
+                        const cached = !!periodCache.current[selectedTicker]?.[p]
+                        const loading = loadingPeriods.has(p)
+                        return (
+                          <button key={p} onClick={() => setPeriod(p)}
+                            style={{
+                              padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none',
+                              background: period === p ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : 'rgba(255,255,255,0.06)',
+                              color: period === p ? 'white' : '#71717a',
+                              opacity: !cached && loading ? 0.5 : 1
+                            }}>
+                            {p.toUpperCase()}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-
-                {/* Row 2: Overlay indicators (on price chart) */}
-                <div style={{ marginBottom: '8px' }}>
-                  <div style={{ color: '#3f3f46', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>Overlays</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                  {/* Right: overlay toggles */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'flex-end', maxWidth: '55%' }}>
                     {([
                       { key: 'sma20', label: 'SMA 20', color: '#f59e0b' },
                       { key: 'sma50', label: 'SMA 50', color: '#8b5cf6' },
                       { key: 'sma200', label: 'SMA 200', color: '#ec4899' },
                       { key: 'ema12', label: 'EMA 12', color: '#06b6d4' },
                       { key: 'ema26', label: 'EMA 26', color: '#14b8a6' },
-                      { key: 'bollingerBands', label: 'Bollinger', color: '#6366f1' },
                     ] as { key: keyof typeof showIndicators; label: string; color: string }[]).map(({ key, label, color }) => {
                       const active = showIndicators[key]
                       return (
                         <button key={key} onClick={() => setShowIndicators(prev => ({ ...prev, [key]: !prev[key] }))}
-                          style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                            border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,
-                            background: active ? `${color}22` : 'transparent',
-                            color: active ? color : '#52525b', transition: 'all 0.15s' }}>
-                          {label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Subchart indicators (below price chart) */}
-                <div style={{ paddingBottom: '14px', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '16px' }}>
-                  <div style={{ color: '#3f3f46', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>Subcharts</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                    {([
-                      { key: 'volume', label: 'Volume', color: '#3b82f6' },
-                      { key: 'rsi', label: 'RSI', color: '#f97316' },
-                      { key: 'macd', label: 'MACD', color: '#a78bfa' },
-                      { key: 'stochastic', label: 'Stoch', color: '#34d399' },
-                    ] as { key: keyof typeof showIndicators; label: string; color: string }[]).map(({ key, label, color }) => {
-                      const active = showIndicators[key]
-                      return (
-                        <button key={key} onClick={() => setShowIndicators(prev => ({ ...prev, [key]: !prev[key] }))}
-                          style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                          style={{ padding: '3px 9px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                             border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,
                             background: active ? `${color}22` : 'transparent',
                             color: active ? color : '#52525b', transition: 'all 0.15s' }}>
@@ -372,7 +346,7 @@ export default function Home() {
                     <span style={{ color: '#52525b', fontSize: '13px' }}>Loading {period.toUpperCase()}...</span>
                   </div>
                 ) : currentData?.history.length && currentData.indicators ? (
-                  <StockChart data={currentData.history} indicators={currentData.indicators} showIndicators={showIndicators} />
+                  <StockChart data={currentData.history} indicators={currentData.indicators} showIndicators={showIndicators} onToggleIndicator={(key) => setShowIndicators(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))} />
                 ) : null}
               </div>
 

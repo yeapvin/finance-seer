@@ -20,6 +20,7 @@ interface StockChartProps {
     stochastic: boolean
     volume: boolean
   }
+  onToggleIndicator?: (key: string) => void
 }
 
 function toTime(d: any) {
@@ -32,7 +33,7 @@ function validLine(arr: number[], data: HistoricalData[]) {
     .filter((d) => d.value !== null && d.value !== undefined && !isNaN(d.value))
 }
 
-export function StockChart({ data, indicators, showIndicators }: StockChartProps) {
+export function StockChart({ data, indicators, showIndicators, onToggleIndicator }: StockChartProps) {
   const priceRef = useRef<HTMLDivElement>(null)
   const volumeRef = useRef<HTMLDivElement>(null)
   const rsiRef = useRef<HTMLDivElement>(null)
@@ -270,27 +271,59 @@ export function StockChart({ data, indicators, showIndicators }: StockChartProps
     }
   }, [data, indicators, showIndicators, showVolume, showRSI, showMACD])
 
+  const subchartToggles = [
+    { key: 'bollingerBands', label: 'Bollinger', color: '#6366f1' },
+    { key: 'volume', label: 'Volume', color: '#3b82f6' },
+    { key: 'rsi', label: 'RSI', color: '#f97316' },
+    { key: 'macd', label: 'MACD', color: '#a78bfa' },
+    { key: 'stochastic', label: 'Stoch', color: '#34d399' },
+  ] as { key: keyof typeof showIndicators; label: string; color: string }[]
+
   return (
-    <div className='space-y-1'>
-      <div ref={priceRef} className='w-full card-glass overflow-hidden' style={{ minHeight: '420px' }} />
-      {showVolume && (
-        <div>
-          <div className='text-xs text-zinc-500 px-2 py-1 font-medium'>Volume · <span className='text-yellow-500'>MA(20)</span></div>
-          <div ref={volumeRef} className='w-full card-glass overflow-hidden' style={{ minHeight: '120px' }} />
-        </div>
-      )}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      {/* Price chart */}
+      <div ref={priceRef} className='w-full overflow-hidden' style={{ minHeight: '380px', borderRadius: '8px', background: '#0a0a0a' }} />
+
+      {/* Volume chart — always rendered as base subchart */}
+      <div>
+        <div style={{ fontSize: '11px', color: '#52525b', padding: '4px 8px', fontWeight: 600 }}>Volume · <span style={{ color: '#f59e0b' }}>MA(20)</span></div>
+        <div ref={volumeRef} className='w-full overflow-hidden' style={{ minHeight: '100px', borderRadius: '8px', background: '#0a0a0a' }} />
+      </div>
+
+      {/* Subchart toggles — sit between Volume and the oscillators they control */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', padding: '8px 4px', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        {subchartToggles.map(({ key, label, color }) => {
+          const active = showIndicators[key]
+          return (
+            <button key={key}
+              onClick={() => onToggleIndicator && onToggleIndicator(key)}
+              style={{
+                padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,
+                background: active ? `${color}22` : 'transparent',
+                color: active ? color : '#52525b', transition: 'all 0.15s'
+              }}>
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Oscillator subcharts */}
       {showRSI && (
         <div>
-          <div className='text-xs text-zinc-500 px-2 py-1 font-medium'>
-            {showIndicators.rsi && 'RSI'}{showIndicators.rsi && showIndicators.stochastic && ' · '}{showIndicators.stochastic && 'Stochastic'}
+          <div style={{ fontSize: '11px', color: '#52525b', padding: '4px 8px', fontWeight: 600 }}>
+            {showIndicators.rsi && <span style={{ color: '#f97316' }}>RSI</span>}
+            {showIndicators.rsi && showIndicators.stochastic && ' · '}
+            {showIndicators.stochastic && <span style={{ color: '#34d399' }}>Stochastic</span>}
           </div>
-          <div ref={rsiRef} className='w-full card-glass overflow-hidden' style={{ minHeight: '150px' }} />
+          <div ref={rsiRef} className='w-full overflow-hidden' style={{ minHeight: '130px', borderRadius: '8px', background: '#0a0a0a' }} />
         </div>
       )}
       {showMACD && (
         <div>
-          <div className='text-xs text-zinc-500 px-2 py-1 font-medium'>MACD</div>
-          <div ref={macdRef} className='w-full card-glass overflow-hidden' style={{ minHeight: '150px' }} />
+          <div style={{ fontSize: '11px', color: '#a78bfa', padding: '4px 8px', fontWeight: 600 }}>MACD</div>
+          <div ref={macdRef} className='w-full overflow-hidden' style={{ minHeight: '130px', borderRadius: '8px', background: '#0a0a0a' }} />
         </div>
       )}
     </div>

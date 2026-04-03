@@ -1,4 +1,4 @@
-# Finance Oracle - AI-Powered Stock Analysis Platform
+# Finance Seer - AI-Powered Stock Analysis Platform
 
 A professional, full-featured stock analysis web application built with Next.js 14, TypeScript, and real-time market data from Yahoo Finance.
 
@@ -94,7 +94,7 @@ Real-time alert checking with status dashboard and triggered notifications.
 ## 📋 Project Structure
 
 ```
-finance-oracle/
+finance-seer/
 ├── app/
 │   ├── layout.tsx                 # Root layout with navbar
 │   ├── page.tsx                   # Landing page
@@ -154,7 +154,7 @@ finance-oracle/
 
 1. **Clone and install dependencies:**
 ```bash
-cd finance-oracle
+cd finance-seer
 npm install
 ```
 
@@ -175,7 +175,7 @@ npm run dev
 4. **Open [http://localhost:3000](http://localhost:3000)**
 
 ### Demo Account
-- Email: `demo@finance-oracle.com`
+- Email: `demo@finance-seer.com`
 - Password: `demo123`
 - Or use "Try Demo Account" button on login page
 

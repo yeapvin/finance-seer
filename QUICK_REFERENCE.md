@@ -1,16 +1,16 @@
-# Finance Oracle - Quick Reference Guide
+# Finance Seer - Quick Reference Guide
 
 ## 🚀 Quick Start (Copy & Paste)
 
 ```bash
-cd /home/ubuntu/.openclaw/workspace/finance-oracle
+cd /home/ubuntu/.openclaw/workspace/finance-seer
 npm install
 npm run dev
 # Open http://localhost:3000
 ```
 
 ## 🔑 Demo Account
-- **Email:** demo@finance-oracle.com
+- **Email:** demo@finance-seer.com
 - **Password:** demo123
 - **Or:** Click "Try Demo Account" button
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getHistoricalData } from '@/lib/yahoo'
+import { getHistoricalData, getIntradayData } from '@/lib/yahoo'
 import { calculateAllIndicators } from '@/lib/indicators'
 import { detectPatterns } from '@/lib/patterns'
 
@@ -20,7 +20,13 @@ export async function GET(
       | '1y'
       | '5y'
 
-    const history = await getHistoricalData(ticker, period)
+    // For 1D period, use intraday 1-minute data instead
+    let history
+    if (period === '1d') {
+      history = await getIntradayData(ticker)
+    } else {
+      history = await getHistoricalData(ticker, period)
+    }
 
     const prices = history.map((h) => h.close)
     const highs = history.map((h) => h.high)
@@ -38,8 +44,11 @@ export async function GET(
       patterns,
     })
 
-    // Cache successful responses at the edge for 1 hour
-    response.headers.set('Cache-Control', 'public, max-age=3600')
+    // Cache successful responses at the edge
+    // Intraday (1d): shorter cache (15 min) for freshness
+    // Daily+: longer cache (1 hour)
+    const cacheMax = period === '1d' ? 900 : 3600
+    response.headers.set('Cache-Control', `public, max-age=${cacheMax}`)
 
     return response
   } catch (error) {
@@ -50,3 +59,4 @@ export async function GET(
     )
   }
 }
+

@@ -1,7 +1,7 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'Finance Oracle - AI-Powered Stock Analysis',
+  title: 'Finance Seer - AI-Powered Stock Analysis',
   description: 'Real-time charts, technical indicators, pattern recognition, and AI-driven investment analysis — free and open.',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   themeColor: '#000000',

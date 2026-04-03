@@ -1,4 +1,4 @@
-# Deployment Guide for Finance Oracle
+# Deployment Guide for Finance Seer
 
 ## 🚀 Deployment Options
 
@@ -13,9 +13,9 @@
    ```bash
    git init
    git add .
-   git commit -m "Initial Finance Oracle commit"
+   git commit -m "Initial Finance Seer commit"
    git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/finance-oracle.git
+   git remote add origin https://github.com/YOUR_USERNAME/finance-seer.git
    git push -u origin main
    ```
 
@@ -97,8 +97,8 @@
 
 3. **Clone repository:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/finance-oracle.git
-   cd finance-oracle
+   git clone https://github.com/YOUR_USERNAME/finance-seer.git
+   cd finance-seer
    npm install
    ```
 
@@ -109,7 +109,7 @@
 
 5. **Start with PM2:**
    ```bash
-   pm2 start npm --name "finance-oracle" -- start
+   pm2 start npm --name "finance-seer" -- start
    pm2 startup
    pm2 save
    ```
@@ -169,14 +169,14 @@ CMD ["npm", "start"]
 
 #### Build and Run
 ```bash
-docker build -t finance-oracle .
-docker run -p 3000:3000 -e OPENAI_API_KEY=xxx finance-oracle
+docker build -t finance-seer .
+docker run -p 3000:3000 -e OPENAI_API_KEY=xxx finance-seer
 ```
 
 #### Push to Docker Hub
 ```bash
-docker tag finance-oracle YOUR_USERNAME/finance-oracle
-docker push YOUR_USERNAME/finance-oracle
+docker tag finance-seer YOUR_USERNAME/finance-seer
+docker push YOUR_USERNAME/finance-seer
 ```
 
 #### Deploy to Docker Compose
@@ -185,7 +185,7 @@ version: '3.8'
 
 services:
   app:
-    image: finance-oracle:latest
+    image: finance-seer:latest
     ports:
       - "3000:3000"
     environment:
@@ -196,7 +196,7 @@ services:
   postgres:
     image: postgres:15
     environment:
-      - POSTGRES_DB=finance_oracle
+      - POSTGRES_DB=finance_seer
       - POSTGRES_PASSWORD=securepassword
     volumes:
       - postgres_data:/var/lib/postgresql/data

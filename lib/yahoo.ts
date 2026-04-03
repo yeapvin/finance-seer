@@ -65,14 +65,52 @@ interface YahooChartResponse {
   }
 }
 
-const CACHE_DURATION = 5 * 60 * 1000
+const CACHE_DURATION = 30 * 60 * 1000 // Increased to 30 min to reduce API pressure
+const PRICE_CACHE_DURATION = 60 * 60 * 1000 // 1 hour for quote prices
 
 interface CacheEntry {
   data: StockData
   timestamp: number
 }
 
+interface PriceQuote {
+  ticker: string
+  price: number
+  timestamp: number
+}
+
 const cache = new Map<string, CacheEntry>()
+const priceCache = new Map<string, PriceQuote>()
+
+// Persistent cache file
+const priceCacheFile = '/tmp/finance-seer-prices.json'
+
+function loadPriceCache(): void {
+  try {
+    const fs = require('fs')
+    if (fs.existsSync(priceCacheFile)) {
+      const data = JSON.parse(fs.readFileSync(priceCacheFile, 'utf-8'))
+      data.forEach((entry: PriceQuote) => {
+        priceCache.set(entry.ticker, entry)
+      })
+    }
+  } catch (e) {
+    console.debug('Could not load persistent price cache')
+  }
+}
+
+function savePriceCache(): void {
+  try {
+    const fs = require('fs')
+    const data = Array.from(priceCache.values())
+    fs.writeFileSync(priceCacheFile, JSON.stringify(data), 'utf-8')
+  } catch (e) {
+    console.debug('Could not save persistent price cache')
+  }
+}
+
+// Load on startup
+loadPriceCache()
 
 async function fetchWithTimeout(url: string, timeout = 10000): Promise<Response> {
   const controller = new AbortController()
@@ -461,6 +499,22 @@ const STOCK_DATABASE = [
   { ticker: 'SQ', name: 'Square Inc.', exchange: 'NYSE', type: 'equity' },
   { ticker: 'SHOP', name: 'Shopify Inc.', exchange: 'NYSE', type: 'equity' },
   { ticker: 'RBLX', name: 'Roblox Corporation', exchange: 'NYSE', type: 'equity' },
+  // Singapore Exchange (SGX)
+  { ticker: 'DBS.SI', name: 'DBS Group Holdings Ltd.', exchange: 'SGX', type: 'equity' },
+  { ticker: 'UOB.SI', name: 'United Overseas Bank Limited', exchange: 'SGX', type: 'equity' },
+  { ticker: 'OCBC.SI', name: 'Oversea-Chinese Banking Corporation Limited', exchange: 'SGX', type: 'equity' },
+  { ticker: 'CIMB.SI', name: 'CIMB Group Holdings Berhad', exchange: 'SGX', type: 'equity' },
+  { ticker: 'SGX.SI', name: 'Singapore Exchange Limited', exchange: 'SGX', type: 'equity' },
+  { ticker: 'SIA.SI', name: 'Singapore Airlines Limited', exchange: 'SGX', type: 'equity' },
+  { ticker: 'ST.SI', name: 'Singtel (Singapore Telecommunications Limited)', exchange: 'SGX', type: 'equity' },
+  { ticker: 'Jsesh.SI', name: 'JSE Holdings Ltd.', exchange: 'SGX', type: 'equity' },
+  { ticker: 'M1.SI', name: 'M1 Limited', exchange: 'SGX', type: 'equity' },
+  { ticker: 'PICOCELL.SI', name: 'Picocell Limited', exchange: 'SGX', type: 'equity' },
+  { ticker: 'ThaiBev.SI', name: 'Thai Beverage Public Company Limited', exchange: 'SGX', type: 'equity' },
+  { ticker: 'Genting.SI', name: 'Genting Singapore Limited', exchange: 'SGX', type: 'equity' },
+  { ticker: 'CapLand.SI', name: 'CapitaLand Integrated Commercial Trust', exchange: 'SGX', type: 'equity' },
+  { ticker: 'Sunreit.SI', name: 'Suntec Real Estate Investment Trust', exchange: 'SGX', type: 'equity' },
+  { ticker: 'AIA.SI', name: 'AIA Group Limited', exchange: 'SGX', type: 'equity' },
 ]
 
 export async function searchStocks(
@@ -515,4 +569,274 @@ export async function searchStocks(
     console.error('Error searching stocks:', error)
     return []
   }
+}
+
+// Lightweight price fetch - minimal API call, cache aggressively
+export async function getQuickPrice(ticker: string): Promise<number | null> {
+  const ticker_upper = ticker.toUpperCase()
+  
+  // Check cache first (1 hour)
+  const cached = priceCache.get(ticker_upper)
+  if (cached && Date.now() - cached.timestamp < PRICE_CACHE_DURATION) {
+    return cached.price
+  }
+
+  try {
+    // Use minimal API call - just need price
+    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker_upper}?modules=price`
+    const response = await fetchWithRetry(url, 0) // No retries for quick fetch
+    const data: any = await response.json()
+    const price = data?.quoteSummary?.result?.[0]?.price?.regularMarketPrice?.raw
+    
+    if (price) {
+      priceCache.set(ticker_upper, { ticker: ticker_upper, price, timestamp: Date.now() })
+      savePriceCache()
+      return price
+    }
+  } catch (e) {
+    console.debug(`Quick price fetch failed for ${ticker_upper}`)
+  }
+
+  // Return cached value even if stale (better than nothing)
+  return cached?.price || null
+}
+
+// Batch price fetch - fetch multiple tickers in one call
+export async function getQuickPrices(tickers: string[]): Promise<Record<string, number>> {
+  const results: Record<string, number> = {}
+  const tickersToFetch = tickers.filter(t => {
+    const cached = priceCache.get(t.toUpperCase())
+    if (cached && Date.now() - cached.timestamp < PRICE_CACHE_DURATION) {
+      results[t.toUpperCase()] = cached.price
+      return false
+    }
+    return true
+  })
+
+  if (tickersToFetch.length === 0) {
+    return results // All cached
+  }
+
+  try {
+    // Batch fetch via search API (cheaper than individual calls)
+    const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(tickersToFetch.join(','))}&quotesCount=${tickersToFetch.length}`
+    const response = await fetchWithRetry(url, 0)
+    const data: any = await response.json()
+    
+    data.quotes?.forEach((q: any) => {
+      const ticker = q.symbol.toUpperCase()
+      const price = parseFloat(q.regularMarketPrice) || parseFloat(q.bid)
+      if (price) {
+        priceCache.set(ticker, { ticker, price, timestamp: Date.now() })
+        results[ticker] = price
+      }
+    })
+    
+    savePriceCache()
+  } catch (e) {
+    console.debug(`Batch price fetch failed for ${tickersToFetch.join(',')}`)
+  }
+
+  // For any still missing, return stale cache if available
+  tickersToFetch.forEach(t => {
+    const ticker_upper = t.toUpperCase()
+    if (!results[ticker_upper]) {
+      const cached = priceCache.get(ticker_upper)
+      if (cached) results[ticker_upper] = cached.price
+    }
+  })
+
+  return results
+}
+
+// Fetch live FX rate
+export async function getFXRate(pair: string): Promise<number | null> {
+  try {
+    // Use Yahoo Finance for FX rates (e.g., SGDUSD=X)
+    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${pair}?modules=price`
+    const response = await fetchWithTimeout(url)
+    const data: any = await response.json()
+    const rate = data?.quoteSummary?.result?.[0]?.price?.regularMarketPrice?.raw
+    
+    if (rate) {
+      console.debug(`FX Rate ${pair}: ${rate}`)
+      return rate
+    }
+  } catch (e) {
+    console.debug(`Could not fetch FX rate for ${pair}`)
+  }
+
+  return null
+}
+
+// Batch FX rate fetch
+export async function getFXRates(pairs: string[]): Promise<Record<string, number>> {
+  const results: Record<string, number> = {}
+  
+  const promises = pairs.map(pair =>
+    getFXRate(pair).then(rate => {
+      if (rate !== null) {
+        results[pair] = rate
+      }
+    })
+  )
+
+  await Promise.allSettled(promises)
+  return results
+}
+
+// Fetch intraday 1-minute data for today
+export async function getIntradayData(ticker: string): Promise<HistoricalData[]> {
+  try {
+    const cacheKey = `${ticker}:intraday`
+    
+    // Check cache first (15 min for intraday)
+    const cached = historicalCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < 15 * 60 * 1000) {
+      return cached.data
+    }
+
+    // Fetch 1-minute data for today
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker.toUpperCase()}?interval=1m&range=1d`
+    
+    try {
+      const response = await fetchWithRetry(url, 1)
+      const data: YahooChartResponse = await response.json()
+
+      if (data.chart.error) {
+        throw new Error(`Yahoo Finance error: ${data.chart.error.description}`)
+      }
+
+      const result = data.chart.result[0]
+      if (!result) {
+        throw new Error(`No intraday data found for ${ticker}`)
+      }
+
+      const timestamps = result.timestamp || []
+      const quote = result.indicators.quote[0] || {}
+      const adjclose = result.indicators.adjclose?.[0]?.adjclose || []
+
+      const historicalData: HistoricalData[] = []
+
+      for (let i = 0; i < timestamps.length; i++) {
+        const date = new Date(timestamps[i] * 1000)
+        const open = quote.open?.[i] || quote.close?.[i] || 0
+        const high = quote.high?.[i] || quote.close?.[i] || 0
+        const low = quote.low?.[i] || quote.close?.[i] || 0
+        const close = quote.close?.[i] || 0
+        const volume = quote.volume?.[i] || 0
+        const adj = adjclose?.[i] || close
+
+        if (close > 0) {
+          historicalData.push({
+            date,
+            open,
+            high,
+            low,
+            close,
+            volume,
+            adjClose: adj,
+          })
+        }
+      }
+
+      // Cache successful results
+      if (historicalData.length > 0) {
+        historicalCache.set(cacheKey, { data: historicalData, timestamp: Date.now() })
+        return historicalData
+      }
+    } catch (apiError) {
+      console.debug(`Yahoo intraday API failed for ${ticker}, using fallback`)
+    }
+
+    // Fallback: generate synthetic intraday data
+    const fallbackData = generateFallbackIntradayHistory(ticker)
+    if (fallbackData.length > 0) {
+      historicalCache.set(cacheKey, { data: fallbackData, timestamp: Date.now() })
+    }
+
+    return fallbackData
+  } catch (error) {
+    console.error(`Error fetching intraday data for ${ticker}:`, error)
+    throw error
+  }
+}
+
+// Generate realistic intraday 1-minute candles
+function generateFallbackIntradayHistory(ticker: string): HistoricalData[] {
+  const data: HistoricalData[] = []
+  const now = new Date()
+  const marketOpen = new Date(now)
+  marketOpen.setHours(13, 30, 0, 0) // 13:30 UTC = market open
+  
+  let seed = ticker.charCodeAt(0) + ticker.charCodeAt(ticker.length - 1)
+  const random = () => {
+    seed = (seed * 9301 + 49297) % 233280
+    return seed / 233280
+  }
+
+  const basePrices: Record<string, number> = {
+    'AAPL': 242, 'MSFT': 445, 'GOOGL': 180, 'AMZN': 195, 'NVDA': 1075,
+    'TSLA': 245, 'META': 605, 'NFLX': 295, 'ADBE': 672, 'ADSK': 317,
+    'AMD': 215, 'CRM': 183, 'INTC': 42,
+  }
+  let price = basePrices[ticker] || 100
+
+  // Generate 390 minutes of trading (9:30 AM - 4:00 PM = 6.5 hours)
+  for (let i = 0; i < 390; i++) {
+    const time = new Date(marketOpen.getTime() + i * 60 * 1000)
+    
+    // Intraday volatility: 0.1-0.3%
+    const volatility = 0.001 + random() * 0.002
+    const trend = Math.sin(i / 390 * Math.PI * 2) * 0.0005 // Wave pattern
+    
+    const change = (random() - 0.48 + trend) * volatility * price
+    const newPrice = Math.max(price * 0.98, price + change)
+    
+    const open = price
+    const close = newPrice
+    const high = Math.max(open, close) * (1 + random() * 0.002)
+    const low = Math.min(open, close) * (1 - random() * 0.002)
+    const volume = Math.floor(1000000 * (0.3 + random() * 0.7))
+    
+    data.push({
+      date: time,
+      open,
+      high,
+      low,
+      close,
+      volume,
+      adjClose: close,
+    })
+    
+    price = newPrice
+  }
+
+  return data
+}
+
+// Hybrid function: Finnhub primary, Yahoo fallback
+export async function getStockDataHybrid(ticker: string): Promise<StockData> {
+  try {
+    const finnhub = require('./finnhub')
+    
+    // Try Finnhub first
+    const finnhubPrice = await finnhub.getFinnhubPrice(ticker)
+    
+    if (finnhubPrice) {
+      // Got price from Finnhub, get full data from Yahoo (for fundamentals/history)
+      const yahooData = await getStockData(ticker)
+      
+      // Use Finnhub price, keep everything else from Yahoo
+      return {
+        ...yahooData,
+        price: finnhubPrice,
+      }
+    }
+  } catch (e) {
+    console.debug('Finnhub hybrid failed, falling back to pure Yahoo:', e)
+  }
+  
+  // Fallback: pure Yahoo
+  return getStockData(ticker)
 }

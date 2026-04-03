@@ -1,4 +1,4 @@
-# Finance Oracle - Development Guide
+# Finance Seer - Development Guide
 
 ## 🛠️ Development Environment Setup
 
@@ -12,7 +12,7 @@
 
 1. **Clone and navigate:**
    ```bash
-   cd /home/ubuntu/.openclaw/workspace/finance-oracle
+   cd /home/ubuntu/.openclaw/workspace/finance-seer
    ```
 
 2. **Install dependencies:**

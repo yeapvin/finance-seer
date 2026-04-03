@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getFinnhubPrices } from '@/lib/finnhub'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,40 +18,97 @@ const COMPANY_NAMES: Record<string, string> = {
   TSLA: 'Tesla Inc.',
   NFLX: 'Netflix Inc.',
   AMD: 'Advanced Micro Devices Inc.',
+  // SGX
+  'DBS.SI': 'DBS Group Holdings',
+  'UOB.SI': 'United Overseas Bank',
+  'OCBC.SI': 'OCBC Bank',
+  'SIA.SI': 'Singapore Airlines',
+  'ST.SI': 'Singtel',
+}
+
+// Fallback to Yahoo Finance if Finnhub fails
+async function getYahooPrice(ticker: string): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
+      { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, signal: AbortSignal.timeout(8000) }
+    )
+    if (res.ok) {
+      const data = await res.json()
+      const closes = (data.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [])
+        .filter((v: any) => v !== null && v !== undefined && !isNaN(v))
+      if (closes.length > 0) {
+        return closes[closes.length - 1]
+      }
+    }
+  } catch (e) {
+    console.debug(`Yahoo fallback failed for ${ticker}`)
+  }
+  return null
+}
+
+// Helper to fetch live FX rate
+async function getFXRate(pair: string): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${pair}?interval=1d&range=5d`,
+      { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, signal: AbortSignal.timeout(8000) }
+    )
+    if (res.ok) {
+      const data = await res.json()
+      const closes = (data.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [])
+        .filter((v: any) => v !== null && v !== undefined && !isNaN(v))
+      if (closes.length > 0) {
+        return closes[closes.length - 1]
+      }
+    }
+  } catch (e) {
+    console.debug(`FX rate fetch failed for ${pair}:`, e)
+  }
+  return null
 }
 
 export async function GET() {
   try {
     const portfolio = JSON.parse(JSON.stringify(portfolioData)) as any
 
-    // Fetch current prices for all position tickers in one batch
+    // Fetch live FX rates
+    const fxRates = portfolio.fxRates || {}
+    const sgdUsdRate = await getFXRate('SGDUSD=X')
+    if (sgdUsdRate) {
+      fxRates.SGDUSD = sgdUsdRate
+      fxRates.lastUpdated = new Date().toISOString()
+    }
+
+    // Fetch current prices for all position tickers
     const positions = portfolio.positions || []
     const tickers = [...new Set(positions.map((p: any) => p.ticker))]
-    const priceMap: Record<string, number> = {}
+    
+    // Try Finnhub first (primary)
+    let priceMap: Record<string, number> = {}
+    try {
+      priceMap = await getFinnhubPrices(tickers)
+    } catch (e) {
+      console.warn('Finnhub batch fetch failed, falling back to Yahoo')
+    }
 
-    // Fetch all prices in parallel
-    await Promise.all(
-      tickers.map(async (ticker: string) => {
-        try {
-          const res = await fetch(
-            `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
-            { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, signal: AbortSignal.timeout(8000) }
-          )
-          if (res.ok) {
-            const data = await res.json()
-            const closes = (data.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [])
-              .filter((v: any) => v !== null && v !== undefined && !isNaN(v))
-            if (closes.length > 0) {
-              priceMap[ticker] = closes[closes.length - 1]
-            }
-          }
-        } catch {}
+    // Fallback to Yahoo for any missing prices
+    const missingTickers = tickers.filter(t => !priceMap[t.toUpperCase()])
+    if (missingTickers.length > 0) {
+      const yahooResults = await Promise.all(
+        missingTickers.map(async (ticker: string) => {
+          const price = await getYahooPrice(ticker)
+          return { ticker: ticker.toUpperCase(), price }
+        })
+      )
+      yahooResults.forEach(({ ticker, price }) => {
+        if (price) priceMap[ticker] = price
       })
-    )
+    }
 
     // Update positions with live prices, fall back to avgCost if no price available
     const updatedPositions = positions.map((pos: any) => {
-      const livePrice = priceMap[pos.ticker] || pos.avgCost
+      const livePrice = priceMap[pos.ticker.toUpperCase()] || pos.avgCost
       return {
         ...pos,
         currentPrice: livePrice,
@@ -62,7 +120,13 @@ export async function GET() {
       (sum: number, pos: any) => sum + pos.shares * pos.currentPrice,
       0
     )
-    const totalValue = portfolio.cash + positionsValue
+    
+    // Total cash: USD + (SGD / FX rate)
+    const cashByValue = portfolio.cashByValue || { USD: portfolio.cash || 0, SGD: 0 }
+    const sgdUsdConversion = fxRates.SGDUSD || 0.75
+    const totalCash = (cashByValue.USD || 0) + ((cashByValue.SGD || 0) / sgdUsdConversion)
+    
+    const totalValue = totalCash + positionsValue
     const totalReturn = totalValue - portfolio.startingCapital
     const totalReturnPct = (totalReturn / portfolio.startingCapital) * 100
     const now = new Date()
@@ -96,8 +160,8 @@ export async function GET() {
         unrealizedPnl: Math.round(unrealizedPnl * 100) / 100,
         unrealizedPct: Math.round(unrealizedPct * 100) / 100,
         daysHeld,
-        canTrade: daysHeld >= 3,
         signal: pos.signal,
+        currency: pos.currency || 'USD',
       }
     })
 
@@ -154,10 +218,17 @@ export async function GET() {
       closedPositions: enrichedClosed,
       cooldowns: validCooldowns,
       valueHistory,
+      fxRates,
+      cashByValue: {
+        USD: cashByValue.USD || 0,
+        SGD: cashByValue.SGD || 0,
+      },
       summary: {
         totalValue: Math.round(totalValue * 100) / 100,
         capitalCeiling: Math.round(totalValue * 100) / 100,
-        cash: portfolio.cash,
+        cash: Math.round(totalCash * 100) / 100,
+        cashUSD: Math.round((cashByValue.USD || 0) * 100) / 100,
+        cashSGD: Math.round((cashByValue.SGD || 0) * 100) / 100,
         positionsValue: Math.round(positionsValue * 100) / 100,
         totalReturn: Math.round(totalReturn * 100) / 100,
         totalReturnPct: Math.round(totalReturnPct * 100) / 100,

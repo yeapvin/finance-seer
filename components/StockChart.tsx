@@ -64,6 +64,21 @@ export function StockChart({ data, indicators, showIndicators }: StockChartProps
       handleScale: false,
     })
 
+    // Prevent wheel zoom from affecting page scroll
+    const preventWheelZoom = (e: WheelEvent) => {
+      // Allow normal scroll, only prevent if trying to zoom
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+      }
+    }
+
+    const chartContainers = [priceRef, volumeRef, rsiRef, macdRef]
+    chartContainers.forEach(ref => {
+      if (ref.current) {
+        ref.current.addEventListener('wheel', preventWheelZoom, { passive: false })
+      }
+    })
+
     // ── Price Chart ──
     const priceChart = createChart(priceRef.current, chartOpts(420))
     charts.push(priceChart)
@@ -262,6 +277,12 @@ export function StockChart({ data, indicators, showIndicators }: StockChartProps
 
     return () => {
       window.removeEventListener('resize', handleResize)
+      // Clean up wheel event listeners
+      chartContainers.forEach(ref => {
+        if (ref.current) {
+          ref.current.removeEventListener('wheel', preventWheelZoom)
+        }
+      })
       charts.forEach(c => c.remove())
     }
   }, [data, indicators, showIndicators, showVolume, showRSI, showMACD])

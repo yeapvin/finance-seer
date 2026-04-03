@@ -117,7 +117,7 @@ export function AnalysisReportComponent({ report }: { report: AnalysisReport }) 
       // Footer
       doc.setFontSize(7)
       doc.setTextColor(70, 70, 80)
-      doc.text('Finance Oracle — For informational purposes only. Not financial advice.', margin, pageHeight - 10)
+      doc.text('Finance Seer — For informational purposes only. Not financial advice.', margin, pageHeight - 10)
       doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin - 20, pageHeight - 10)
     }
 

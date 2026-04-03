@@ -1,7 +1,15 @@
 {
   "startDate": "2026-03-29",
   "startingCapital": 100000,
-  "cash": 62584.28,
+  "baseCurrency": "USD",
+  "fxRates": {
+    "SGDUSD": 0.7498,
+    "lastUpdated": "2026-04-02T16:50Z"
+  },
+  "cashByValue": {
+    "USD": 22615.76,
+    "SGD": 0
+  },
   "positions": [
     {
       "ticker": "NVDA",
@@ -9,7 +17,8 @@
       "avgCost": 167.52,
       "buyDate": "2026-03-29",
       "buyPrice": 167.52,
-      "currentPrice": 176.34,
+      "currentPrice": 176.64,
+      "currency": "USD",
       "stopLoss": 160,
       "takeProfit": 178,
       "signal": "BUY",
@@ -21,11 +30,38 @@
       "avgCost": 248.8,
       "buyDate": "2026-03-29",
       "buyPrice": 248.8,
-      "currentPrice": 254.06,
+      "currentPrice": 254.69,
+      "currency": "USD",
       "stopLoss": 245,
       "takeProfit": 258,
       "signal": "BUY",
       "reason": "Blue chip at tight support $248. Near 52-week low. Resistance $258."
+    },
+    {
+      "ticker": "CRM",
+      "shares": 109,
+      "avgCost": 183.53,
+      "buyDate": "2026-04-02",
+      "buyPrice": 183.53,
+      "currentPrice": 183.53,
+      "currency": "USD",
+      "stopLoss": 175.72,
+      "takeProfit": 200.85,
+      "signal": "BUY",
+      "reason": "Deeply oversold (RSI 22) at support $179.31. Contrarian entry. Resistance $200.85."
+    },
+    {
+      "ticker": "SNOW",
+      "shares": 132,
+      "avgCost": 151.34,
+      "buyDate": "2026-04-02",
+      "buyPrice": 151.34,
+      "currentPrice": 151.34,
+      "currency": "USD",
+      "stopLoss": 144,
+      "takeProfit": 168,
+      "signal": "BUY",
+      "reason": "Oversold (RSI 39.71) at 52-week support $153.84. Contrarian reversal setup. Trend target $168."
     }
   ],
   "history": [
@@ -100,6 +136,24 @@
       "price": 211.62,
       "total": 21162.0,
       "reason": "Take-profit hit at $211 (current $211.62). Profit: $1228.0 (+6.16%)."
+    },
+    {
+      "date": "2026-04-02",
+      "action": "BUY",
+      "ticker": "CRM",
+      "shares": 109,
+      "price": 183.53,
+      "total": 19984.77,
+      "reason": "Deeply oversold (RSI 22) at support. Contrarian reversal play."
+    },
+    {
+      "date": "2026-04-02",
+      "action": "BUY",
+      "ticker": "SNOW",
+      "shares": 132,
+      "price": 151.34,
+      "total": 19983.88,
+      "reason": "Oversold (RSI 39.71) at support $153.84. Contrarian bounce setup."
     }
   ],
   "closedPositions": [
@@ -151,19 +205,27 @@
     },
     {
       "date": "2026-03-30",
-      "note": "Growth mandate: capital ceiling = total portfolio market value (positions + cash). Only deploy up to this ceiling. 3-day settlement after selling before proceeds can be reused. Stop-losses and take-profits set per position. No adding capital."
+      "note": "Growth mandate: capital ceiling = total portfolio market value (positions + cash). Only deploy up to this ceiling. Stop-losses and take-profits set per position. No adding capital."
     },
     {
       "date": "2026-03-31",
-      "note": "Sold COST at take-profit ($1007.78 vs TP $1004). First closed trade. +$478.40. Cash now $30,829.28. 3-day cooldown on COST until 2026-04-03."
+      "note": "Sold COST at take-profit ($1007.78 vs TP $1004). First closed trade. +$478.40. Cash now $30,829.28."
     },
     {
       "date": "2026-04-01",
-      "note": "Sold GOOGL at take-profit ($294.25 vs TP $291). +$716.76 (+7.26%). Cash now $41422.28. GOOGL cooldown until 2026-04-04. NVDA approaching TP $178 (at $175.71). AAPL approaching TP $258 (at $255.30)."
+      "note": "Sold GOOGL at take-profit ($294.25 vs TP $291). +$716.76 (+7.26%). Cash now $41422.28. NVDA approaching TP $178 (at $175.71). AAPL approaching TP $258 (at $255.30)."
     },
     {
       "date": "2026-04-01",
       "note": "Sold AMZN at take-profit ($211.62 vs TP $211). +$1228.0 (+6.16%). Cash now $62584.28. Two positions remaining: NVDA ($176.34, TP $178) and AAPL ($254.06, TP $258)."
+    },
+    {
+      "date": "2026-04-02",
+      "note": "Bought 109 CRM @ $183.53 (-$19,984.77). RSI 22 (deeply oversold) at support $179. TP $200.85. Market scan: AMD, AVGO also oversold but CRM strongest signal. Cash now $42,599.51."
+    },
+    {
+      "date": "2026-04-02T16:56Z",
+      "note": "AFTERNOON SCAN: Deployed $20K to SNOW @ $151.34 (132 shares). RSI oversold (39.71), at support $153.84. TP $168. NVDA/AAPL still approaching their exits. Cash now $22,615.76. Portfolio value ~$124K."
     }
   ],
   "monthlyReviews": [],
@@ -179,6 +241,10 @@
     {
       "date": "2026-04-01",
       "value": 103893.54
+    },
+    {
+      "date": "2026-04-02",
+      "value": 103979.64
     }
   ]
 }

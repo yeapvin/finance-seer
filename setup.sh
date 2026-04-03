@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Finance Oracle Setup Script
+# Finance Seer Setup Script
 
-echo "🚀 Finance Oracle - Setup & Initialization"
+echo "🚀 Finance Seer - Setup & Initialization"
 echo "==========================================="
 echo ""
 
@@ -56,6 +56,6 @@ echo ""
 echo "Then open http://localhost:3000 in your browser"
 echo ""
 echo "📝 Demo Account:"
-echo "   Email: demo@finance-oracle.com"
+echo "   Email: demo@finance-seer.com"
 echo "   Password: demo123"
 echo ""

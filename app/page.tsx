@@ -124,7 +124,7 @@ export default function Home() {
 
       // Fetch stock quote + default period in parallel
       const [sRes, defaultData] = await Promise.all([
-        fetch(`/api/stock/${selectedTicker}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`/api/stock/${selectedTicker}`).then(r => r.ok ? r.json() : null).catch((e) => { console.error('Stock fetch error:', e); return null }),
         fetchPeriod(selectedTicker, '1mo'),
       ])
 
@@ -196,7 +196,7 @@ export default function Home() {
               <Zap size={14} className='text-yellow-400' /> AI-Powered Stock Intelligence
             </div>
             <h1 className='text-5xl md:text-7xl font-extrabold mb-5 tracking-tight'>
-              <span className='text-gradient'>Finance Oracle</span>
+              <span className='text-gradient'>Finance Seer</span>
             </h1>
             <p className='text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed'>
               Real-time charts, technical indicators, pattern recognition, and AI-driven investment analysis.
@@ -288,11 +288,14 @@ export default function Home() {
               <Loader className='animate-spin text-blue-400' size={36} />
               <span className='text-zinc-400 ml-4'>Loading {selectedTicker}...</span>
             </div>
-          ) : !stock ? (
+          ) : !stock || !currentData ? (
             <div className='card-glass p-6'>
               <div className='flex items-start gap-3'>
                 <AlertTriangle className='text-red-400 flex-shrink-0' size={20} />
-                <p className='text-red-400'>Failed to load {selectedTicker}. Check the symbol and try again.</p>
+                <div>
+                  <p className='text-red-400'>Failed to load {selectedTicker}. Check the symbol and try again.</p>
+                  <p className='text-zinc-500 text-xs mt-2'>Stock data: {stock ? '✓' : '✗'} · Chart data: {currentData ? '✓' : '✗'}</p>
+                </div>
               </div>
             </div>
           ) : (

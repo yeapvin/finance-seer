@@ -1,4 +1,4 @@
-# Finance Oracle - Project Completion Summary
+# Finance Seer - Project Completion Summary
 
 ## ✅ Project Status: COMPLETE
 
@@ -286,7 +286,7 @@ All features fully implemented. No stubs, no TODOs. Complete, production-ready c
 
 ### Quick Start (5 minutes)
 ```bash
-cd /home/ubuntu/.openclaw/workspace/finance-oracle
+cd /home/ubuntu/.openclaw/workspace/finance-seer
 npm install
 npm run dev
 # Open http://localhost:3000
@@ -294,7 +294,7 @@ npm run dev
 
 ### Try Demo
 - Click "Try Demo Account" on login page
-- Or use: demo@finance-oracle.com / demo123
+- Or use: demo@finance-seer.com / demo123
 
 ### First Steps
 1. Search for a stock (e.g., AAPL)
@@ -357,7 +357,7 @@ This project demonstrates:
 
 ## 🎉 Summary
 
-**Finance Oracle is a complete, professional-grade stock analysis web application ready for:**
+**Finance Seer is a complete, professional-grade stock analysis web application ready for:**
 - Development and learning
 - Personal use
 - Commercial deployment

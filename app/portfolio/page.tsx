@@ -59,7 +59,7 @@ export default function PortfolioPage() {
     <div className='min-h-screen bg-black'>
       <div className='max-w-4xl mx-auto px-4 py-8'>
         <a href='/' className='inline-flex items-center gap-2 text-zinc-500 hover:text-white text-sm mb-6 transition-colors'>
-          <ArrowLeft size={16} /> Back to Finance Oracle
+          <ArrowLeft size={16} /> Back to Finance Seer
         </a>
 
         <h1 className='text-3xl md:text-4xl font-extrabold mb-2'>
@@ -67,7 +67,7 @@ export default function PortfolioPage() {
             AI Portfolio
           </span>
         </h1>
-        <p className='text-zinc-500 text-sm mb-8'>$100K virtual portfolio managed by Finance Oracle&apos;s AI analysis engine</p>
+        <p className='text-zinc-500 text-sm mb-8'>$100K virtual portfolio managed by Finance Seer&apos;s AI analysis engine</p>
 
         {/* Summary Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '24px' }}>
@@ -191,9 +191,7 @@ export default function PortfolioPage() {
                     </div>
                     <div>
                       <div className='text-zinc-600 text-xs'>Status</div>
-                      {ti && (ti.canTrade
-                        ? <div className='text-emerald-400 text-sm'>Can trade ({ti.daysHeld}d held)</div>
-                        : <div className='text-zinc-500 text-sm'>Hold {3 - ti.daysHeld}d more</div>)}
+                      <div className='text-emerald-400 text-sm'>Can trade ({ti?.daysHeld || 0}d held)</div>
                     </div>
                   </div>
                   <div className='text-zinc-600 text-xs'>{pos.reason}</div>
@@ -352,7 +350,7 @@ export default function PortfolioPage() {
         <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '12px 16px' }}>
           <p className='text-zinc-600 text-xs leading-relaxed'>
             This is a simulated portfolio for educational purposes. No real money is invested. Past performance does not indicate future results.
-            Trading decisions are made by Finance Oracle&apos;s algorithmic analysis engine. Not financial advice.
+            Trading decisions are made by Finance Seer&apos;s algorithmic analysis engine. Not financial advice.
           </p>
         </div>
       </div>

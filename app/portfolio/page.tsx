@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader, ArrowLeft, TrendingUp, TrendingDown, DollarSign, Calendar, BarChart3, FileText, Clock, LineChart } from 'lucide-react'
+import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Calendar, BarChart3, FileText, Clock, LineChart } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 const PortfolioValueChart = dynamic(() => import('@/components/PortfolioValueChart'), { ssr: false })
@@ -25,54 +25,9 @@ function fmtPct(n: number) { return (n >= 0 ? '+' : '') + n.toFixed(2) + '%' }
 export default function PortfolioPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [monitoring, setMonitoring] = useState(false)
-  const [actions, setActions] = useState<any[]>([])
-  const [executing, setExecuting] = useState<string | null>(null)
-  const [monitorSummary, setMonitorSummary] = useState<any>(null)
-
-  const refreshData = () => {
-    fetch('/api/portfolio').then(r => r.json()).then(d => setData(d))
-  }
-
   useEffect(() => {
     fetch('/api/portfolio').then(r => r.json()).then(d => { setData(d); setLoading(false) }).catch(() => setLoading(false))
   }, [])
-
-  const runMonitor = async () => {
-    setMonitoring(true)
-    setActions([])
-    try {
-      const res = await fetch('/api/portfolio/monitor', { method: 'POST' })
-      const result = await res.json()
-      if (result.actions) {
-        setActions(result.actions)
-        setMonitorSummary(result.summary)
-        refreshData()
-      }
-    } catch (e) {
-      alert('Monitor failed. Please try again.')
-    }
-    setMonitoring(false)
-  }
-
-  const executeAction = async (action: any) => {
-    setExecuting(action.ticker + action.type)
-    try {
-      const res = await fetch('/api/portfolio/monitor', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
-      })
-      const result = await res.json()
-      if (result.success) {
-        setActions(prev => prev.filter(a => !(a.ticker === action.ticker && a.type === action.type)))
-        refreshData()
-      }
-    } catch (e) {
-      alert('Failed to execute trade.')
-    }
-    setExecuting(null)
-  }
 
   if (loading) return (
     <div className='min-h-screen bg-black flex items-center justify-center'>
@@ -106,58 +61,6 @@ export default function PortfolioPage() {
           <ArrowLeft size={16} /> Back to Finance Seer
         </a>
 
-        {/* Monitor Button */}
-        <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <button
-            onClick={runMonitor}
-            disabled={monitoring}
-            style={{
-              padding: '10px 24px', borderRadius: '10px', fontWeight: 700, fontSize: '14px', cursor: monitoring ? 'not-allowed' : 'pointer',
-              background: monitoring ? '#1f1f1f' : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-              color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '8px'
-            }}
-          >
-            {monitoring ? <><Loader size={14} className='animate-spin' /> Analysing positions...</> : '🔍 Run Market Analysis'}
-          </button>
-          {monitorSummary && (
-            <span style={{ color: '#71717a', fontSize: '13px' }}>
-              {monitorSummary.actionsFound} signal{monitorSummary.actionsFound !== 1 ? 's' : ''} found · Portfolio value {fmt(monitorSummary.totalValue)}
-            </span>
-          )}
-        </div>
-
-        {/* Action Cards */}
-        {actions.length > 0 && (
-          <div style={{ background: '#0d1117', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '14px', padding: '20px', marginBottom: '24px' }}>
-            <h2 style={{ color: '#a78bfa', fontWeight: 700, fontSize: '16px', marginBottom: '12px' }}>⚡ AI Trading Signals</h2>
-            <div className='space-y-3'>
-              {actions.map((action: any, i: number) => (
-                <div key={i} style={{
-                  background: '#111', borderRadius: '10px', padding: '14px',
-                  border: action.type === 'BUY' ? '1px solid rgba(16,185,129,0.3)' : action.type === 'SELL' ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(255,255,255,0.06)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                      <span style={{
-                        fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '4px',
-                        background: action.type === 'BUY' ? 'rgba(16,185,129,0.15)' : action.type === 'SELL' ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)',
-                        color: action.type === 'BUY' ? '#34d399' : action.type === 'SELL' ? '#f87171' : '#a1a1aa'
-                      }}>{action.type}</span>
-                      <span style={{ color: '#fff', fontWeight: 700 }}>{action.ticker}</span>
-                      <span style={{ color: '#71717a', fontSize: '13px' }}>${action.currentPrice?.toFixed(2)} · {action.shares} shares</span>
-                      {action.urgent && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239,68,68,0.2)', color: '#f87171' }}>URGENT</span>}
-                    </div>
-                    <span style={{ fontSize: '11px', color: '#52525b', fontStyle: 'italic' }}>Auto-executed</span>
-                  </div>
-                  <p style={{ color: '#71717a', fontSize: '12px', marginTop: '6px' }}>{action.reason}</p>
-                  {action.type === 'BUY' && action.cost && (
-                    <p style={{ color: '#34d399', fontSize: '12px', marginTop: '2px' }}>Cost: {fmt(action.cost)}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         <h1 className='text-3xl md:text-4xl font-extrabold mb-2'>
           <span style={{ background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>

@@ -1,59 +1,45 @@
+/**
+ * Portfolio Monitor — Full autonomous trading engine
+ * - Scans full SGX/NYSE universe (not fixed basket)
+ * - Uses RSI, MACD, Bollinger, Stochastic, SMA/EMA, ATR for technical analysis
+ * - Detects 15+ chart patterns
+ * - Pulls real news sentiment via Finnhub
+ * - Uses Groq LLM to synthesise everything into a trading strategy
+ * - Dynamic SL/TP based on ATR and support/resistance (not fixed %)
+ * - Equities and ETFs only
+ */
 import { NextResponse } from 'next/server'
 import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { calculateAllIndicators } from '@/lib/indicators'
-import { detectPatterns } from '@/lib/patterns'
+import { detectPatterns, findSupportResistance } from '@/lib/patterns'
+import { screenMarket, getCurrentMarketSession, getDetailedAnalysis } from '@/lib/screener'
 
 export const dynamic = 'force-dynamic'
 
 const PORTFOLIO_PATH = join(process.cwd(), 'data', 'portfolio.json')
 
-function readPortfolio() {
-  return JSON.parse(readFileSync(PORTFOLIO_PATH, 'utf-8'))
-}
+function readPortfolio() { return JSON.parse(readFileSync(PORTFOLIO_PATH, 'utf-8')) }
+function writePortfolio(data: any) { writeFileSync(PORTFOLIO_PATH, JSON.stringify(data, null, 2)) }
+function today() { return new Date().toISOString().split('T')[0] }
+function nowISO() { return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z') }
+function isSGX(ticker: string) { return ticker.endsWith('.SI') }
+function getCurrency(ticker: string) { return isSGX(ticker) ? 'SGD' : 'USD' }
+function fmt(n: number, currency = 'USD') { return `${currency} $${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
 
-function writePortfolio(data: any) {
-  writeFileSync(PORTFOLIO_PATH, JSON.stringify(data, null, 2))
-}
-
-function today() {
-  return new Date().toISOString().split('T')[0]
-}
-
-function isSGX(ticker: string) {
-  return ticker.endsWith('.SI')
-}
-
-function getCurrency(ticker: string) {
-  return isSGX(ticker) ? 'SGD' : 'USD'
-}
-
-function fmtCurrency(amount: number, currency: string) {
-  return `${currency} $${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-// Send Telegram alert via OpenClaw
-async function sendTelegramAlert(message: string) {
+async function sendTelegram(message: string) {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_CHAT_ID
+  if (!token || !chatId) return
   try {
-    const token = process.env.TELEGRAM_BOT_TOKEN
-    const chatId = process.env.TELEGRAM_CHAT_ID
-    if (!token || !chatId) return
-
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'Markdown'
-      })
+      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
     })
-  } catch (e) {
-    console.error('Telegram alert failed:', e)
-  }
+  } catch (e) { console.error('Telegram failed:', e) }
 }
 
-// Fetch live FX rate SGD/USD
 async function fetchFXRate(): Promise<number> {
   try {
     const apiKey = process.env.FINNHUB_API_KEY
@@ -61,219 +47,269 @@ async function fetchFXRate(): Promise<number> {
     const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=OANDA:SGD_USD&token=${apiKey}`)
     const data = await res.json()
     return data.c || 0.7498
-  } catch {
-    return 0.7498
-  }
+  } catch { return 0.7498 }
 }
 
-// Fetch candle data from Finnhub
-async function fetchCandles(ticker: string): Promise<{ prices: number[]; highs: number[]; lows: number[]; currentPrice: number } | null> {
+// Calculate ATR (Average True Range) for dynamic SL/TP
+function calculateATR(highs: number[], lows: number[], closes: number[], period = 14): number {
+  if (highs.length < period + 1) return 0
+  const trs: number[] = []
+  for (let i = 1; i < highs.length; i++) {
+    const tr = Math.max(
+      highs[i] - lows[i],
+      Math.abs(highs[i] - closes[i - 1]),
+      Math.abs(lows[i] - closes[i - 1])
+    )
+    trs.push(tr)
+  }
+  const recent = trs.slice(-period)
+  return recent.reduce((a, b) => a + b, 0) / recent.length
+}
+
+// Use Groq LLM to make the final trading decision
+async function getLLMDecision(prompt: string): Promise<any> {
+  const apiKey = process.env.OPENAI_API_KEY
+  const apiUrl = process.env.OPENAI_API_URL || 'https://api.groq.com/openai/v1/chat/completions'
+  if (!apiKey) return null
+
   try {
-    const apiKey = process.env.FINNHUB_API_KEY
-    // For SGX tickers, Finnhub uses different symbol format
-    const symbol = isSGX(ticker) ? ticker.replace('.SI', ':SP') : ticker
-    const to = Math.floor(Date.now() / 1000)
-    const from = to - 90 * 24 * 60 * 60
-    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${to}&token=${apiKey}`
-    const res = await fetch(url)
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert quantitative trader and portfolio manager. 
+You analyse stocks using technical indicators, chart patterns, and news sentiment.
+You make precise, data-driven trading decisions with specific price targets.
+Always respond with valid JSON only — no markdown, no explanation outside the JSON.`
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 800
+      })
+    })
+    if (!res.ok) return null
     const data = await res.json()
-    if (data.s === 'ok' && data.c?.length > 0) {
-      return {
-        prices: data.c,
-        highs: data.h,
-        lows: data.l,
-        currentPrice: data.c[data.c.length - 1]
-      }
-    }
-    return null
-  } catch {
-    return null
-  }
+    const content = data.choices?.[0]?.message?.content || ''
+    const match = content.match(/\{[\s\S]*\}/)
+    return match ? JSON.parse(match[0]) : null
+  } catch { return null }
 }
 
-// Build learning context from past trades
-function buildLearningContext(portfolio: any) {
-  const closed = portfolio.closedPositions || []
-  if (closed.length === 0) return { winRate: 50, avgWin: 0, avgLoss: 0, bestTickers: [], worstTickers: [] }
+async function analyseStock(ticker: string, portfolio: any, apiKey: string): Promise<any> {
+  const detail = await getDetailedAnalysis(ticker, apiKey)
+  if (!detail || detail.prices.length < 50) return null
 
-  const wins = closed.filter((p: any) => p.pnl > 0)
-  const losses = closed.filter((p: any) => p.pnl <= 0)
-  const winRate = (wins.length / closed.length) * 100
-  const avgWin = wins.length > 0 ? wins.reduce((s: number, p: any) => s + p.pnlPct, 0) / wins.length : 0
-  const avgLoss = losses.length > 0 ? losses.reduce((s: number, p: any) => s + p.pnlPct, 0) / losses.length : 0
-  const bestTickers = wins.map((p: any) => p.ticker)
-  const worstTickers = losses.map((p: any) => p.ticker)
-  return { winRate, avgWin, avgLoss, bestTickers, worstTickers }
-}
-
-async function analyzeStock(ticker: string, portfolio: any) {
-  const candles = await fetchCandles(ticker)
-  if (!candles) return null
-
-  const { prices, highs, lows, currentPrice } = candles
+  const { prices, highs, lows, volumes, currentPrice, newsHeadlines, sentimentScore } = detail
   const indicators = calculateAllIndicators(prices, highs, lows)
   const patterns = detectPatterns(prices, { open: prices, high: highs, low: lows, close: prices })
+  const { support, resistance } = findSupportResistance(prices)
 
-  const rsi = indicators.rsi?.[indicators.rsi.length - 1] ?? 50
-  const macd = indicators.macd?.[indicators.macd.length - 1] ?? 0
-  const macdSignal = indicators.macdSignal?.[indicators.macdSignal.length - 1] ?? 0
-  const sma20 = indicators.sma20?.[indicators.sma20.length - 1] ?? 0
-  const sma50 = indicators.sma50?.[indicators.sma50.length - 1] ?? 0
-
-  // Apply learnings from past trades
-  const learning = buildLearningContext(portfolio)
-  let bull = 0, bear = 0
-
-  if (currentPrice > sma20) bull++; else bear++
-  if (currentPrice > sma50) bull++; else bear++
-  if (macd > macdSignal) bull++; else bear++
-  if (rsi < 30) bull += 2
-  if (rsi > 70) bear += 2
-  if (rsi > 50 && rsi <= 70) bull++
-  if (rsi < 50 && rsi >= 30) bear++
-  patterns.forEach((p: any) => { if (p.type === 'bullish') bull++; if (p.type === 'bearish') bear++ })
-
-  // Learning boost: if this ticker was previously profitable, slightly favour it
-  if (learning.bestTickers.includes(ticker)) bull++
-  if (learning.worstTickers.includes(ticker)) bear++
-
-  // Require stronger conviction if win rate is low (be more conservative)
-  const threshold = learning.winRate < 40 ? 4 : 3
-
-  let signal: 'BUY' | 'SELL' | 'HOLD'
-  let reason: string
-
-  const bbStr = indicators.bollingerBands?.length
-    ? (() => { const bb = indicators.bollingerBands![indicators.bollingerBands!.length - 1]; return bb ? ` BB $${bb.lower.toFixed(2)}-$${bb.upper.toFixed(2)}.` : '' })()
-    : ''
-  const smaStr = sma20 > 0 && sma50 > 0
-    ? ` SMA20 $${sma20.toFixed(2)}, SMA50 $${sma50.toFixed(2)}.`
-    : ''
-  const patternStr = patterns.length > 0
-    ? ` Pattern: ${patterns[0].name} (${patterns[0].confidence.toFixed(0)}%).`
-    : ''
-  const learnStr = learning.winRate > 0 ? ` Win rate: ${learning.winRate.toFixed(0)}%.` : ''
-
-  if (bull >= bear + threshold) {
-    signal = 'BUY'
-    const strategyType = rsi < 35 ? 'Contrarian buy (oversold)' : macd > macdSignal && currentPrice > sma20 ? 'Momentum buy' : 'Technical buy'
-    reason = `${strategyType} at $${currentPrice.toFixed(2)}. RSI ${rsi.toFixed(0)}${rsi < 35 ? ' (oversold)' : ''}.${smaStr}${bbStr}${patternStr} Resistance $${(currentPrice * 1.08).toFixed(2)}.${learnStr}`
-  } else if (bear >= bull + threshold) {
-    signal = 'SELL'
-    const strategyType = rsi > 68 ? 'Take-profit (overbought)' : currentPrice < sma20 ? 'Stop-loss (below SMA20)' : 'Technical sell'
-    reason = `${strategyType} at $${currentPrice.toFixed(2)}. RSI ${rsi.toFixed(0)}${rsi > 68 ? ' (overbought)' : ''}.${smaStr}${patternStr} Support $${(currentPrice * 0.93).toFixed(2)}.${learnStr}`
-  } else {
-    signal = 'HOLD'
-    reason = `Hold at $${currentPrice.toFixed(2)}. RSI ${rsi.toFixed(0)}, mixed signals (${bull}B/${bear}R). Await clearer direction.`
+  const last = (arr: number[] | undefined) => arr?.filter(v => !isNaN(v)).slice(-1)[0] ?? 0
+  const lastBB = (arr: Array<{upper:number;middle:number;lower:number}> | undefined) => {
+    const v = arr?.filter(v => !isNaN(v.middle)).slice(-1)[0]
+    return v ?? { upper: 0, middle: 0, lower: 0 }
+  }
+  const lastStoch = (arr: Array<{k:number;d:number}> | undefined) => {
+    const v = arr?.filter(v => !isNaN(v.k)).slice(-1)[0]
+    return v ?? { k: 50, d: 50 }
   }
 
-  return { ticker, currentPrice, signal, reason, rsi, bull, bear, currency: getCurrency(ticker) }
+  const rsi = last(indicators.rsi)
+  const macd = last(indicators.macd)
+  const macdSignal = last(indicators.macdSignal)
+  const macdHist = last(indicators.macdHistogram)
+  const sma20 = last(indicators.sma20)
+  const sma50 = last(indicators.sma50)
+  const sma200 = last(indicators.sma200)
+  const ema12 = last(indicators.ema12)
+  const ema26 = last(indicators.ema26)
+  const bb = lastBB(indicators.bollingerBands)
+  const stoch = lastStoch(indicators.stochastic)
+  const atr = calculateATR(highs, lows, prices)
+  const currency = getCurrency(ticker)
+
+  // Portfolio context for LLM
+  const closed = (portfolio.closedPositions || []).slice(-10)
+  const held = (portfolio.positions || []).map((p: any) => p.ticker)
+  const winRate = closed.length > 0
+    ? (closed.filter((p: any) => p.pnl > 0).length / closed.length * 100).toFixed(0)
+    : 'N/A'
+
+  const prompt = `Analyse ${ticker} (${currency}) for a portfolio currently worth ~$${
+    ((portfolio.cashByValue?.USD || 0) + (portfolio.positions || []).reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)).toFixed(0)
+  } USD with ${(portfolio.cashByValue?.USD || 0).toFixed(0)} USD cash available.
+
+CURRENT PRICE: ${currentPrice.toFixed(2)} ${currency}
+POSITION STATUS: ${held.includes(ticker) ? 'CURRENTLY HELD' : 'NOT HELD'}
+
+TECHNICAL INDICATORS:
+- RSI(14): ${rsi.toFixed(1)} ${rsi < 30 ? '← OVERSOLD' : rsi > 70 ? '← OVERBOUGHT' : ''}
+- MACD: ${macd.toFixed(4)} | Signal: ${macdSignal.toFixed(4)} | Histogram: ${macdHist.toFixed(4)} ${macd > macdSignal ? '← BULLISH CROSS' : '← BEARISH CROSS'}
+- SMA20: ${sma20.toFixed(2)} | SMA50: ${sma50.toFixed(2)} | SMA200: ${sma200.toFixed(2)}
+- EMA12: ${ema12.toFixed(2)} | EMA26: ${ema26.toFixed(2)}
+- Bollinger Bands: Upper ${bb.upper.toFixed(2)} | Mid ${bb.middle.toFixed(2)} | Lower ${bb.lower.toFixed(2)}
+- Price vs BB: ${currentPrice > bb.upper ? 'ABOVE upper (overbought)' : currentPrice < bb.lower ? 'BELOW lower (oversold)' : 'Within bands'}
+- Stochastic K: ${stoch.k.toFixed(1)} | D: ${stoch.d.toFixed(1)} ${stoch.k < 20 ? '← OVERSOLD' : stoch.k > 80 ? '← OVERBOUGHT' : ''}
+- ATR(14): ${atr.toFixed(2)} (volatility measure)
+
+CHART PATTERNS DETECTED (${patterns.length}):
+${patterns.length > 0 ? patterns.map(p => `- ${p.name} (${p.confidence.toFixed(0)}% confidence, ${p.type})`).join('\n') : '- None detected'}
+
+SUPPORT LEVELS: ${support.slice(0,3).map(s => s.toFixed(2)).join(', ') || 'N/A'}
+RESISTANCE LEVELS: ${resistance.slice(0,3).map(r => r.toFixed(2)).join(', ') || 'N/A'}
+
+NEWS SENTIMENT: ${sentimentScore > 0.2 ? 'POSITIVE' : sentimentScore < -0.2 ? 'NEGATIVE' : 'NEUTRAL'} (score: ${sentimentScore.toFixed(2)})
+RECENT HEADLINES:
+${newsHeadlines.slice(0, 5).map(h => `- ${h}`).join('\n') || '- No recent news'}
+
+PORTFOLIO LEARNING:
+- Historical win rate: ${winRate}%
+- Recent closed trades: ${closed.map((p: any) => `${p.ticker} ${p.pnl >= 0 ? '+' : ''}${p.pnlPct?.toFixed(1)}%`).join(', ') || 'None'}
+
+Based on ALL of the above, provide your trading decision as JSON:
+{
+  "action": "BUY" | "SELL" | "HOLD",
+  "conviction": "HIGH" | "MEDIUM" | "LOW",
+  "entryPrice": <number or null>,
+  "stopLoss": <price — set dynamically using ATR and nearest support, NOT a fixed %>,
+  "takeProfit": <price — set dynamically using ATR and nearest resistance, NOT a fixed %>,
+  "strategy": "<concise trading strategy: entry rationale, what to watch, time horizon>",
+  "reason": "<specific reason matching style: 'Contrarian buy at support $X. RSI Y (oversold). SMA20 $Z. Resistance $W.'>",
+  "riskRewardRatio": <number>
+}`
+
+  const llmDecision = await getLLMDecision(prompt)
+
+  return {
+    ticker,
+    currentPrice,
+    currency,
+    rsi,
+    atr,
+    support,
+    resistance,
+    patterns,
+    sentimentScore,
+    newsHeadlines,
+    llmDecision,
+    indicators: { rsi, macd, macdSignal, sma20, sma50, sma200, bb, stoch, atr }
+  }
 }
 
 export async function POST() {
   try {
     const portfolio = readPortfolio()
-    const actions: any[] = []
-    const updatedPositions = [...portfolio.positions]
+    const apiKey = process.env.FINNHUB_API_KEY || ''
     const fxRate = await fetchFXRate()
+    portfolio.fxRates = { SGDUSD: fxRate, lastUpdated: nowISO() }
 
-    // Update FX rate
-    portfolio.fxRates = { SGDUSD: fxRate, lastUpdated: new Date().toISOString() }
-
-    // Analyze each current position
-    for (const pos of portfolio.positions) {
-      const analysis = await analyzeStock(pos.ticker, portfolio)
-      if (!analysis) continue
-
-      const { currentPrice, signal, reason } = analysis
-      const posIdx = updatedPositions.findIndex((p: any) => p.ticker === pos.ticker)
-      if (posIdx >= 0) updatedPositions[posIdx].currentPrice = currentPrice
-
-      // Use position's specific SL/TP if set, otherwise fall back to -8%/+10%
-      const stopLossPrice = pos.stopLoss || pos.buyPrice * 0.92
-      const takeProfitPrice = pos.takeProfit || pos.buyPrice * 1.10
-      const currency = getCurrency(pos.ticker)
-      const slPct = (((stopLossPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(1)
-      const tpPct = (((takeProfitPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(1)
-
-      if (currentPrice <= stopLossPrice) {
-        const lossPct = (((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(2)
-        actions.push({ type: 'SELL', ticker: pos.ticker, reason: `Stop-loss triggered at ${fmtCurrency(currentPrice, currency)} (SL: ${fmtCurrency(stopLossPrice, currency)}, ${slPct}%). Loss: ${lossPct}%.`, currentPrice, shares: pos.shares, currency, urgent: true })
-      } else if (currentPrice >= takeProfitPrice) {
-        const gainPct = (((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(2)
-        actions.push({ type: 'SELL', ticker: pos.ticker, reason: `Take-profit hit at ${fmtCurrency(currentPrice, currency)} (TP: ${fmtCurrency(takeProfitPrice, currency)}, +${tpPct}%). Profit: +${gainPct}%.`, currentPrice, shares: pos.shares, currency, urgent: true })
-      } else if (signal === 'SELL') {
-        actions.push({ type: 'SELL', ticker: pos.ticker, reason: `📉 ${reason}`, currentPrice, shares: pos.shares, currency, urgent: false })
-      } else {
-        actions.push({ type: signal, ticker: pos.ticker, reason: `${signal === 'BUY' ? '📈' : '⏸️'} ${reason}`, currentPrice, shares: pos.shares, currency, urgent: false })
-      }
+    const session = getCurrentMarketSession()
+    if (session === 'CLOSED') {
+      return NextResponse.json({ success: true, skipped: true, reason: 'Market closed' })
     }
-
-    // Look for new BUY opportunities
-    const usdWatchlist = ['AAPL', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'AMD', 'NFLX', 'JPM']
-    const sgdWatchlist = ['D05.SI', 'O39.SI', 'U11.SI', 'Z74.SI', 'C6L.SI'] // DBS, OCBC, UOB, Singtel, SIA
-    const watchlist = [...usdWatchlist, ...sgdWatchlist]
-    const heldTickers = portfolio.positions.map((p: any) => p.ticker)
-    const cooldownTickers = Object.keys(portfolio.cooldowns || {})
 
     const cashUSD = portfolio.cashByValue?.USD || 0
     const cashSGD = portfolio.cashByValue?.SGD || 0
-
-    // Total portfolio value for 20% position sizing rule
-    const currentPosValueUSD = portfolio.positions
+    const posValueUSD = (portfolio.positions || [])
       .filter((p: any) => !isSGX(p.ticker))
       .reduce((s: number, p: any) => s + (p.currentPrice || p.buyPrice) * p.shares, 0)
-    const currentPosValueSGD = portfolio.positions
+    const posValueSGD = (portfolio.positions || [])
       .filter((p: any) => isSGX(p.ticker))
       .reduce((s: number, p: any) => s + (p.currentPrice || p.buyPrice) * p.shares, 0)
-    const totalPortfolioUSD = cashUSD + currentPosValueUSD + (cashSGD + currentPosValueSGD) * fxRate
-    const maxPositionUSD = totalPortfolioUSD * 0.20 // 20% rule
+    const totalPortfolioUSD = cashUSD + posValueUSD + (cashSGD + posValueSGD) * fxRate
+    const maxPositionUSD = totalPortfolioUSD * 0.20
 
-    for (const ticker of watchlist) {
-      if (heldTickers.includes(ticker) || cooldownTickers.includes(ticker)) continue
-      const currency = getCurrency(ticker)
-      const availableCash = currency === 'SGD' ? cashSGD : cashUSD
-      if (availableCash < 2000) continue
+    const executedTrades: any[] = []
+    const todayStr = today()
 
-      const analysis = await analyzeStock(ticker, portfolio)
-      if (!analysis || analysis.signal !== 'BUY') continue
+    // ── STEP 1: Check existing positions ──────────────────────────────────────
+    for (const pos of [...portfolio.positions]) {
+      const analysis = await analyseStock(pos.ticker, portfolio, apiKey)
+      if (!analysis) continue
 
-      // Enforce 20% max position size
-      const maxInCurrency = currency === 'SGD' ? maxPositionUSD / fxRate : maxPositionUSD
-      const positionSize = Math.min(availableCash, maxInCurrency)
-      const shares = Math.floor(positionSize / analysis.currentPrice)
-      if (shares > 0) {
-        const cost = shares * analysis.currentPrice
-        const costUSD = currency === 'SGD' ? cost * fxRate : cost
-        const pctOfPortfolio = (costUSD / totalPortfolioUSD * 100).toFixed(1)
-        // SL below support (~-5%), TP at resistance (~+8%) — tighter than 12% based on historical trades
-        const stopLoss = parseFloat((analysis.currentPrice * 0.95).toFixed(2))
-        const takeProfit = parseFloat((analysis.currentPrice * 1.08).toFixed(2))
-        actions.push({
-          type: 'BUY', ticker,
-          reason: `${analysis.reason} | Position: ${pctOfPortfolio}% of portfolio (max 20%). SL $${stopLoss}, TP $${takeProfit}.`,
-          currentPrice: analysis.currentPrice, shares, cost, currency, stopLoss, takeProfit, urgent: false
-        })
+      const { currentPrice, llmDecision, currency } = analysis
+      const posIdx = portfolio.positions.findIndex((p: any) => p.ticker === pos.ticker)
+      if (posIdx >= 0) portfolio.positions[posIdx].currentPrice = currentPrice
+
+      const stopLossPrice = pos.stopLoss || currentPrice * 0.95
+      const takeProfitPrice = pos.takeProfit || currentPrice * 1.08
+
+      // Hard stops always take priority over LLM
+      if (currentPrice <= stopLossPrice) {
+        await executeTrade(portfolio, 'SELL', pos, currentPrice, `Stop-loss triggered at ${fmt(currentPrice, currency)}. Buy was ${fmt(pos.buyPrice, currency)}. Loss: ${(((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(2)}%.`, executedTrades, fxRate)
+        continue
       }
-      if (actions.filter((a: any) => a.type === 'BUY').length >= 3) break
+      if (currentPrice >= takeProfitPrice) {
+        await executeTrade(portfolio, 'SELL', pos, currentPrice, `Take-profit hit at ${fmt(currentPrice, currency)} (TP: ${fmt(takeProfitPrice, currency)}). Profit: +${(((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(2)}%.`, executedTrades, fxRate)
+        continue
+      }
+
+      // LLM says sell
+      if (llmDecision?.action === 'SELL' && llmDecision?.conviction !== 'LOW') {
+        await executeTrade(portfolio, 'SELL', pos, currentPrice, llmDecision.reason || `LLM sell signal. ${llmDecision.strategy || ''}`, executedTrades, fxRate)
+      }
     }
 
-    // Calculate current portfolio value (read-only, no writes)
-    const posValueUSD = updatedPositions
-      .filter((p: any) => !isSGX(p.ticker))
-      .reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
-    const posValueSGD = updatedPositions
-      .filter((p: any) => isSGX(p.ticker))
-      .reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
-    const totalValueUSD = cashUSD + posValueUSD + (cashSGD + posValueSGD) * fxRate
+    // ── STEP 2: Screen full market for opportunities ───────────────────────────
+    const screenResults = await screenMarket(session, apiKey, 60)
+    const heldTickers = portfolio.positions.map((p: any) => p.ticker)
+    const cooldowns = portfolio.cooldowns || {}
+    const buyOpportunities = screenResults
+      .filter(r => (r.signal === 'STRONG_BUY' || r.signal === 'BUY') && !heldTickers.includes(r.ticker) && !cooldowns[r.ticker])
+      .slice(0, 10) // Top 10 candidates for deep analysis
 
-    // NOTE: We do NOT write to portfolio.json during analysis — data stays intact
+    for (const candidate of buyOpportunities) {
+      const availableCash = candidate.currency === 'SGD' ? cashSGD : cashUSD
+      if (availableCash < 2000) continue
+      if (executedTrades.filter(t => t.type === 'BUY').length >= 2) break // Max 2 new buys per run
+
+      const analysis = await analyseStock(candidate.ticker, portfolio, apiKey)
+      if (!analysis?.llmDecision) continue
+
+      const { llmDecision, currentPrice, currency } = analysis
+      if (llmDecision.action !== 'BUY' || llmDecision.conviction === 'LOW') continue
+
+      // Position sizing: respect 20% rule
+      const maxInCurrency = currency === 'SGD' ? maxPositionUSD / fxRate : maxPositionUSD
+      const positionSize = Math.min(availableCash, maxInCurrency)
+      const shares = Math.floor(positionSize / currentPrice)
+      if (shares <= 0) continue
+
+      const sl = llmDecision.stopLoss || (currentPrice - analysis.atr * 2)
+      const tp = llmDecision.takeProfit || (currentPrice + analysis.atr * 3)
+      const cost = shares * currentPrice
+
+      await executeBuy(portfolio, candidate.ticker, shares, currentPrice, sl, tp, currency,
+        llmDecision.reason || analysis.patterns[0]?.name || `Technical buy at ${fmt(currentPrice, currency)}. RSI ${analysis.rsi.toFixed(0)}.`,
+        llmDecision.strategy || '',
+        executedTrades, fxRate
+      )
+    }
+
+    // ── STEP 3: Update value history ──────────────────────────────────────────
+    const newPosValueUSD = portfolio.positions.filter((p: any) => !isSGX(p.ticker)).reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
+    const newPosValueSGD = portfolio.positions.filter((p: any) => isSGX(p.ticker)).reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
+    const newTotalUSD = (portfolio.cashByValue?.USD || 0) + newPosValueUSD + ((portfolio.cashByValue?.SGD || 0) + newPosValueSGD) * fxRate
+    const lastEntry = portfolio.valueHistory?.[portfolio.valueHistory.length - 1]
+    if (!lastEntry || lastEntry.date !== todayStr) {
+      portfolio.valueHistory = [...(portfolio.valueHistory || []), { date: todayStr, value: newTotalUSD }]
+    } else {
+      portfolio.valueHistory[portfolio.valueHistory.length - 1].value = newTotalUSD
+    }
+
+    writePortfolio(portfolio)
 
     return NextResponse.json({
       success: true,
-      actions,
-      fxRate,
-      summary: { totalValueUSD, cashUSD, cashSGD, positionsChecked: portfolio.positions.length, actionsFound: actions.length }
+      session,
+      executedTrades,
+      totalValue: newTotalUSD,
+      fxRate
     })
   } catch (error) {
     console.error('Monitor error:', error)
@@ -281,104 +317,58 @@ export async function POST() {
   }
 }
 
-// Execute a trade and send Telegram alert
-export async function PUT(request: Request) {
-  try {
-    const { action } = await request.json()
-    const portfolio = readPortfolio()
-    const todayStr = today()
-    const currency = action.currency || (isSGX(action.ticker) ? 'SGD' : 'USD')
+async function executeTrade(portfolio: any, type: 'SELL', pos: any, price: number, reason: string, executedTrades: any[], fxRate: number) {
+  const todayStr = today()
+  const currency = getCurrency(pos.ticker)
+  const proceeds = price * pos.shares
+  const pnl = (price - pos.buyPrice) * pos.shares
+  const pnlPct = ((price - pos.buyPrice) / pos.buyPrice) * 100
+  const note = `${reason} Profit: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} (${pnl >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%).`
 
-    if (action.type === 'SELL') {
-      const posIdx = portfolio.positions.findIndex((p: any) => p.ticker === action.ticker)
-      if (posIdx < 0) return NextResponse.json({ error: 'Position not found' }, { status: 404 })
+  portfolio.history = portfolio.history || []
+  portfolio.history.push({ date: todayStr, action: 'SELL', ticker: pos.ticker, shares: pos.shares, price, total: proceeds, reason: note, buyDate: pos.buyDate, buyPrice: pos.buyPrice, pnl, pnlPct, currency })
 
-      const pos = portfolio.positions[posIdx]
-      const proceeds = action.currentPrice * pos.shares
-      const pnl = (action.currentPrice - pos.buyPrice) * pos.shares
-      const pnlPct = ((action.currentPrice - pos.buyPrice) / pos.buyPrice) * 100
+  portfolio.closedPositions = portfolio.closedPositions || []
+  portfolio.closedPositions.push({ ticker: pos.ticker, shares: pos.shares, buyDate: pos.buyDate, buyPrice: pos.buyPrice, sellDate: todayStr, sellPrice: price, reason: note, pnl, pnlPct, currency })
 
-      const sellNote = `${action.reason.replace(/^[⛔🎯📉]/,'').trim()} Profit: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} (${pnl >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%).`
+  portfolio.cashByValue = portfolio.cashByValue || { USD: 0, SGD: 0 }
+  portfolio.cashByValue[currency] = (portfolio.cashByValue[currency] || 0) + proceeds
 
-      portfolio.history = portfolio.history || []
-      portfolio.history.push({ date: todayStr, action: 'SELL', ticker: pos.ticker, shares: pos.shares, price: action.currentPrice, total: proceeds, reason: sellNote, buyDate: pos.buyDate, buyPrice: pos.buyPrice, pnl, pnlPct, currency })
+  const posIdx = portfolio.positions.findIndex((p: any) => p.ticker === pos.ticker)
+  if (posIdx >= 0) portfolio.positions.splice(posIdx, 1)
 
-      portfolio.closedPositions = portfolio.closedPositions || []
-      portfolio.closedPositions.push({ ticker: pos.ticker, shares: pos.shares, buyDate: pos.buyDate, buyPrice: pos.buyPrice, sellDate: todayStr, sellPrice: action.currentPrice, reason: sellNote, pnl, pnlPct, currency })
+  const cd = new Date(); cd.setDate(cd.getDate() + 3)
+  portfolio.cooldowns = portfolio.cooldowns || {}
+  portfolio.cooldowns[pos.ticker] = cd.toISOString().split('T')[0]
 
-      // Add strategy note
-      portfolio.strategyNotes = portfolio.strategyNotes || []
-      portfolio.strategyNotes.push({ date: `${todayStr}T${new Date().toISOString().split('T')[1].substring(0,5)}Z`, note: `Sold ${pos.ticker} @ $${action.currentPrice.toFixed(2)} (${pos.shares} shares). ${sellNote} Cash now $${(portfolio.cashByValue?.[currency] || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}.` })
+  portfolio.strategyNotes = portfolio.strategyNotes || []
+  portfolio.strategyNotes.push({ date: nowISO(), note: `Sold ${pos.ticker} @ ${fmt(price, currency)} (${pos.shares} shares). ${note} Cash now ${fmt(portfolio.cashByValue[currency], currency)}.` })
 
-      // Update cash in correct currency
-      portfolio.cashByValue = portfolio.cashByValue || { USD: 0, SGD: 0 }
-      portfolio.cashByValue[currency] = (portfolio.cashByValue[currency] || 0) + proceeds
-      portfolio.positions.splice(posIdx, 1)
+  executedTrades.push({ type: 'SELL', ticker: pos.ticker, shares: pos.shares, price, proceeds, pnl, pnlPct, currency, reason: note })
 
-      // Cooldown 3 days
-      portfolio.cooldowns = portfolio.cooldowns || {}
-      const cd = new Date(); cd.setDate(cd.getDate() + 3)
-      portfolio.cooldowns[pos.ticker] = cd.toISOString().split('T')[0]
+  const emoji = pnl >= 0 ? '🟢' : '🔴'
+  await sendTelegram(`${emoji} *Finance Seer — SELL*\n\n*${pos.ticker}* ${pos.shares} shares @ ${fmt(price, currency)}\nP&L: ${pnl >= 0 ? '+' : ''}${fmt(Math.abs(pnl), currency)} (${pnl >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)\n\n_${note.substring(0, 200)}_`)
+}
 
-      // Telegram alert
-      const pnlSign = pnl >= 0 ? '🟢' : '🔴'
-      await sendTelegramAlert(
-        `${pnlSign} *Finance Seer — SELL Executed*\n\n` +
-        `*${pos.ticker}* — ${pos.shares} shares @ ${fmtCurrency(action.currentPrice, currency)}\n` +
-        `P&L: ${pnl >= 0 ? '+' : ''}${fmtCurrency(pnl, currency)} (${pnl >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)\n` +
-        `Proceeds: ${fmtCurrency(proceeds, currency)}\n\n` +
-        `_Reason: ${action.reason.replace(/[*_`]/g, '')}_`
-      )
+async function executeBuy(portfolio: any, ticker: string, shares: number, price: number, sl: number, tp: number, currency: string, reason: string, strategy: string, executedTrades: any[], fxRate: number) {
+  const todayStr = today()
+  const cost = price * shares
 
-    } else if (action.type === 'BUY') {
-      const cost = action.currentPrice * action.shares
-      portfolio.cashByValue = portfolio.cashByValue || { USD: 0, SGD: 0 }
-      const available = portfolio.cashByValue[currency] || 0
-      if (available < cost) return NextResponse.json({ error: 'Insufficient cash' }, { status: 400 })
+  portfolio.cashByValue = portfolio.cashByValue || { USD: 0, SGD: 0 }
+  portfolio.cashByValue[currency] = (portfolio.cashByValue[currency] || 0) - cost
 
-      portfolio.cashByValue[currency] -= cost
-      portfolio.positions = portfolio.positions || []
-      // Set SL just below nearest support, TP at nearest resistance
-      const sl = action.stopLoss || action.currentPrice * 0.92
-      const tp = action.takeProfit || action.currentPrice * 1.10
-      portfolio.positions.push({ ticker: action.ticker, shares: action.shares, avgCost: action.currentPrice, buyDate: todayStr, buyPrice: action.currentPrice, currentPrice: action.currentPrice, stopLoss: sl, takeProfit: tp, signal: 'BUY', reason: action.reason, currency })
+  portfolio.positions = portfolio.positions || []
+  portfolio.positions.push({ ticker, shares, avgCost: price, buyDate: todayStr, buyPrice: price, currentPrice: price, stopLoss: sl, takeProfit: tp, signal: 'BUY', reason, currency })
 
-      const buyNote = action.reason.replace(/^[📈]/,'').trim()
+  portfolio.history = portfolio.history || []
+  portfolio.history.push({ date: todayStr, action: 'BUY', ticker, shares, price, total: cost, reason, currency })
 
-      portfolio.history = portfolio.history || []
-      portfolio.history.push({ date: todayStr, action: 'BUY', ticker: action.ticker, shares: action.shares, price: action.currentPrice, total: cost, reason: buyNote, currency })
+  if (portfolio.cooldowns?.[ticker]) delete portfolio.cooldowns[ticker]
 
-      // Add strategy note
-      portfolio.strategyNotes = portfolio.strategyNotes || []
-      portfolio.strategyNotes.push({ date: `${todayStr}T${new Date().toISOString().split('T')[1].substring(0,5)}Z`, note: `Bought ${action.shares} ${action.ticker} @ $${action.currentPrice.toFixed(2)} (-$${cost.toFixed(2)}). ${buyNote} Cash now ${currency} $${(portfolio.cashByValue?.[currency] || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}.` })
+  portfolio.strategyNotes = portfolio.strategyNotes || []
+  portfolio.strategyNotes.push({ date: nowISO(), note: `Bought ${shares} ${ticker} @ ${fmt(price, currency)} (-${fmt(cost, currency)}). ${reason}${strategy ? ' Strategy: ' + strategy : ''} SL: ${fmt(sl, currency)}, TP: ${fmt(tp, currency)}. Cash now ${fmt(portfolio.cashByValue[currency], currency)}.` })
 
-      if (portfolio.cooldowns?.[action.ticker]) delete portfolio.cooldowns[action.ticker]
+  executedTrades.push({ type: 'BUY', ticker, shares, price, cost, sl, tp, currency, reason, strategy })
 
-      // Telegram alert
-      await sendTelegramAlert(
-        `🟢 *Finance Seer — BUY Executed*\n\n` +
-        `*${action.ticker}* — ${action.shares} shares @ ${fmtCurrency(action.currentPrice, currency)}\n` +
-        `Total cost: ${fmtCurrency(cost, currency)}\n\n` +
-        `_Reason: ${action.reason.replace(/[*_`]/g, '')}_`
-      )
-    }
-
-    // Update value history
-    const fxRate = portfolio.fxRates?.SGDUSD || 0.7498
-    const posValueUSD = (portfolio.positions || []).filter((p: any) => !isSGX(p.ticker)).reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
-    const posValueSGD = (portfolio.positions || []).filter((p: any) => isSGX(p.ticker)).reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
-    const totalValueUSD = (portfolio.cashByValue?.USD || 0) + posValueUSD + ((portfolio.cashByValue?.SGD || 0) + posValueSGD) * fxRate
-    const lastEntry = portfolio.valueHistory?.[portfolio.valueHistory.length - 1]
-    if (!lastEntry || lastEntry.date !== todayStr) {
-      portfolio.valueHistory = [...(portfolio.valueHistory || []), { date: todayStr, value: totalValueUSD }]
-    } else {
-      portfolio.valueHistory[portfolio.valueHistory.length - 1].value = totalValueUSD
-    }
-
-    writePortfolio(portfolio)
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Execute error:', error)
-    return NextResponse.json({ error: 'Failed to execute' }, { status: 500 })
-  }
+  await sendTelegram(`🟢 *Finance Seer — BUY*\n\n*${ticker}* ${shares} shares @ ${fmt(price, currency)}\nCost: ${fmt(cost, currency)}\nSL: ${fmt(sl, currency)} | TP: ${fmt(tp, currency)}\n\n_${reason.substring(0, 200)}_`)
 }

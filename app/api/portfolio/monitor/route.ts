@@ -201,6 +201,16 @@ export async function POST() {
     const cashUSD = portfolio.cashByValue?.USD || 0
     const cashSGD = portfolio.cashByValue?.SGD || 0
 
+    // Total portfolio value for 20% position sizing rule
+    const currentPosValueUSD = portfolio.positions
+      .filter((p: any) => !isSGX(p.ticker))
+      .reduce((s: number, p: any) => s + (p.currentPrice || p.buyPrice) * p.shares, 0)
+    const currentPosValueSGD = portfolio.positions
+      .filter((p: any) => isSGX(p.ticker))
+      .reduce((s: number, p: any) => s + (p.currentPrice || p.buyPrice) * p.shares, 0)
+    const totalPortfolioUSD = cashUSD + currentPosValueUSD + (cashSGD + currentPosValueSGD) * fxRate
+    const maxPositionUSD = totalPortfolioUSD * 0.20 // 20% rule
+
     for (const ticker of watchlist) {
       if (heldTickers.includes(ticker) || cooldownTickers.includes(ticker)) continue
       const currency = getCurrency(ticker)
@@ -210,10 +220,19 @@ export async function POST() {
       const analysis = await analyzeStock(ticker, portfolio)
       if (!analysis || analysis.signal !== 'BUY') continue
 
-      const positionSize = Math.min(availableCash * 0.25, currency === 'SGD' ? 15000 : 20000)
+      // Enforce 20% max position size
+      const maxInCurrency = currency === 'SGD' ? maxPositionUSD / fxRate : maxPositionUSD
+      const positionSize = Math.min(availableCash, maxInCurrency)
       const shares = Math.floor(positionSize / analysis.currentPrice)
       if (shares > 0) {
-        actions.push({ type: 'BUY', ticker, reason: `📈 ${analysis.reason}`, currentPrice: analysis.currentPrice, shares, cost: shares * analysis.currentPrice, currency, urgent: false })
+        const cost = shares * analysis.currentPrice
+        const costUSD = currency === 'SGD' ? cost * fxRate : cost
+        const pctOfPortfolio = (costUSD / totalPortfolioUSD * 100).toFixed(1)
+        actions.push({
+          type: 'BUY', ticker,
+          reason: `📈 ${analysis.reason} | Position: ${pctOfPortfolio}% of portfolio (max 20%)`,
+          currentPrice: analysis.currentPrice, shares, cost, currency, urgent: false
+        })
       }
       if (actions.filter((a: any) => a.type === 'BUY').length >= 3) break
     }

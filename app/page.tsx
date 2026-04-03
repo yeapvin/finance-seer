@@ -150,7 +150,7 @@ export default function Home() {
       </header>
 
       {/* ── Main Two-Column Layout ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', minHeight: 'calc(100vh - 56px)', maxWidth: '1600px', margin: '0 auto' }} className='main-grid'>
+      <div className='main-grid' style={{ maxWidth: '1600px', margin: '0 auto' }}>
 
         {/* ── LEFT COLUMN: Search + Portfolio ── */}
         <aside className='left-panel' style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>

@@ -142,19 +142,11 @@ export default function Home() {
   return (
     <div className='min-h-screen bg-black'>
       {/* ── Top Nav ── */}
-      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)', zIndex: 100 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Zap size={18} style={{ color: '#facc15' }} />
-          <span style={{ color: 'white', fontWeight: 800, fontSize: '16px', letterSpacing: '-0.3px' }}>Finance Seer</span>
+      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)', zIndex: 100 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Zap size={20} style={{ color: '#facc15' }} />
+          <span style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '-0.5px', background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Finance Seer</span>
         </div>
-        <a href='/portfolio' style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#a5b4fc', fontSize: '13px', textDecoration: 'none', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.08)' }}>
-          <Briefcase size={14} />
-          {portfolio ? (
-            <span>Portfolio <span style={{ color: portfolio.totalReturn >= 0 ? '#4ade80' : '#fb7185', fontWeight: 700 }}>
-              {portfolio.totalReturn >= 0 ? '+' : ''}{portfolio.totalReturnPct?.toFixed(2)}%
-            </span></span>
-          ) : 'Portfolio'}
-        </a>
       </header>
 
       {/* ── Main Two-Column Layout ── */}

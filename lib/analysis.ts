@@ -150,46 +150,59 @@ Respond with ONLY a JSON object. Keep each field under 100 words. No markdown, n
 }
 
 async function callLLM(prompt: string, stock: StockData, rsi: number, macd: number, macdSignal: number, sma20: number, sma50: number, sma200: number, bb: any, patterns: PatternMatch[], support: number[], resistance: number[], news: string[], volumes: number[]): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY
-  const apiUrl = process.env.OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions'
+  // Step 1: Generate all quantitative analysis algorithmically (no LLM)
+  const algoResult = JSON.parse(generateDataDrivenAnalysis(stock, rsi, macd, macdSignal, sma20, sma50, sma200, bb, patterns, support, resistance, news, volumes))
 
-  if (!apiKey) {
-    return generateDataDrivenAnalysis(stock, rsi, macd, macdSignal, sma20, sma50, sma200, bb, patterns, support, resistance, news, volumes)
-  }
+  // Step 2: Use Groq ONLY for narrative synthesis of executive summary + trading strategy
+  const apiKey = process.env.OPENAI_API_KEY
+  const apiUrl = process.env.OPENAI_API_URL || 'https://api.groq.com/openai/v1/chat/completions'
+
+  if (!apiKey) return JSON.stringify(algoResult)
 
   try {
+    const narrativePrompt = `Stock: ${stock.ticker} @ $${stock.price?.toFixed(2)}
+Algorithmic signal: ${algoResult.recommendation} — ${algoResult.recommendationReason}
+RSI: ${rsi.toFixed(1)} | MACD: ${macd > macdSignal ? 'bullish' : 'bearish'} | Price vs SMA20: ${stock.price > sma20 ? 'above' : 'below'}
+Patterns: ${patterns.slice(0,3).map(p => p.name).join(', ') || 'none'}
+News: ${news.slice(0,3).map(n => n.substring(0,80)).join(' | ') || 'none'}
+
+Write ONLY a JSON object with these 3 fields (2-3 sentences each, no markdown):
+{
+  "executiveSummary": "Plain English overview of the stock situation",
+  "newsAnalysis": "What the news sentiment means for the trade",
+  "tradingStrategy": "Specific actionable strategy: when to enter, what to watch, time horizon"
+}`
+
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: 'You are a senior financial analyst. Respond ONLY with a single valid JSON object — no markdown, no code blocks, no text before or after the JSON. All string values must be complete sentences, never truncated.' },
-          { role: 'user', content: prompt },
+          { role: 'system', content: 'You are a concise financial analyst. Respond ONLY with valid JSON. Never truncate. No markdown.' },
+          { role: 'user', content: narrativePrompt },
         ],
         temperature: 0.3,
-        max_tokens: 4096,
+        max_tokens: 800,
       }),
     })
 
-    if (!response.ok) return generateDataDrivenAnalysis(stock, rsi, macd, macdSignal, sma20, sma50, sma200, bb, patterns, support, resistance, news, volumes)
+    if (!response.ok) return JSON.stringify(algoResult)
     const data = await response.json()
     const content = data.choices?.[0]?.message?.content || ''
-    // Validate JSON is complete before using it
-    try {
-      const match = content.match(/\{[\s\S]*\}/)
-      if (!match) throw new Error('No JSON found')
-      JSON.parse(match[0]) // validate it parses cleanly
-      return content
-    } catch {
-      // Truncated or invalid JSON — fall back to data-driven
-      return generateDataDrivenAnalysis(stock, rsi, macd, macdSignal, sma20, sma50, sma200, bb, patterns, support, resistance, news, volumes)
-    }
+    const match = content.match(/\{[\s\S]*\}/)
+    if (!match) return JSON.stringify(algoResult)
+    const narrative = JSON.parse(match[0])
+
+    // Merge: algo handles all numbers/signals, Groq adds narrative
+    return JSON.stringify({
+      ...algoResult,
+      executiveSummary: narrative.executiveSummary || algoResult.executiveSummary,
+      newsAnalysis: narrative.newsAnalysis || algoResult.newsAnalysis,
+      tradingStrategy: narrative.tradingStrategy || '',
+    })
   } catch {
-    return generateDataDrivenAnalysis(stock, rsi, macd, macdSignal, sma20, sma50, sma200, bb, patterns, support, resistance, news, volumes)
+    return JSON.stringify(algoResult)
   }
 }
 
@@ -362,7 +375,7 @@ function parseAnalysisResponse(
         resistance,
       },
       tradingStrategy: {
-        entryPoint: analysisData.entryPoint || 'Not specified',
+        entryPoint: analysisData.entryPoint || analysisData.tradingStrategy || 'Not specified',
         stopLoss: analysisData.stopLoss || 'Not specified',
         takeProfit: analysisData.takeProfit || 'Not specified',
       },

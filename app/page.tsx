@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, Loader, Zap, AlertTriangle, Briefcase, TrendingUp } from 'lucide-react'
 import { StockChart } from '@/components/StockChart'
-import { IndicatorPanel } from '@/components/IndicatorPanel'
 import { PatternOverlay } from '@/components/PatternOverlay'
 import { AnalysisReport } from '@/components/AnalysisReport'
 
@@ -299,9 +298,10 @@ export default function Home() {
             </div>
           ) : (
             <>
-              {/* Period Selector + Chart */}
+              {/* Period Selector + Indicator Toggles + Chart — all in one card */}
               <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                {/* Row 1: Period buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px' }}>Price Chart</h3>
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                     {PERIODS.map(p => {
@@ -321,6 +321,39 @@ export default function Home() {
                     })}
                   </div>
                 </div>
+
+                {/* Row 2: Indicator toggles inline */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingBottom: '14px', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '16px' }}>
+                  {([
+                    { key: 'sma20', label: 'SMA 20', color: '#3b82f6' },
+                    { key: 'sma50', label: 'SMA 50', color: '#8b5cf6' },
+                    { key: 'sma200', label: 'SMA 200', color: '#ec4899' },
+                    { key: 'ema12', label: 'EMA 12', color: '#10b981' },
+                    { key: 'ema26', label: 'EMA 26', color: '#f59e0b' },
+                    { key: 'bollingerBands', label: 'Bollinger', color: '#06b6d4' },
+                    { key: 'rsi', label: 'RSI', color: '#f97316' },
+                    { key: 'macd', label: 'MACD', color: '#a78bfa' },
+                    { key: 'stochastic', label: 'Stoch', color: '#34d399' },
+                    { key: 'volume', label: 'Volume', color: '#60a5fa' },
+                  ] as { key: keyof typeof showIndicators; label: string; color: string }[]).map(({ key, label, color }) => {
+                    const active = showIndicators[key]
+                    return (
+                      <button key={key}
+                        onClick={() => setShowIndicators(prev => ({ ...prev, [key]: !prev[key] }))}
+                        style={{
+                          padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
+                          cursor: 'pointer', border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,
+                          background: active ? `${color}22` : 'transparent',
+                          color: active ? color : '#52525b',
+                          transition: 'all 0.15s'
+                        }}>
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Chart */}
                 {isPeriodLoading ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '10px' }}>
                     <Loader className='animate-spin' size={20} style={{ color: '#3b82f6' }} />
@@ -329,11 +362,6 @@ export default function Home() {
                 ) : currentData?.history.length && currentData.indicators ? (
                   <StockChart data={currentData.history} indicators={currentData.indicators} showIndicators={showIndicators} />
                 ) : null}
-              </div>
-
-              {/* Indicator Panel */}
-              <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '20px' }}>
-                <IndicatorPanel onToggle={setShowIndicators} />
               </div>
 
               {/* Two-column: Patterns | Analysis */}

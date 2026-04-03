@@ -89,7 +89,7 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 800
+        max_tokens: 2048
       })
     })
     if (!res.ok) return null

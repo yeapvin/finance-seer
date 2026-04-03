@@ -139,18 +139,18 @@ Resistance Levels: ${data.resistance.length > 0 ? data.resistance.map((r) => `$$
 Recent News Sentiment:
 ${data.news.slice(0, 5).map((n) => `- ${n}`).join('\n')}
 
-Provide a structured JSON response with:
+Respond with ONLY a JSON object. Keep each field under 100 words. No markdown, no code blocks.
 {
-  "executiveSummary": "2-3 sentence overview",
-  "technicalAnalysis": "Analysis of technical indicators and patterns",
-  "fundamentalAnalysis": "Analysis of valuation metrics",
-  "newsAnalysis": "Market sentiment based on news",
-  "riskAssessment": "Key risks to consider",
-  "recommendation": "BUY/SELL/HOLD",
-  "recommendationReason": "Why this recommendation",
-  "entryPoint": "Suggested entry price or strategy",
-  "stopLoss": "Suggested stop loss level",
-  "takeProfit": "Suggested take profit target"
+  "executiveSummary": "2-3 sentences max",
+  "technicalAnalysis": "Key indicators summary, 3-4 sentences max",
+  "fundamentalAnalysis": "Valuation summary, 2-3 sentences max",
+  "newsAnalysis": "Sentiment summary, 2 sentences max",
+  "riskAssessment": "Top 2-3 risks, 3 sentences max",
+  "recommendation": "BUY or SELL or HOLD",
+  "recommendationReason": "1-2 sentences with specific price levels",
+  "entryPoint": "Specific price or range",
+  "stopLoss": "Specific price",
+  "takeProfit": "Specific price"
 }`
 }
 
@@ -172,10 +172,11 @@ async function callLLM(prompt: string, stock: StockData, rsi: number, macd: numb
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: 'You are a senior financial analyst. Provide extremely detailed, actionable investment analysis in JSON format. Be specific with numbers, levels, and reasoning. Include specific entry/exit strategies with exact price levels.' },
+          { role: 'system', content: 'You are a senior financial analyst. Respond ONLY with a single valid JSON object — no markdown, no code blocks, no text before or after the JSON. All string values must be complete sentences, never truncated.' },
           { role: 'user', content: prompt },
         ],
-        temperature: 0.7,
+        temperature: 0.3,
+        max_tokens: 4096,
       }),
     })
 

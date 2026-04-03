@@ -1,5 +1,40 @@
 /**
  * Market Data — Single source of truth
+ */
+
+// Shared interfaces
+export interface HistoricalData {
+  date: Date
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+  adjClose: number
+}
+
+export interface StockData {
+  ticker: string
+  name: string
+  price: number
+  change: number
+  changePercent: number
+  volume: number
+  marketCap: number
+  peRatio: number
+  dividendYield: number
+  dayHigh: number
+  dayLow: number
+  open: number
+  previousClose: number
+  week52High: number
+  week52Low: number
+  currency: string
+  exchange: string
+}
+
+/**
+ * Market Data — Single source of truth (continued)
  * 
  * Finnhub (primary):
  *   - Live quotes (price, OHLC, volume)

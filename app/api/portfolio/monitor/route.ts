@@ -273,7 +273,6 @@ export async function POST() {
     // ── STEP 2: Screen full market for opportunities ───────────────────────────
     const screenResults = await screenMarket(session, apiKey, 60)
     const heldTickers = portfolio.positions.map((p: any) => p.ticker)
-    const cooldowns = portfolio.cooldowns || {}
     const buyOpportunities = screenResults
       .filter(r => (r.signal === 'STRONG_BUY' || r.signal === 'BUY') && !heldTickers.includes(r.ticker))
       .slice(0, 10) // Top 10 candidates for deep analysis
@@ -374,8 +373,6 @@ async function executeBuy(portfolio: any, ticker: string, shares: number, price:
 
   portfolio.history = portfolio.history || []
   portfolio.history.push({ date: todayStr, action: 'BUY', ticker, shares, price, total: cost, reason, currency })
-
-  if (portfolio.cooldowns?.[ticker]) delete portfolio.cooldowns[ticker]
 
   portfolio.strategyNotes = portfolio.strategyNotes || []
   portfolio.strategyNotes.push({ date: nowISO(), note: `Bought ${shares} ${ticker} @ ${fmt(price, currency)} (-${fmt(cost, currency)}). ${reason}${strategy ? ' Strategy: ' + strategy : ''} SL: ${fmt(sl, currency)}, TP: ${fmt(tp, currency)}. Cash now ${fmt(portfolio.cashByValue[currency], currency)}.` })

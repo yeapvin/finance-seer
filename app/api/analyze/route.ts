@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getLiveQuote, getHistoricalOHLCV, getNews } from '@/lib/market-data'
-import { StockData } from '@/lib/yahoo'
+import { StockData } from '@/lib/market-data'
 import { calculateAllIndicators } from '@/lib/indicators'
 import { detectPatterns } from '@/lib/patterns'
 import { generateAnalysisReport } from '@/lib/analysis'

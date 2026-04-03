@@ -1,4 +1,4 @@
-import { StockData } from './yahoo'
+import { StockData } from './market-data'
 import { IndicatorValues } from './indicators'
 import { PatternMatch, findSupportResistance } from './patterns'
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { createChart, IChartApi, CandlestickData } from 'lightweight-charts'
-import { HistoricalData } from '@/lib/yahoo'
+import { HistoricalData } from '@/lib/market-data'
 import { IndicatorValues } from '@/lib/indicators'
 
 interface StockChartProps {

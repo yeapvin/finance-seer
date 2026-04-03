@@ -293,37 +293,39 @@ export default function Home() {
             <>
               {/* Period Selector + Indicator Toggles + Chart — all in one card */}
               <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '20px' }}>
-                {/* Price Chart header: period left, overlays right */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                  {/* Left: title + period selector */}
-                  <div>
-                    <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px', marginBottom: '8px' }}>Price Chart</h3>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      {PERIODS.map(p => {
-                        const cached = !!periodCache.current[selectedTicker]?.[p]
-                        const loading = loadingPeriods.has(p)
-                        return (
-                          <button key={p} onClick={() => setPeriod(p)}
-                            style={{
-                              padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none',
-                              background: period === p ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : 'rgba(255,255,255,0.06)',
-                              color: period === p ? 'white' : '#71717a',
-                              opacity: !cached && loading ? 0.5 : 1
-                            }}>
-                            {p.toUpperCase()}
-                          </button>
-                        )
-                      })}
-                    </div>
+                {/* Price Chart header */}
+                <div style={{ marginBottom: '14px' }}>
+                  <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px', marginBottom: '10px' }}>Price Chart</h3>
+
+                  {/* Row 1: Period range toggles */}
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    {PERIODS.map(p => {
+                      const isActive = period === p
+                      const cached = !!periodCache.current[selectedTicker]?.[p]
+                      const loading = loadingPeriods.has(p)
+                      return (
+                        <button key={p} onClick={() => setPeriod(p)}
+                          style={{
+                            padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none',
+                            background: isActive ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : 'rgba(255,255,255,0.06)',
+                            color: isActive ? 'white' : '#71717a',
+                            opacity: !cached && loading ? 0.5 : 1
+                          }}>
+                          {p.toUpperCase()}
+                        </button>
+                      )
+                    })}
                   </div>
-                  {/* Right: overlay toggles */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'flex-end', maxWidth: '55%' }}>
+
+                  {/* Row 2: Overlay toggles (SMA, EMA, Bollinger) */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                     {([
                       { key: 'sma20', label: 'SMA 20', color: '#f59e0b' },
                       { key: 'sma50', label: 'SMA 50', color: '#8b5cf6' },
                       { key: 'sma200', label: 'SMA 200', color: '#ec4899' },
                       { key: 'ema12', label: 'EMA 12', color: '#06b6d4' },
                       { key: 'ema26', label: 'EMA 26', color: '#14b8a6' },
+                      { key: 'bollingerBands', label: 'Bollinger', color: '#6366f1' },
                     ] as { key: keyof typeof showIndicators; label: string; color: string }[]).map(({ key, label, color }) => {
                       const active = showIndicators[key]
                       return (

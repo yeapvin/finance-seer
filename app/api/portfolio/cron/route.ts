@@ -31,6 +31,22 @@ function marketSession(): string {
   return '📊 Scheduled Check'
 }
 
+// SGX public holidays 2025-2026 (YYYY-MM-DD)
+const SGX_HOLIDAYS = [
+  '2025-01-01','2025-01-29','2025-01-30','2025-04-18','2025-05-01',
+  '2025-05-12','2025-06-07','2025-08-09','2025-10-20','2025-12-25',
+  '2026-01-01','2026-01-29','2026-01-30','2026-04-03','2026-05-01',
+  '2026-05-31','2026-06-26','2026-08-10','2026-11-08','2026-12-25'
+]
+
+// NYSE public holidays 2025-2026
+const NYSE_HOLIDAYS = [
+  '2025-01-01','2025-01-20','2025-02-17','2025-04-18','2025-05-26',
+  '2025-06-19','2025-07-04','2025-09-01','2025-11-27','2025-12-25',
+  '2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25',
+  '2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25'
+]
+
 export async function GET(request: NextRequest) {
   // Verify cron secret to prevent unauthorized calls
   const authHeader = request.headers.get('authorization')
@@ -41,6 +57,19 @@ export async function GET(request: NextRequest) {
 
   const token = process.env.TELEGRAM_BOT_TOKEN
   const chatId = process.env.TELEGRAM_CHAT_ID
+
+  // Check if today is a market holiday
+  const todayUTC = new Date().toISOString().split('T')[0]
+  const session = marketSession()
+  const isSGXSession = session.includes('SGX')
+  const isNYSESession = session.includes('NYSE')
+  const isSGXHoliday = SGX_HOLIDAYS.includes(todayUTC)
+  const isNYSEHoliday = NYSE_HOLIDAYS.includes(todayUTC)
+
+  if ((isSGXSession && isSGXHoliday) || (isNYSESession && isNYSEHoliday)) {
+    console.log(`Skipping ${session} — market holiday on ${todayUTC}`)
+    return NextResponse.json({ skipped: true, reason: `Market holiday: ${todayUTC}` })
+  }
 
   try {
     // Run the monitor

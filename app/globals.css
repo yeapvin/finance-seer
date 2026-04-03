@@ -444,3 +444,17 @@ html, body {
     overflow-y: auto;
   }
 }
+
+/* Hide empty right panel on mobile */
+.right-panel-empty {
+  display: none !important;
+}
+
+/* Always show on desktop even when empty */
+@media (min-width: 768px) {
+  .right-panel-empty {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}

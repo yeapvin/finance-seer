@@ -275,11 +275,11 @@ export default function Home() {
         </aside>
 
         {/* ── RIGHT COLUMN: Chart + Analysis ── */}
-        <main className='right-panel' style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <main className={`right-panel ${!selectedTicker ? 'right-panel-empty' : ''}`} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {!selectedTicker ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#27272a', gap: '12px' }}>
-              <Zap size={48} />
-              <p style={{ fontSize: '16px' }}>Select a stock to view charts and analysis</p>
+            <div style={{ color: '#27272a', textAlign: 'center' }}>
+              <Zap size={40} style={{ margin: '0 auto 12px' }} />
+              <p style={{ fontSize: '14px' }}>Select a stock to get started</p>
             </div>
           ) : stockLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>

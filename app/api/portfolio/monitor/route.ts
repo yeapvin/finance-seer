@@ -143,15 +143,28 @@ async function analyzeStock(ticker: string, portfolio: any) {
   let signal: 'BUY' | 'SELL' | 'HOLD'
   let reason: string
 
+  const bbStr = indicators.bollingerBands?.length
+    ? (() => { const bb = indicators.bollingerBands![indicators.bollingerBands!.length - 1]; return bb ? ` BB $${bb.lower.toFixed(2)}-$${bb.upper.toFixed(2)}.` : '' })()
+    : ''
+  const smaStr = sma20 > 0 && sma50 > 0
+    ? ` SMA20 $${sma20.toFixed(2)}, SMA50 $${sma50.toFixed(2)}.`
+    : ''
+  const patternStr = patterns.length > 0
+    ? ` Pattern: ${patterns[0].name} (${patterns[0].confidence.toFixed(0)}%).`
+    : ''
+  const learnStr = learning.winRate > 0 ? ` Win rate: ${learning.winRate.toFixed(0)}%.` : ''
+
   if (bull >= bear + threshold) {
     signal = 'BUY'
-    reason = `Bullish: RSI ${rsi.toFixed(0)}, MACD ${macd > macdSignal ? '▲' : '▼'}, ${bull}B/${bear}R signals. Win rate: ${learning.winRate.toFixed(0)}%.`
+    const strategyType = rsi < 35 ? 'Contrarian buy (oversold)' : macd > macdSignal && currentPrice > sma20 ? 'Momentum buy' : 'Technical buy'
+    reason = `${strategyType} at $${currentPrice.toFixed(2)}. RSI ${rsi.toFixed(0)}${rsi < 35 ? ' (oversold)' : ''}.${smaStr}${bbStr}${patternStr} Resistance $${(currentPrice * 1.08).toFixed(2)}.${learnStr}`
   } else if (bear >= bull + threshold) {
     signal = 'SELL'
-    reason = `Bearish: RSI ${rsi.toFixed(0)}, MACD ${macd > macdSignal ? '▲' : '▼'}, ${bear}R/${bull}B signals. Win rate: ${learning.winRate.toFixed(0)}%.`
+    const strategyType = rsi > 68 ? 'Take-profit (overbought)' : currentPrice < sma20 ? 'Stop-loss (below SMA20)' : 'Technical sell'
+    reason = `${strategyType} at $${currentPrice.toFixed(2)}. RSI ${rsi.toFixed(0)}${rsi > 68 ? ' (overbought)' : ''}.${smaStr}${patternStr} Support $${(currentPrice * 0.93).toFixed(2)}.${learnStr}`
   } else {
     signal = 'HOLD'
-    reason = `Mixed: RSI ${rsi.toFixed(0)}, ${bull}B/${bear}R signals. Await clearer direction.`
+    reason = `Hold at $${currentPrice.toFixed(2)}. RSI ${rsi.toFixed(0)}, mixed signals (${bull}B/${bear}R). Await clearer direction.`
   }
 
   return { ticker, currentPrice, signal, reason, rsi, bull, bear, currency: getCurrency(ticker) }
@@ -277,11 +290,17 @@ export async function PUT(request: Request) {
       const pnl = (action.currentPrice - pos.buyPrice) * pos.shares
       const pnlPct = ((action.currentPrice - pos.buyPrice) / pos.buyPrice) * 100
 
+      const sellNote = `${action.reason.replace(/^[⛔🎯📉]/,'').trim()} Profit: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} (${pnl >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%).`
+
       portfolio.history = portfolio.history || []
-      portfolio.history.push({ date: todayStr, action: 'SELL', ticker: pos.ticker, shares: pos.shares, price: action.currentPrice, total: proceeds, reason: action.reason, buyDate: pos.buyDate, buyPrice: pos.buyPrice, pnl, pnlPct, currency })
+      portfolio.history.push({ date: todayStr, action: 'SELL', ticker: pos.ticker, shares: pos.shares, price: action.currentPrice, total: proceeds, reason: sellNote, buyDate: pos.buyDate, buyPrice: pos.buyPrice, pnl, pnlPct, currency })
 
       portfolio.closedPositions = portfolio.closedPositions || []
-      portfolio.closedPositions.push({ ticker: pos.ticker, shares: pos.shares, buyDate: pos.buyDate, buyPrice: pos.buyPrice, sellDate: todayStr, sellPrice: action.currentPrice, reason: action.reason, pnl, pnlPct, currency })
+      portfolio.closedPositions.push({ ticker: pos.ticker, shares: pos.shares, buyDate: pos.buyDate, buyPrice: pos.buyPrice, sellDate: todayStr, sellPrice: action.currentPrice, reason: sellNote, pnl, pnlPct, currency })
+
+      // Add strategy note
+      portfolio.strategyNotes = portfolio.strategyNotes || []
+      portfolio.strategyNotes.push({ date: `${todayStr}T${new Date().toISOString().split('T')[1].substring(0,5)}Z`, note: `Sold ${pos.ticker} @ $${action.currentPrice.toFixed(2)} (${pos.shares} shares). ${sellNote} Cash now $${(portfolio.cashByValue?.[currency] || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}.` })
 
       // Update cash in correct currency
       portfolio.cashByValue = portfolio.cashByValue || { USD: 0, SGD: 0 }
@@ -313,8 +332,14 @@ export async function PUT(request: Request) {
       portfolio.positions = portfolio.positions || []
       portfolio.positions.push({ ticker: action.ticker, shares: action.shares, avgCost: action.currentPrice, buyDate: todayStr, buyPrice: action.currentPrice, currentPrice: action.currentPrice, signal: 'BUY', reason: action.reason, currency })
 
+      const buyNote = action.reason.replace(/^[📈]/,'').trim()
+
       portfolio.history = portfolio.history || []
-      portfolio.history.push({ date: todayStr, action: 'BUY', ticker: action.ticker, shares: action.shares, price: action.currentPrice, total: cost, reason: action.reason, currency })
+      portfolio.history.push({ date: todayStr, action: 'BUY', ticker: action.ticker, shares: action.shares, price: action.currentPrice, total: cost, reason: buyNote, currency })
+
+      // Add strategy note
+      portfolio.strategyNotes = portfolio.strategyNotes || []
+      portfolio.strategyNotes.push({ date: `${todayStr}T${new Date().toISOString().split('T')[1].substring(0,5)}Z`, note: `Bought ${action.shares} ${action.ticker} @ $${action.currentPrice.toFixed(2)} (-$${cost.toFixed(2)}). ${buyNote} Cash now ${currency} $${(portfolio.cashByValue?.[currency] || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}.` })
 
       if (portfolio.cooldowns?.[action.ticker]) delete portfolio.cooldowns[action.ticker]
 

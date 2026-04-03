@@ -64,9 +64,51 @@ function finnhubSymbol(ticker: string) {
 
 // ─── Live Quote + Fundamentals (Finnhub) ─────────────────────────────────────
 
+// Yahoo fallback for SGX and any ticker Finnhub can't price
+async function getYahooQuote(ticker: string) {
+  try {
+    const [chartRes, quoteRes] = await Promise.allSettled([
+      fetch(`https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`, { headers: { 'User-Agent': 'Mozilla/5.0' } }),
+      fetch(`https://query2.finance.yahoo.com/v6/finance/quote?symbols=${ticker}`, { headers: { 'User-Agent': 'Mozilla/5.0' } }),
+    ])
+    const chartData = chartRes.status === 'fulfilled' && chartRes.value.ok ? await chartRes.value.json() : null
+    const quoteData = quoteRes.status === 'fulfilled' && quoteRes.value.ok ? await quoteRes.value.json() : null
+    const meta = chartData?.chart?.result?.[0]?.meta
+    const q = quoteData?.quoteResponse?.result?.[0]
+    if (!meta?.regularMarketPrice) return null
+    const price = meta.regularMarketPrice
+    const prevClose = meta.previousClose || meta.chartPreviousClose || price
+    return {
+      ticker, name: meta.longName || meta.shortName || q?.longName || ticker,
+      price, change: price - prevClose,
+      changePercent: prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0,
+      volume: meta.regularMarketVolume || 0,
+      marketCap: q?.marketCap || 0,
+      peRatio: q?.trailingPE || 0,
+      dividendYield: q?.dividendYield || 0,
+      dayHigh: meta.regularMarketDayHigh || price,
+      dayLow: meta.regularMarketDayLow || price,
+      open: meta.regularMarketOpen || price,
+      previousClose: prevClose,
+      week52High: meta.fiftyTwoWeekHigh || 0,
+      week52Low: meta.fiftyTwoWeekLow || 0,
+      currency: meta.currency || (ticker.endsWith('.SI') ? 'SGD' : 'USD'),
+      exchange: meta.exchangeName || '',
+      logo: '', weburl: '',
+    }
+  } catch { return null }
+}
+
 export async function getLiveQuote(ticker: string) {
   const cached = quoteCache.get(ticker)
   if (cached && Date.now() - cached.ts < QUOTE_TTL) return cached.data
+
+  // SGX tickers: Finnhub free tier doesn't support them, use Yahoo directly
+  if (ticker.endsWith('.SI')) {
+    const data = await getYahooQuote(ticker)
+    if (data) quoteCache.set(ticker, { data, ts: Date.now() })
+    return data
+  }
 
   const sym = finnhubSymbol(ticker)
   const [quoteRes, profileRes, metricsRes] = await Promise.all([
@@ -80,7 +122,8 @@ export async function getLiveQuote(ticker: string) {
     metricsRes.ok ? metricsRes.json() : { metric: {} }
   ])
 
-  if (!q.c) return null
+  // Finnhub returned no price — fall back to Yahoo
+  if (!q.c) return getYahooQuote(ticker)
   const metrics = m?.metric || {}
 
   const data = {

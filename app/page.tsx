@@ -275,11 +275,14 @@ export default function Home() {
         </aside>
 
         {/* ── RIGHT COLUMN: Chart + Analysis ── */}
-        <main className='right-panel' style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <main className='right-panel' style={{ display: 'flex', flexDirection: 'column', gap: '20px', background: '#050505', minHeight: '400px' }}>
           {!selectedTicker ? (
-            <div className='empty-state'>
-              <Zap size={40} />
-              <p style={{ fontSize: '14px' }}>Select a stock to get started</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '300px', color: '#27272a', gap: '16px', padding: '40px' }}>
+              <Zap size={48} style={{ opacity: 0.3 }} />
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: '16px', color: '#3f3f46', marginBottom: '6px' }}>Select a stock to get started</p>
+                <p style={{ fontSize: '12px', color: '#27272a' }}>Search by ticker symbol or company name</p>
+              </div>
             </div>
           ) : stockLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>

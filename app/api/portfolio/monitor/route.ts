@@ -275,7 +275,7 @@ export async function POST() {
     const heldTickers = portfolio.positions.map((p: any) => p.ticker)
     const cooldowns = portfolio.cooldowns || {}
     const buyOpportunities = screenResults
-      .filter(r => (r.signal === 'STRONG_BUY' || r.signal === 'BUY') && !heldTickers.includes(r.ticker) && !cooldowns[r.ticker])
+      .filter(r => (r.signal === 'STRONG_BUY' || r.signal === 'BUY') && !heldTickers.includes(r.ticker))
       .slice(0, 10) // Top 10 candidates for deep analysis
 
     for (const candidate of buyOpportunities) {
@@ -352,9 +352,6 @@ async function executeTrade(portfolio: any, type: 'SELL', pos: any, price: numbe
   const posIdx = portfolio.positions.findIndex((p: any) => p.ticker === pos.ticker)
   if (posIdx >= 0) portfolio.positions.splice(posIdx, 1)
 
-  const cd = new Date(); cd.setDate(cd.getDate() + 3)
-  portfolio.cooldowns = portfolio.cooldowns || {}
-  portfolio.cooldowns[pos.ticker] = cd.toISOString().split('T')[0]
 
   portfolio.strategyNotes = portfolio.strategyNotes || []
   portfolio.strategyNotes.push({ date: nowISO(), note: `Sold ${pos.ticker} @ ${fmt(price, currency)} (${pos.shares} shares). ${note} Cash now ${fmt(portfolio.cashByValue[currency], currency)}.` })

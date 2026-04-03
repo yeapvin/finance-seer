@@ -138,6 +138,10 @@ export default function Home() {
 
   const isPositive = stock ? stock.change >= 0 : true
   const isPeriodLoading = loadingPeriods.has(period) && !currentData
+  const toggleIndicator = (key: string) => {
+    const k = key as keyof typeof showIndicators
+    setShowIndicators(prev => ({ ...prev, [k]: !prev[k] }))
+  }
 
   return (
     <div className='min-h-screen bg-black'>
@@ -272,6 +276,36 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* Detected Patterns — left column, under stock details */}
+          {currentData && currentData.patterns.length > 0 && (
+            <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '12px' }}>
+                <span style={{ color: '#6366f1', fontSize: '14px' }}>⬡</span>
+                <span style={{ color: 'white', fontWeight: 700, fontSize: '13px' }}>Detected Patterns</span>
+                <span style={{ color: '#3f3f46', fontSize: '10px' }}>{currentData.patterns.length} found</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {currentData.patterns.map((pattern: any, i: number) => (
+                  <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pattern.type === 'bullish' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: '8px', padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {pattern.type === 'bullish'
+                          ? <TrendingUp size={12} style={{ color: '#34d399' }} />
+                          : <TrendingDown size={12} style={{ color: '#f87171' }} />}
+                        <span style={{ color: 'white', fontWeight: 600, fontSize: '12px' }}>{pattern.name}</span>
+                      </div>
+                      <span style={{ color: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#71717a', fontSize: '11px', fontWeight: 700 }}>{pattern.confidence?.toFixed(0)}%</span>
+                    </div>
+                    <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)', borderRadius: '1px', marginBottom: '4px' }}>
+                      <div style={{ height: '100%', borderRadius: '1px', width: `${Math.min(pattern.confidence, 100)}%`, background: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#52525b' }} />
+                    </div>
+                    <p style={{ color: '#52525b', fontSize: '10px', margin: 0 }}>{pattern.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </aside>
 
         {/* ── RIGHT COLUMN: Chart + Analysis ── */}
@@ -298,38 +332,30 @@ export default function Home() {
                   <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px', marginBottom: '10px' }}>Price Chart</h3>
 
                   {/* Row 1: Period range toggles */}
-                  {(() => {
-                    const periodDesc: Record<string, string> = {
-                      '1d': 'Today — intraday price action (5-min candles)',
-                      '5d': 'Last 5 trading days',
-                      '1mo': 'Last month of daily candles',
-                      '3mo': 'Last 3 months — good for short-term trends',
-                      '6mo': 'Last 6 months — medium-term view',
-                      '1y': 'Last 12 months — full annual view',
-                      '5y': '5 years — long-term trend analysis',
-                    }
-                    return (
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                        {PERIODS.map(p => {
-                          const isActive = period === p
-                          const cached = !!periodCache.current[selectedTicker]?.[p]
-                          const loading = loadingPeriods.has(p)
-                          return (
-                            <button key={p} onClick={() => setPeriod(p)}
-                              data-tooltip={periodDesc[p]}
-                              style={{
-                                padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none',
-                                background: isActive ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : 'rgba(255,255,255,0.06)',
-                                color: isActive ? 'white' : '#71717a',
-                                opacity: !cached && loading ? 0.5 : 1
-                              }}>
-                              {p.toUpperCase()}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )
-                  })()}
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    {PERIODS.map(p => {
+                      const isActive = period === p
+                      const cached = !!periodCache.current[selectedTicker]?.[p]
+                      const loading = loadingPeriods.has(p)
+                      const periodTips: Record<string,string> = {
+                        '1d':'Today — intraday (5-min candles)','5d':'Last 5 trading days',
+                        '1mo':'Last month of daily data','3mo':'Last 3 months — short-term trend',
+                        '6mo':'Last 6 months — medium-term view','1y':'Full year — annual view',
+                        '5y':'5 years — long-term trend'
+                      }
+                      return (
+                        <button key={p} onClick={() => setPeriod(p)}
+                          data-tooltip={periodTips[p]}
+                          style={{
+                            padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none',
+                            background: isActive ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : 'rgba(255,255,255,0.06)',
+                            color: isActive ? 'white' : '#71717a',
+                            opacity: !cached && loading ? 0.5 : 1
+                          }}>
+                          {p.toUpperCase()}
+                        </button>
+                      )
+                    })}
                   </div>
 
                   {/* Row 2: Overlay toggles (SMA, EMA, Bollinger) */}
@@ -341,10 +367,10 @@ export default function Home() {
                       { key: 'ema12', label: 'EMA 12', color: '#06b6d4', tip: 'Exponential MA (12 days) — faster, reacts quicker to recent price changes.' },
                       { key: 'ema26', label: 'EMA 26', color: '#14b8a6', tip: 'Exponential MA (26 days) — slower EMA. Used with EMA 12 to form MACD.' },
                       { key: 'bollingerBands', label: 'Bollinger', color: '#6366f1', tip: 'Bollinger Bands — volatility envelope. Price near upper = overbought, lower = oversold.' },
-                    ] as { key: keyof typeof showIndicators; label: string; color: string; tip: string }[]).map(({ key, label, color, tip }) => {
+                    ]).map(({ key, label, color, tip }: { key: keyof typeof showIndicators; label: string; color: string; tip: string }) => {
                       const active = showIndicators[key]
                       return (
-                        <button key={key} onClick={() => setShowIndicators(prev => ({ ...prev, [key]: !prev[key] }))}
+                        <button key={key} onClick={() => toggleIndicator(key)}
                           data-tooltip={tip}
                           style={{ padding: '3px 9px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                             border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,
@@ -364,7 +390,7 @@ export default function Home() {
                     <span style={{ color: '#52525b', fontSize: '13px' }}>Loading {period.toUpperCase()}...</span>
                   </div>
                 ) : currentData?.history.length && currentData.indicators ? (
-                  <StockChart data={currentData.history} indicators={currentData.indicators} showIndicators={showIndicators} onToggleIndicator={(key) => setShowIndicators(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))} />
+                  <StockChart data={currentData.history} indicators={currentData.indicators} showIndicators={showIndicators} onToggleIndicator={toggleIndicator} />
                 ) : null}
               </div>
 
@@ -380,36 +406,7 @@ export default function Home() {
                 ) : null}
               </div>
 
-              {/* Detected Patterns — full width, two columns */}
-              {currentData && currentData.patterns.length > 0 && (
-                <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <span style={{ color: '#6366f1' }}>⬡</span>
-                    <h3 style={{ color: 'white', fontWeight: 800, fontSize: '15px', margin: 0 }}>Detected Patterns</h3>
-                    <span style={{ color: '#3f3f46', fontSize: '11px' }}>1-year window · {currentData.patterns.length} pattern{currentData.patterns.length !== 1 ? 's' : ''} found</span>
-                  </div>
-                  <div className='patterns-grid'>
-                    {currentData.patterns.map((pattern: any, i: number) => (
-                      <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pattern.type === 'bullish' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: '10px', padding: '12px 14px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                            {pattern.type === 'bullish'
-                              ? <TrendingUp size={14} style={{ color: '#34d399' }} />
-                              : <TrendingDown size={14} style={{ color: '#f87171' }} />}
-                            <span style={{ color: 'white', fontWeight: 600, fontSize: '13px' }}>{pattern.name}</span>
-                          </div>
-                          <span style={{ color: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#71717a', fontSize: '11px', fontWeight: 700 }}>{pattern.confidence?.toFixed(0)}%</span>
-                        </div>
-                        {/* Confidence bar */}
-                        <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', marginBottom: '6px' }}>
-                          <div style={{ height: '100%', borderRadius: '2px', width: `${Math.min(pattern.confidence, 100)}%`, background: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#52525b' }} />
-                        </div>
-                        <p style={{ color: '#71717a', fontSize: '11px', margin: 0 }}>{pattern.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+
             </>
           )}
         </main>

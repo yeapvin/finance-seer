@@ -49,6 +49,10 @@ interface FullStockData {
   changePercent: number
   volume?: number
   marketCap: number
+  peRatio?: number
+  dividendYield?: number
+  week52High?: number
+  week52Low?: number
   currency: string
   exchange: string
   dayHigh: number
@@ -174,43 +178,43 @@ export async function getFinnhubCompanyProfile(ticker: string): Promise<FinnhubC
 }
 
 /**
- * Get full stock data from Finnhub (price + company profile)
- * True Finnhub-primary approach
+ * Get full stock data from Finnhub (price + company profile + metrics)
  */
 export async function getFinnhubStockData(ticker: string): Promise<FullStockData | null> {
   const tickerUpper = ticker.toUpperCase()
+  const symbol = tickerUpper.endsWith('.SI') ? tickerUpper.replace('.SI', ':SP') : tickerUpper
 
   try {
-    // Fetch price and company profile in parallel
-    const [price, profile] = await Promise.all([
-      getFinnhubPrice(tickerUpper),
-      getFinnhubCompanyProfile(tickerUpper),
+    const [quoteRes, profileRes, metricsRes] = await Promise.all([
+      fetch(`${FINNHUB_BASE}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`),
+      fetch(`${FINNHUB_BASE}/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`),
+      fetch(`${FINNHUB_BASE}/stock/metric?symbol=${symbol}&metric=all&token=${FINNHUB_API_KEY}`),
     ])
 
-    if (!price) {
-      console.warn(`No price for ${tickerUpper}`)
-      return null
-    }
+    const [quote, profile, metricsData] = await Promise.all([
+      quoteRes.json() as Promise<FinnhubQuote>,
+      profileRes.json() as Promise<FinnhubCompanyProfile>,
+      metricsRes.ok ? metricsRes.json() : { metric: {} }
+    ])
 
-    if (!profile) {
-      console.warn(`No profile for ${tickerUpper}`)
-      return null
-    }
+    if (!quote.c) return null
 
-    // Fetch quote again to get OHLC (it's cached, so no extra API calls)
-    const url = `${FINNHUB_BASE}/quote?symbol=${tickerUpper}&token=${FINNHUB_API_KEY}`
-    const response = await fetch(url)
-    const quote: FinnhubQuote = await response.json()
+    const metrics = metricsData?.metric || {}
+    const price = quote.c
 
     return {
       ticker: tickerUpper,
-      name: profile.name,
+      name: profile.name || tickerUpper,
       price,
       change: price - quote.pc,
       changePercent: quote.pc > 0 ? ((price - quote.pc) / quote.pc) * 100 : 0,
-      volume: undefined, // Finnhub quote doesn't include volume in free tier
-      marketCap: profile.marketCapitalization || 0,
-      currency: profile.currency || 'USD',
+      volume: quote.v || undefined,
+      marketCap: (profile.marketCapitalization || 0) * 1e6,
+      peRatio: metrics.peBasicExclExtraTTM || metrics.peNormalizedAnnual || undefined,
+      dividendYield: metrics.dividendYieldIndicatedAnnual || undefined,
+      week52High: metrics['52WeekHigh'] || undefined,
+      week52Low: metrics['52WeekLow'] || undefined,
+      currency: profile.currency || (tickerUpper.endsWith('.SI') ? 'SGD' : 'USD'),
       exchange: profile.exchange || 'UNKNOWN',
       dayHigh: quote.h,
       dayLow: quote.l,

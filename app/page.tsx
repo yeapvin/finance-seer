@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, Loader, Zap, AlertTriangle, Briefcase, TrendingUp } from 'lucide-react'
+import { Search, Loader, Zap, AlertTriangle, Briefcase, TrendingUp, TrendingDown } from 'lucide-react'
 import { StockChart } from '@/components/StockChart'
-import { PatternOverlay } from '@/components/PatternOverlay'
 import { AnalysisReport } from '@/components/AnalysisReport'
 
 interface SearchResult { ticker: string; name: string; exchange: string }
@@ -364,24 +363,48 @@ export default function Home() {
                 ) : null}
               </div>
 
-              {/* Two-column: Patterns | Analysis */}
-              <div style={{ display: 'grid', gridTemplateColumns: currentData?.patterns.length ? '1fr 1fr' : '1fr', gap: '20px' }}>
-                {currentData && currentData.patterns.length > 0 && (
-                  <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '20px' }}>
-                    <PatternOverlay patterns={currentData.patterns} />
+              {/* Analysis Report */}
+              <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '24px' }}>
+                {analyzing ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#52525b' }}>
+                    <Loader className='animate-spin' size={16} style={{ color: '#3b82f6' }} />
+                    <span style={{ fontSize: '14px' }}>Generating analysis...</span>
                   </div>
-                )}
-                <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '20px' }}>
-                  {analyzing ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#52525b' }}>
-                      <Loader className='animate-spin' size={16} style={{ color: '#3b82f6' }} />
-                      <span style={{ fontSize: '14px' }}>Generating analysis...</span>
-                    </div>
-                  ) : analysis ? (
-                    <AnalysisReport report={analysis} />
-                  ) : null}
-                </div>
+                ) : analysis ? (
+                  <AnalysisReport report={analysis} />
+                ) : null}
               </div>
+
+              {/* Detected Patterns — full width, two columns */}
+              {currentData && currentData.patterns.length > 0 && (
+                <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <span style={{ color: '#6366f1' }}>⬡</span>
+                    <h3 style={{ color: 'white', fontWeight: 800, fontSize: '15px', margin: 0 }}>Detected Patterns</h3>
+                    <span style={{ color: '#3f3f46', fontSize: '11px' }}>1-year window · {currentData.patterns.length} pattern{currentData.patterns.length !== 1 ? 's' : ''} found</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    {currentData.patterns.map((pattern: any, i: number) => (
+                      <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pattern.type === 'bullish' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: '10px', padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                            {pattern.type === 'bullish'
+                              ? <TrendingUp size={14} style={{ color: '#34d399' }} />
+                              : <TrendingDown size={14} style={{ color: '#f87171' }} />}
+                            <span style={{ color: 'white', fontWeight: 600, fontSize: '13px' }}>{pattern.name}</span>
+                          </div>
+                          <span style={{ color: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#71717a', fontSize: '11px', fontWeight: 700 }}>{pattern.confidence?.toFixed(0)}%</span>
+                        </div>
+                        {/* Confidence bar */}
+                        <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', marginBottom: '6px' }}>
+                          <div style={{ height: '100%', borderRadius: '2px', width: `${Math.min(pattern.confidence, 100)}%`, background: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#52525b' }} />
+                        </div>
+                        <p style={{ color: '#71717a', fontSize: '11px', margin: 0 }}>{pattern.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </main>

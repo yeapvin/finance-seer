@@ -32,7 +32,9 @@ export async function generateAnalysisReport(
   newsHeadlines: string[],
   historicalVolumes?: number[],
 ): Promise<AnalysisReport> {
-  const { support, resistance } = findSupportResistance(historicalPrices)
+  // Use only last 3 months for support/resistance — keeps levels relevant to current price
+  const recentPrices = historicalPrices.slice(-63)
+  const { support, resistance } = findSupportResistance(recentPrices.length >= 20 ? recentPrices : historicalPrices)
 
   const lastValid = (arr: number[] | undefined) => {
     if (!arr || arr.length === 0) return 0
@@ -230,8 +232,9 @@ function generateDataDrivenAnalysis(stock: StockData, rsi: number, macd: number,
     : 'Volume data not available for analysis.'
 
   // Anchor all price targets relative to current price
-  const nearestSupport = support[0] || (sma50 > 0 && sma50 < p ? sma50 : p * 0.95)
-  const nearestResistance = resistance[0] || (sma50 > 0 && sma50 > p ? sma50 : p * 1.08)
+  // Use price-relative fallbacks if no S/R found within 20% range
+  const nearestSupport = support[0] || p * 0.95
+  const nearestResistance = resistance[0] || p * 1.08
   const stopLossPrice = nearestSupport * 0.97
   const takeProfitPrice = nearestResistance * 1.02
 

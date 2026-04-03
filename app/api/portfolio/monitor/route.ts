@@ -218,8 +218,7 @@ export async function POST() {
       if (actions.filter((a: any) => a.type === 'BUY').length >= 3) break
     }
 
-    // Update portfolio value
-    portfolio.positions = updatedPositions
+    // Calculate current portfolio value (read-only, no writes)
     const posValueUSD = updatedPositions
       .filter((p: any) => !isSGX(p.ticker))
       .reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
@@ -228,13 +227,7 @@ export async function POST() {
       .reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
     const totalValueUSD = cashUSD + posValueUSD + (cashSGD + posValueSGD) * fxRate
 
-    const todayStr = today()
-    const lastEntry = portfolio.valueHistory?.[portfolio.valueHistory.length - 1]
-    if (!lastEntry || lastEntry.date !== todayStr) {
-      portfolio.valueHistory = [...(portfolio.valueHistory || []), { date: todayStr, value: totalValueUSD }]
-    }
-
-    writePortfolio(portfolio)
+    // NOTE: We do NOT write to portfolio.json during analysis — data stays intact
 
     return NextResponse.json({
       success: true,

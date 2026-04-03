@@ -273,7 +273,6 @@ export function StockChart({ data, indicators, showIndicators, onToggleIndicator
 
   const subchartToggles = [
     { key: 'bollingerBands', label: 'Bollinger', color: '#6366f1' },
-    { key: 'volume', label: 'Volume', color: '#3b82f6' },
     { key: 'rsi', label: 'RSI', color: '#f97316' },
     { key: 'macd', label: 'MACD', color: '#a78bfa' },
     { key: 'stochastic', label: 'Stoch', color: '#34d399' },

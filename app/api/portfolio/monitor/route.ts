@@ -13,7 +13,8 @@ import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { calculateAllIndicators } from '@/lib/indicators'
 import { detectPatterns, findSupportResistance } from '@/lib/patterns'
-import { screenMarket, getCurrentMarketSession, getDetailedAnalysis } from '@/lib/screener'
+import { screenMarket, getCurrentMarketSession } from '@/lib/screener'
+import { getHistoricalOHLCV, getNews } from '@/lib/market-data'
 
 export const dynamic = 'force-dynamic'
 
@@ -101,10 +102,21 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
 }
 
 async function analyseStock(ticker: string, portfolio: any, apiKey: string): Promise<any> {
-  const detail = await getDetailedAnalysis(ticker, apiKey)
-  if (!detail || detail.prices.length < 50) return null
+  const [history, newsItems] = await Promise.all([
+    getHistoricalOHLCV(ticker, '6mo'),
+    getNews(ticker)
+  ])
+  if (!history || history.length < 50) return null
 
-  const { prices, highs, lows, volumes, currentPrice, newsHeadlines, sentimentScore } = detail
+  const prices = history.map((h: any) => h.close)
+  const highs = history.map((h: any) => h.high)
+  const lows = history.map((h: any) => h.low)
+  const volumes = history.map((h: any) => h.volume)
+  const currentPrice = prices[prices.length - 1]
+  const newsHeadlines = newsItems.map((n: any) => n.headline)
+  const posNews = newsItems.filter((n: any) => n.sentiment === 'positive').length
+  const negNews = newsItems.filter((n: any) => n.sentiment === 'negative').length
+  const sentimentScore = newsItems.length > 0 ? (posNews - negNews) / newsItems.length : 0
   const indicators = calculateAllIndicators(prices, highs, lows)
   // Cap patterns to last 6 months (~126 trading days)
   const SIX_MONTHS = 126

@@ -272,10 +272,10 @@ export function StockChart({ data, indicators, showIndicators, onToggleIndicator
   }, [data, indicators, showIndicators, showVolume, showRSI, showMACD])
 
   const subchartToggles = [
-    { key: 'rsi', label: 'RSI', color: '#f97316' },
-    { key: 'macd', label: 'MACD', color: '#a78bfa' },
-    { key: 'stochastic', label: 'Stoch', color: '#34d399' },
-  ] as { key: keyof typeof showIndicators; label: string; color: string }[]
+    { key: 'rsi', label: 'RSI', color: '#f97316', tip: 'Relative Strength Index — momentum oscillator 0-100. Above 70 = overbought, below 30 = oversold.' },
+    { key: 'macd', label: 'MACD', color: '#a78bfa', tip: 'Moving Average Convergence Divergence — trend-following momentum. Signal line crossover = buy/sell signal.' },
+    { key: 'stochastic', label: 'Stoch', color: '#34d399', tip: 'Stochastic Oscillator — compares closing price to range. K above 80 = overbought, below 20 = oversold.' },
+  ] as { key: keyof typeof showIndicators; label: string; color: string; tip: string }[]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -290,11 +290,12 @@ export function StockChart({ data, indicators, showIndicators, onToggleIndicator
 
       {/* Subchart toggles — sit between Volume and the oscillators they control */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', padding: '8px 4px', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        {subchartToggles.map(({ key, label, color }) => {
+        {subchartToggles.map(({ key, label, color, tip }) => {
           const active = showIndicators[key]
           return (
             <button key={key}
               onClick={() => onToggleIndicator && onToggleIndicator(key)}
+              data-tooltip={tip}
               style={{
                 padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                 border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,

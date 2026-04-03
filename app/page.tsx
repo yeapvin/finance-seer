@@ -298,38 +298,54 @@ export default function Home() {
                   <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px', marginBottom: '10px' }}>Price Chart</h3>
 
                   {/* Row 1: Period range toggles */}
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                    {PERIODS.map(p => {
-                      const isActive = period === p
-                      const cached = !!periodCache.current[selectedTicker]?.[p]
-                      const loading = loadingPeriods.has(p)
-                      return (
-                        <button key={p} onClick={() => setPeriod(p)}
-                          style={{
-                            padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none',
-                            background: isActive ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : 'rgba(255,255,255,0.06)',
-                            color: isActive ? 'white' : '#71717a',
-                            opacity: !cached && loading ? 0.5 : 1
-                          }}>
-                          {p.toUpperCase()}
-                        </button>
-                      )
-                    })}
+                  {(() => {
+                    const periodDesc: Record<string, string> = {
+                      '1d': 'Today — intraday price action (5-min candles)',
+                      '5d': 'Last 5 trading days',
+                      '1mo': 'Last month of daily candles',
+                      '3mo': 'Last 3 months — good for short-term trends',
+                      '6mo': 'Last 6 months — medium-term view',
+                      '1y': 'Last 12 months — full annual view',
+                      '5y': '5 years — long-term trend analysis',
+                    }
+                    return (
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                        {PERIODS.map(p => {
+                          const isActive = period === p
+                          const cached = !!periodCache.current[selectedTicker]?.[p]
+                          const loading = loadingPeriods.has(p)
+                          return (
+                            <button key={p} onClick={() => setPeriod(p)}
+                              data-tooltip={periodDesc[p]}
+                              style={{
+                                padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none',
+                                background: isActive ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : 'rgba(255,255,255,0.06)',
+                                color: isActive ? 'white' : '#71717a',
+                                opacity: !cached && loading ? 0.5 : 1
+                              }}>
+                              {p.toUpperCase()}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()}
                   </div>
 
                   {/* Row 2: Overlay toggles (SMA, EMA, Bollinger) */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                     {([
-                      { key: 'sma20', label: 'SMA 20', color: '#f59e0b' },
-                      { key: 'sma50', label: 'SMA 50', color: '#8b5cf6' },
-                      { key: 'sma200', label: 'SMA 200', color: '#ec4899' },
-                      { key: 'ema12', label: 'EMA 12', color: '#06b6d4' },
-                      { key: 'ema26', label: 'EMA 26', color: '#14b8a6' },
-                      { key: 'bollingerBands', label: 'Bollinger', color: '#6366f1' },
-                    ] as { key: keyof typeof showIndicators; label: string; color: string }[]).map(({ key, label, color }) => {
+                      { key: 'sma20', label: 'SMA 20', color: '#f59e0b', tip: 'Simple Moving Average (20 days) — short-term trend. Price above = bullish.' },
+                      { key: 'sma50', label: 'SMA 50', color: '#8b5cf6', tip: 'Simple Moving Average (50 days) — medium-term trend line.' },
+                      { key: 'sma200', label: 'SMA 200', color: '#ec4899', tip: 'Simple Moving Average (200 days) — long-term trend. Golden/death cross signal.' },
+                      { key: 'ema12', label: 'EMA 12', color: '#06b6d4', tip: 'Exponential MA (12 days) — faster, reacts quicker to recent price changes.' },
+                      { key: 'ema26', label: 'EMA 26', color: '#14b8a6', tip: 'Exponential MA (26 days) — slower EMA. Used with EMA 12 to form MACD.' },
+                      { key: 'bollingerBands', label: 'Bollinger', color: '#6366f1', tip: 'Bollinger Bands — volatility envelope. Price near upper = overbought, lower = oversold.' },
+                    ] as { key: keyof typeof showIndicators; label: string; color: string; tip: string }[]).map(({ key, label, color, tip }) => {
                       const active = showIndicators[key]
                       return (
                         <button key={key} onClick={() => setShowIndicators(prev => ({ ...prev, [key]: !prev[key] }))}
+                          data-tooltip={tip}
                           style={{ padding: '3px 9px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                             border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,
                             background: active ? `${color}22` : 'transparent',

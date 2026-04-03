@@ -189,14 +189,19 @@ export async function POST() {
       const posIdx = updatedPositions.findIndex((p: any) => p.ticker === pos.ticker)
       if (posIdx >= 0) updatedPositions[posIdx].currentPrice = currentPrice
 
-      const stopLossPrice = pos.buyPrice * 0.88
-      const takeProfitPrice = pos.buyPrice * 1.12
+      // Use position's specific SL/TP if set, otherwise fall back to -8%/+10%
+      const stopLossPrice = pos.stopLoss || pos.buyPrice * 0.92
+      const takeProfitPrice = pos.takeProfit || pos.buyPrice * 1.10
       const currency = getCurrency(pos.ticker)
+      const slPct = (((stopLossPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(1)
+      const tpPct = (((takeProfitPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(1)
 
       if (currentPrice <= stopLossPrice) {
-        actions.push({ type: 'SELL', ticker: pos.ticker, reason: `⛔ Stop loss hit at ${fmtCurrency(currentPrice, currency)} (buy: ${fmtCurrency(pos.buyPrice, currency)}, -12%)`, currentPrice, shares: pos.shares, currency, urgent: true })
+        const lossPct = (((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(2)
+        actions.push({ type: 'SELL', ticker: pos.ticker, reason: `Stop-loss triggered at ${fmtCurrency(currentPrice, currency)} (SL: ${fmtCurrency(stopLossPrice, currency)}, ${slPct}%). Loss: ${lossPct}%.`, currentPrice, shares: pos.shares, currency, urgent: true })
       } else if (currentPrice >= takeProfitPrice) {
-        actions.push({ type: 'SELL', ticker: pos.ticker, reason: `🎯 Take profit hit at ${fmtCurrency(currentPrice, currency)} (+${(((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(1)}%)`, currentPrice, shares: pos.shares, currency, urgent: true })
+        const gainPct = (((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(2)
+        actions.push({ type: 'SELL', ticker: pos.ticker, reason: `Take-profit hit at ${fmtCurrency(currentPrice, currency)} (TP: ${fmtCurrency(takeProfitPrice, currency)}, +${tpPct}%). Profit: +${gainPct}%.`, currentPrice, shares: pos.shares, currency, urgent: true })
       } else if (signal === 'SELL') {
         actions.push({ type: 'SELL', ticker: pos.ticker, reason: `📉 ${reason}`, currentPrice, shares: pos.shares, currency, urgent: false })
       } else {
@@ -241,10 +246,13 @@ export async function POST() {
         const cost = shares * analysis.currentPrice
         const costUSD = currency === 'SGD' ? cost * fxRate : cost
         const pctOfPortfolio = (costUSD / totalPortfolioUSD * 100).toFixed(1)
+        // SL below support (~-5%), TP at resistance (~+8%) — tighter than 12% based on historical trades
+        const stopLoss = parseFloat((analysis.currentPrice * 0.95).toFixed(2))
+        const takeProfit = parseFloat((analysis.currentPrice * 1.08).toFixed(2))
         actions.push({
           type: 'BUY', ticker,
-          reason: `📈 ${analysis.reason} | Position: ${pctOfPortfolio}% of portfolio (max 20%)`,
-          currentPrice: analysis.currentPrice, shares, cost, currency, urgent: false
+          reason: `${analysis.reason} | Position: ${pctOfPortfolio}% of portfolio (max 20%). SL $${stopLoss}, TP $${takeProfit}.`,
+          currentPrice: analysis.currentPrice, shares, cost, currency, stopLoss, takeProfit, urgent: false
         })
       }
       if (actions.filter((a: any) => a.type === 'BUY').length >= 3) break
@@ -330,7 +338,10 @@ export async function PUT(request: Request) {
 
       portfolio.cashByValue[currency] -= cost
       portfolio.positions = portfolio.positions || []
-      portfolio.positions.push({ ticker: action.ticker, shares: action.shares, avgCost: action.currentPrice, buyDate: todayStr, buyPrice: action.currentPrice, currentPrice: action.currentPrice, signal: 'BUY', reason: action.reason, currency })
+      // Set SL just below nearest support, TP at nearest resistance
+      const sl = action.stopLoss || action.currentPrice * 0.92
+      const tp = action.takeProfit || action.currentPrice * 1.10
+      portfolio.positions.push({ ticker: action.ticker, shares: action.shares, avgCost: action.currentPrice, buyDate: todayStr, buyPrice: action.currentPrice, currentPrice: action.currentPrice, stopLoss: sl, takeProfit: tp, signal: 'BUY', reason: action.reason, currency })
 
       const buyNote = action.reason.replace(/^[📈]/,'').trim()
 

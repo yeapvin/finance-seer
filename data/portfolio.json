@@ -246,5 +246,17 @@
       "date": "2026-04-02",
       "value": 103979.64
     }
-  ]
+  ],
+  "atrMultipliers": {
+    "US": {
+      "sl": 1.5,
+      "tp": 3.0
+    },
+    "SGX": {
+      "sl": 2.0,
+      "tp": 4.0
+    },
+    "tuningHistory": [],
+    "lastTuned": null
+  }
 }

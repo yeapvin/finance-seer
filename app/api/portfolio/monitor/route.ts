@@ -120,6 +120,84 @@ async function hasEarningsSoon(ticker: string, daysOut = 3): Promise<boolean> {
   } catch { return false }
 }
 
+// Self-tuning ATR multipliers based on trade outcomes
+// Runs after enough closed trades to be statistically meaningful
+function tuneATRMultipliers(portfolio: any): void {
+  const closed = (portfolio.closedPositions || []).slice(-20) // Use last 20 trades
+  if (closed.length < 5) return // Need at least 5 trades to tune
+
+  const today = today_fn()
+  const lastTuned = portfolio.atrMultipliers?.lastTuned
+  // Only tune once per week to avoid over-fitting
+  if (lastTuned) {
+    const daysSince = Math.floor((Date.now() - new Date(lastTuned).getTime()) / 86400000)
+    if (daysSince < 7) return
+  }
+
+  // Categorise exits
+  const usExits = closed.filter((cp: any) => !isSGX(cp.ticker))
+  const sgxExits = closed.filter((cp: any) => isSGX(cp.ticker))
+
+  const tune = (exits: any[], market: 'US' | 'SGX') => {
+    if (exits.length < 3) return
+    const slHits = exits.filter((cp: any) => (cp.reason || '').toLowerCase().includes('stop-loss') || (cp.reason || '').toLowerCase().includes('stop loss')).length
+    const tpHits = exits.filter((cp: any) => (cp.reason || '').toLowerCase().includes('take-profit') || (cp.reason || '').toLowerCase().includes('take profit')).length
+    const total = slHits + tpHits
+    if (total === 0) return
+
+    const slRate = slHits / total
+    const current = portfolio.atrMultipliers[market]
+
+    // If SL being hit too often (>40%), widen SL multiplier
+    // If TP rarely reached (<30% of exits are TP), tighten TP or widen SL
+    // Adjust by max 0.1 per tuning cycle to avoid overcorrection
+    const adjustment = 0.1
+    let slAdj = 0, tpAdj = 0
+
+    if (slRate > 0.4) {
+      // Stops hit too often — widen SL
+      slAdj = adjustment
+    } else if (slRate < 0.2 && tpHits > slHits) {
+      // TP hitting well, SL rarely touched — can tighten SL slightly
+      slAdj = -adjustment * 0.5
+    }
+
+    const avgPnlPct = exits.reduce((s: number, cp: any) => s + (cp.pnlPct || 0), 0) / exits.length
+    if (avgPnlPct > 5) {
+      // Good returns — try to let winners run more (widen TP)
+      tpAdj = adjustment
+    } else if (avgPnlPct < 1) {
+      // Poor returns — tighten TP to lock in smaller gains
+      tpAdj = -adjustment
+    }
+
+    // Clamp to reasonable bounds
+    const newSL = Math.max(1.0, Math.min(4.0, current.sl + slAdj))
+    const newTP = Math.max(2.0, Math.min(8.0, current.tp + tpAdj))
+
+    const changed = newSL !== current.sl || newTP !== current.tp
+    if (changed) {
+      portfolio.atrMultipliers[market] = { sl: parseFloat(newSL.toFixed(1)), tp: parseFloat(newTP.toFixed(1)) }
+      portfolio.atrMultipliers.tuningHistory = [
+        ...(portfolio.atrMultipliers.tuningHistory || []).slice(-10),
+        {
+          date: today,
+          market,
+          before: { sl: current.sl, tp: current.tp },
+          after: { sl: newSL, tp: newTP },
+          basedOn: `${exits.length} trades, SL hit rate ${(slRate*100).toFixed(0)}%, avg P&L ${avgPnlPct.toFixed(1)}%`
+        }
+      ]
+    }
+  }
+
+  tune(usExits, 'US')
+  tune(sgxExits, 'SGX')
+  portfolio.atrMultipliers.lastTuned = today
+}
+
+function today_fn() { return new Date().toISOString().split('T')[0] }
+
 // Build learning signal weights from closed trade history
 function buildSignalWeights(portfolio: any): Record<string, number> {
   const closed = portfolio.closedPositions || []
@@ -315,6 +393,9 @@ export async function POST() {
       return NextResponse.json({ success: true, skipped: true, reason: 'Market closed' })
     }
 
+    // Self-tune ATR multipliers based on recent trade history
+    tuneATRMultipliers(portfolio)
+
     const cashUSD = portfolio.cashByValue?.USD || 0
     const cashSGD = portfolio.cashByValue?.SGD || 0
     const posValueUSD = (portfolio.positions || [])
@@ -429,15 +510,14 @@ export async function POST() {
             continue
           }
 
-          // Rule 9: ATR-based SL/TP (dynamic per stock volatility)
-          // SGX uses wider multipliers due to lower liquidity & wider spreads
+          // Rule 9: ATR-based SL/TP using self-tuning multipliers
           const isSGXStock = isSGX(candidate.ticker)
           const atr = analysis.atr
-          const slMultiplier = isSGXStock ? 2.0 : 1.5   // ATR × multiplier below price
-          const tpMultiplier = isSGXStock ? 4.0 : 3.0   // ATR × multiplier above price
+          const marketKey = isSGXStock ? 'SGX' : 'US'
+          const multipliers = portfolio.atrMultipliers?.[marketKey] || (isSGXStock ? { sl: 2.0, tp: 4.0 } : { sl: 1.5, tp: 3.0 })
           // LLM-provided levels (based on S/R) take priority over ATR fallback
-          const sl = llmDecision.stopLoss || Math.max(currentPrice - atr * slMultiplier, currentPrice * 0.85)
-          const tp = llmDecision.takeProfit || Math.min(currentPrice + atr * tpMultiplier, currentPrice * 1.30)
+          const sl = llmDecision.stopLoss || Math.max(currentPrice - atr * multipliers.sl, currentPrice * 0.85)
+          const tp = llmDecision.takeProfit || Math.min(currentPrice + atr * multipliers.tp, currentPrice * 1.30)
 
           // Rule 5: Min 1:2 risk/reward
           const risk = currentPrice - sl

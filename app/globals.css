@@ -315,7 +315,11 @@ input:focus, select:focus, textarea:focus {
   filter: blur(30px);
 }
 
-/* ── Responsive two-column layout ── */
+/* ── Layout ── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: hidden; width: 100%; max-width: 100vw; }
+
+/* Mobile: single column stack */
 .main-grid {
   display: flex;
   flex-direction: column;
@@ -323,21 +327,28 @@ input:focus, select:focus, textarea:focus {
 }
 
 .left-panel {
-  border-bottom: 1px solid rgba(255,255,255,0.06);
   width: 100%;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
 .right-panel {
   width: 100%;
+  padding: 16px;
 }
 
-/* Desktop: side-by-side, sticky left panel */
+.left-panel > *, .right-panel > * {
+  max-width: 100%;
+  min-width: 0;
+  word-break: break-word;
+}
+
+/* Desktop: two columns */
 @media (min-width: 768px) {
   .main-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     min-height: calc(100vh - 56px);
-    flex-direction: unset;
   }
 
   .left-panel {
@@ -347,109 +358,34 @@ input:focus, select:focus, textarea:focus {
     top: 56px;
     height: calc(100vh - 56px);
     overflow-y: auto;
-  }
-
-  .right-panel {
-    overflow-y: auto;
-    max-height: calc(100vh - 56px);
-  }
-}
-
-/* Large desktop: slightly favour right */
-@media (min-width: 1280px) {
-  .main-grid {
-    grid-template-columns: 2fr 3fr;
-  }
-}
-
-/* Analysis report responsive */
-.analysis-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-}
-
-@media (min-width: 900px) {
-  .analysis-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-  }
-}
-
-/* Patterns responsive */
-.patterns-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-@media (min-width: 600px) {
-  .patterns-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-/* Stock metrics grid */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-/* ── Mobile fixes ── */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-html, body {
-  overflow-x: hidden;
-  width: 100%;
-  max-width: 100vw;
-}
-
-.left-panel {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  padding: 16px;
-}
-
-.right-panel {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  padding: 16px;
-}
-
-/* Ensure nothing overflows on mobile */
-.left-panel > *,
-.right-panel > * {
-  max-width: 100%;
-  min-width: 0;
-  word-break: break-word;
-}
-
-@media (min-width: 768px) {
-  .left-panel {
     padding: 24px 20px;
-    /* Only apply sticky + fixed height on desktop where keyboard doesn't resize viewport */
-    position: sticky;
-    top: 56px;
-    height: calc(100vh - 56px);
-    overflow-y: auto;
   }
+
   .right-panel {
     padding: 24px;
-    max-height: calc(100vh - 56px);
     overflow-y: auto;
+    max-height: calc(100vh - 56px);
   }
 }
 
-/* Empty state: hide on mobile, show centered on desktop */
-.empty-state {
-  display: none;
+/* Large desktop: 2:3 split */
+@media (min-width: 1280px) {
+  .main-grid { grid-template-columns: 2fr 3fr; }
 }
 
+/* Analysis grid */
+.analysis-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 900px) { .analysis-grid { grid-template-columns: 1fr 1fr; gap: 24px; } }
+
+/* Patterns grid */
+.patterns-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 600px) { .patterns-grid { grid-template-columns: 1fr 1fr; } }
+
+/* Metrics grid */
+.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+/* Empty state: hidden on mobile, visible on desktop */
+.empty-state { display: none; }
 @media (min-width: 768px) {
   .empty-state {
     display: flex;

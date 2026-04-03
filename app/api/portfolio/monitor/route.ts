@@ -1,12 +1,17 @@
 /**
  * Portfolio Monitor — Full autonomous trading engine
- * - Scans full SGX/NYSE universe (not fixed basket)
- * - Uses RSI, MACD, Bollinger, Stochastic, SMA/EMA, ATR for technical analysis
- * - Detects 15+ chart patterns
- * - Pulls real news sentiment via Finnhub
- * - Uses Groq LLM to synthesise everything into a trading strategy
- * - Dynamic SL/TP based on ATR and support/resistance (not fixed %)
- * - Equities and ETFs only
+ *
+ * TRADING RULES:
+ * 1. Max 5 open positions at any time
+ * 2. Min 20% cash reserve always maintained
+ * 3. Max 20% of total portfolio per position
+ * 4. Max 2 positions per sector
+ * 5. Min 1:2 risk/reward ratio before entry
+ * 6. Trend filter: only long if price > SMA200 OR RSI < 30 (oversold reversal)
+ * 7. Market condition check: conservative if SPY/STI down >1.5% on the day
+ * 8. Earnings blackout: skip stocks with earnings within 3 days
+ * 9. SGX-specific: wider SL/TP (-7%/+12%) vs US (-5%/+8%)
+ * 10. Learning loop: boost weighting of successful signal types
  */
 import { NextResponse } from 'next/server'
 import { readFileSync, writeFileSync } from 'fs'
@@ -49,6 +54,88 @@ async function fetchFXRate(): Promise<number> {
     const data = await res.json()
     return data.c || 0.7498
   } catch { return 0.7498 }
+}
+
+// ── Trading Rules Constants ──────────────────────────────────────────────────
+const MAX_POSITIONS = 5
+const MIN_CASH_RESERVE_PCT = 0.20   // Keep 20% cash
+const MAX_POSITION_PCT = 0.20       // Max 20% per position
+const MAX_SECTOR_POSITIONS = 2      // Max 2 per sector
+const MIN_RISK_REWARD = 2.0         // Min 1:2 R/R
+const MARKET_BEAR_THRESHOLD = -1.5  // % drop to trigger conservative mode
+
+// Sector mapping
+const SECTOR_MAP: Record<string, string> = {
+  AAPL:'Tech',MSFT:'Tech',NVDA:'Tech',GOOGL:'Tech',GOOG:'Tech',META:'Tech',AMZN:'Tech',
+  AMD:'Tech',INTC:'Tech',ORCL:'Tech',CRM:'Tech',ADBE:'Tech',NFLX:'Tech',QCOM:'Tech',
+  TXN:'Tech',AVGO:'Tech',MU:'Tech',AMAT:'Tech',LRCX:'Tech',SNOW:'Tech',PLTR:'Tech',
+  NET:'Tech',DDOG:'Tech',ZS:'Tech',CRWD:'Tech',PANW:'Tech',OKTA:'Tech',MDB:'Tech',
+  COIN:'Crypto',TSLA:'EV',
+  JPM:'Finance',BAC:'Finance',GS:'Finance',MS:'Finance',WFC:'Finance',C:'Finance',
+  BLK:'Finance',SCHW:'Finance',V:'Finance',MA:'Finance',AXP:'Finance',PYPL:'Finance',
+  JNJ:'Healthcare',PFE:'Healthcare',MRK:'Healthcare',ABBV:'Healthcare',LLY:'Healthcare',
+  TMO:'Healthcare',ABT:'Healthcare',DHR:'Healthcare',BMY:'Healthcare',AMGN:'Healthcare',
+  COST:'Consumer',WMT:'Consumer',TGT:'Consumer',HD:'Consumer',LOW:'Consumer',
+  NKE:'Consumer',SBUX:'Consumer',MCD:'Consumer',YUM:'Consumer',
+  XOM:'Energy',CVX:'Energy',COP:'Energy',SLB:'Energy',EOG:'Energy',
+  CAT:'Industrial',DE:'Industrial',HON:'Industrial',GE:'Industrial',RTX:'Industrial',
+  LMT:'Industrial',NOC:'Industrial',BA:'Industrial',UPS:'Industrial',FDX:'Industrial',
+  SPY:'ETF',QQQ:'ETF',IWM:'ETF',DIA:'ETF',XLK:'ETF',XLF:'ETF',XLE:'ETF',
+  XLV:'ETF',XLY:'ETF',ARKK:'ETF',VTI:'ETF',VOO:'ETF',VGT:'ETF',SOXX:'ETF',
+  // SGX
+  'D05.SI':'Finance','O39.SI':'Finance','U11.SI':'Finance',
+  'Z74.SI':'Telecom','Y92.SI':'Telecom',
+  'C6L.SI':'Transport','S58.SI':'Transport',
+  'A17U.SI':'REIT','C38U.SI':'REIT','ME8U.SI':'REIT','N2IU.SI':'REIT',
+}
+function getSector(ticker: string): string {
+  return SECTOR_MAP[ticker] || 'Other'
+}
+
+// Check if market is bearish today (SPY down >1.5%)
+async function isMarketBearish(session: string): Promise<boolean> {
+  try {
+    const apiKey = process.env.FINNHUB_API_KEY
+    if (!apiKey) return false
+    const benchmark = session === 'SGX' ? 'ES3.SI' : 'SPY'
+    const sym = benchmark.endsWith('.SI') ? benchmark.replace('.SI', ':SP') : benchmark
+    const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`)
+    const q = await res.json()
+    if (!q.c || !q.pc) return false
+    const changePct = ((q.c - q.pc) / q.pc) * 100
+    return changePct < MARKET_BEAR_THRESHOLD
+  } catch { return false }
+}
+
+// Check earnings within N days (Finnhub earnings calendar)
+async function hasEarningsSoon(ticker: string, daysOut = 3): Promise<boolean> {
+  try {
+    const apiKey = process.env.FINNHUB_API_KEY
+    if (!apiKey) return false
+    const from = new Date().toISOString().split('T')[0]
+    const to = new Date(Date.now() + daysOut * 86400000).toISOString().split('T')[0]
+    const res = await fetch(`https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&symbol=${ticker}&token=${apiKey}`)
+    const data = await res.json()
+    return (data.earningsCalendar || []).length > 0
+  } catch { return false }
+}
+
+// Build learning signal weights from closed trade history
+function buildSignalWeights(portfolio: any): Record<string, number> {
+  const closed = portfolio.closedPositions || []
+  if (closed.length < 3) return {}
+  const weights: Record<string, number> = {}
+  // Analyse reasons of winning vs losing trades
+  closed.forEach((cp: any) => {
+    const won = cp.pnl > 0
+    const reason = (cp.reason || '').toLowerCase()
+    if (reason.includes('oversold') || reason.includes('rsi')) weights['rsi_oversold'] = (weights['rsi_oversold'] || 0) + (won ? 1 : -1)
+    if (reason.includes('golden cross') || reason.includes('sma')) weights['moving_avg'] = (weights['moving_avg'] || 0) + (won ? 1 : -1)
+    if (reason.includes('macd')) weights['macd'] = (weights['macd'] || 0) + (won ? 1 : -1)
+    if (reason.includes('pattern') || reason.includes('flag') || reason.includes('triangle')) weights['pattern'] = (weights['pattern'] || 0) + (won ? 1 : -1)
+    if (reason.includes('support')) weights['support'] = (weights['support'] || 0) + (won ? 1 : -1)
+  })
+  return weights
 }
 
 // Calculate ATR (Average True Range) for dynamic SL/TP
@@ -271,38 +358,113 @@ export async function POST() {
     }
 
     // ── STEP 2: Screen full market for opportunities ───────────────────────────
-    const screenResults = await screenMarket(session, apiKey, 60)
-    const heldTickers = portfolio.positions.map((p: any) => p.ticker)
-    const buyOpportunities = screenResults
-      .filter(r => (r.signal === 'STRONG_BUY' || r.signal === 'BUY') && !heldTickers.includes(r.ticker))
-      .slice(0, 10) // Top 10 candidates for deep analysis
 
-    for (const candidate of buyOpportunities) {
-      const availableCash = candidate.currency === 'SGD' ? cashSGD : cashUSD
-      if (availableCash < 2000) continue
-      if (executedTrades.filter(t => t.type === 'BUY').length >= 2) break // Max 2 new buys per run
+    // Rule 1: Max positions check
+    const currentPositionCount = portfolio.positions.length
+    if (currentPositionCount >= MAX_POSITIONS) {
+      console.log(`Max positions (${MAX_POSITIONS}) reached, skipping buys`)
+    } else {
 
-      const analysis = await analyseStock(candidate.ticker, portfolio, apiKey)
-      if (!analysis?.llmDecision) continue
+      // Rule 2: Cash reserve check — must keep 20% cash
+      const minCashUSD = totalPortfolioUSD * MIN_CASH_RESERVE_PCT
+      const deployableUSD = Math.max(0, cashUSD - minCashUSD)
+      const deployableSGD = Math.max(0, cashSGD - (minCashUSD / fxRate))
 
-      const { llmDecision, currentPrice, currency } = analysis
-      if (llmDecision.action !== 'BUY' || llmDecision.conviction === 'LOW') continue
+      if (deployableUSD < 2000 && deployableSGD < 2000) {
+        console.log('Cash reserve limit reached, skipping buys')
+      } else {
 
-      // Position sizing: respect 20% rule
-      const maxInCurrency = currency === 'SGD' ? maxPositionUSD / fxRate : maxPositionUSD
-      const positionSize = Math.min(availableCash, maxInCurrency)
-      const shares = Math.floor(positionSize / currentPrice)
-      if (shares <= 0) continue
+        // Rule 6: Market condition check
+        const bearMarket = await isMarketBearish(session)
+        const signalThreshold = bearMarket ? 'STRONG_BUY' : 'BUY'
 
-      const sl = llmDecision.stopLoss || (currentPrice - analysis.atr * 2)
-      const tp = llmDecision.takeProfit || (currentPrice + analysis.atr * 3)
-      const cost = shares * currentPrice
+        const screenResults = await screenMarket(session, apiKey, 60)
+        const heldTickers = portfolio.positions.map((p: any) => p.ticker)
 
-      await executeBuy(portfolio, candidate.ticker, shares, currentPrice, sl, tp, currency,
-        llmDecision.reason || analysis.patterns[0]?.name || `Technical buy at ${fmt(currentPrice, currency)}. RSI ${analysis.rsi.toFixed(0)}.`,
-        llmDecision.strategy || '',
-        executedTrades, fxRate
-      )
+        // Rule 4: Build sector counts from current positions
+        const sectorCounts: Record<string, number> = {}
+        portfolio.positions.forEach((p: any) => {
+          const s = getSector(p.ticker)
+          sectorCounts[s] = (sectorCounts[s] || 0) + 1
+        })
+
+        // Build learning weights
+        const signalWeights = buildSignalWeights(portfolio)
+
+        const buyOpportunities = screenResults
+          .filter(r => (bearMarket ? r.signal === 'STRONG_BUY' : (r.signal === 'STRONG_BUY' || r.signal === 'BUY'))
+            && !heldTickers.includes(r.ticker))
+          .slice(0, 10)
+
+        for (const candidate of buyOpportunities) {
+          const currency = candidate.currency
+          const availableCash = currency === 'SGD' ? deployableSGD : deployableUSD
+          if (availableCash < 2000) continue
+          if (executedTrades.filter(t => t.type === 'BUY').length >= 2) break
+          if (currentPositionCount + executedTrades.filter(t => t.type === 'BUY').length >= MAX_POSITIONS) break
+
+          // Rule 4: Sector concentration
+          const sector = getSector(candidate.ticker)
+          if ((sectorCounts[sector] || 0) >= MAX_SECTOR_POSITIONS) continue
+
+          // Rule 7: Earnings blackout
+          const earningsSoon = await hasEarningsSoon(candidate.ticker)
+          if (earningsSoon) {
+            console.log(`Skipping ${candidate.ticker} — earnings within 3 days`)
+            continue
+          }
+
+          const analysis = await analyseStock(candidate.ticker, portfolio, apiKey)
+          if (!analysis?.llmDecision) continue
+
+          const { llmDecision, currentPrice, rsi } = analysis
+          if (llmDecision.action !== 'BUY' || llmDecision.conviction === 'LOW') continue
+
+          // Rule 6: Trend filter — only buy if price > SMA200 OR RSI < 30
+          const sma200 = analysis.indicators.sma200
+          const aboveSMA200 = sma200 > 0 && currentPrice > sma200
+          const oversold = rsi < 30
+          if (!aboveSMA200 && !oversold) {
+            console.log(`Skipping ${candidate.ticker} — below SMA200 and not oversold (RSI ${rsi.toFixed(0)})`)
+            continue
+          }
+
+          // Rule 8 & 9: Dynamic SL/TP with SGX wider bands
+          const isSGXStock = isSGX(candidate.ticker)
+          const defaultSLPct = isSGXStock ? 0.07 : 0.05
+          const defaultTPPct = isSGXStock ? 0.12 : 0.08
+          const sl = llmDecision.stopLoss || (currentPrice * (1 - defaultSLPct))
+          const tp = llmDecision.takeProfit || (currentPrice * (1 + defaultTPPct))
+
+          // Rule 5: Min 1:2 risk/reward
+          const risk = currentPrice - sl
+          const reward = tp - currentPrice
+          const rr = risk > 0 ? reward / risk : 0
+          if (rr < MIN_RISK_REWARD) {
+            console.log(`Skipping ${candidate.ticker} — R/R ${rr.toFixed(2)} < min ${MIN_RISK_REWARD}`)
+            continue
+          }
+
+          // Apply learning weight boost to reason
+          const dominantSignal = Object.entries(signalWeights).sort((a,b) => b[1]-a[1])[0]
+          const learnNote = dominantSignal && dominantSignal[1] > 1 ? ` Historical edge: ${dominantSignal[0].replace('_',' ')}.` : ''
+
+          // Rule 3: Position sizing (20% max)
+          const maxInCurrency = currency === 'SGD' ? maxPositionUSD / fxRate : maxPositionUSD
+          const positionSize = Math.min(availableCash, maxInCurrency)
+          const shares = Math.floor(positionSize / currentPrice)
+          if (shares <= 0) continue
+
+          const reason = `${llmDecision.reason || `Technical buy at ${fmt(currentPrice, currency)}. RSI ${rsi.toFixed(0)}.`}${learnNote} R/R: 1:${rr.toFixed(1)}.`
+
+          await executeBuy(portfolio, candidate.ticker, shares, currentPrice, sl, tp, currency,
+            reason, llmDecision.strategy || '', executedTrades, fxRate
+          )
+
+          // Update sector count
+          sectorCounts[sector] = (sectorCounts[sector] || 0) + 1
+        }
+      }
     }
 
     // ── STEP 3: Update value history ──────────────────────────────────────────

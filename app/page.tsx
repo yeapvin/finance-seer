@@ -158,10 +158,10 @@ export default function Home() {
       </header>
 
       {/* ── Main Two-Column Layout ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', minHeight: 'calc(100vh - 56px)', maxWidth: '1600px', margin: '0 auto' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', minHeight: 'calc(100vh - 56px)', maxWidth: '1600px', margin: '0 auto' }} className='main-grid'>
 
         {/* ── LEFT COLUMN: Search + Portfolio ── */}
-        <aside style={{ borderRight: '1px solid rgba(255,255,255,0.06)', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'sticky', top: '56px', height: 'calc(100vh - 56px)', overflowY: 'auto' }}>
+        <aside className='left-panel' style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
 
           {/* Portfolio Summary */}
           {portfolio && (
@@ -260,7 +260,7 @@ export default function Home() {
                 <p style={{ color: '#71717a', fontSize: '12px', marginTop: '2px' }}>{stock.name}</p>
                 <p style={{ color: 'white', fontSize: '26px', fontWeight: 800, marginTop: '6px' }}>${stock.price?.toFixed(2)}</p>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              <div className='metrics-grid'>
                 {[
                   { label: 'Open', value: stock.open ? '$' + stock.open.toFixed(2) : '—' },
                   { label: 'Prev Close', value: stock.previousClose ? '$' + stock.previousClose.toFixed(2) : '—' },
@@ -284,7 +284,7 @@ export default function Home() {
         </aside>
 
         {/* ── RIGHT COLUMN: Chart + Analysis ── */}
-        <main style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <main className='right-panel' style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {!selectedTicker ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#27272a', gap: '12px' }}>
               <Zap size={48} />
@@ -383,7 +383,7 @@ export default function Home() {
                     <h3 style={{ color: 'white', fontWeight: 800, fontSize: '15px', margin: 0 }}>Detected Patterns</h3>
                     <span style={{ color: '#3f3f46', fontSize: '11px' }}>1-year window · {currentData.patterns.length} pattern{currentData.patterns.length !== 1 ? 's' : ''} found</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className='patterns-grid'>
                     {currentData.patterns.map((pattern: any, i: number) => (
                       <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pattern.type === 'bullish' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: '10px', padding: '12px 14px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>

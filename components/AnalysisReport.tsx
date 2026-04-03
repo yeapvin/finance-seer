@@ -91,7 +91,7 @@ export function AnalysisReportComponent({ report }: { report: AnalysisReport }) 
       </div>
 
       {/* ── Two-column main body ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+      <div className='analysis-grid' style={{ marginBottom: '24px' }}>
 
         {/* LEFT: Analysis sections */}
         <div>

@@ -314,3 +314,79 @@ input:focus, select:focus, textarea:focus {
   pointer-events: none;
   filter: blur(30px);
 }
+
+/* ── Responsive two-column layout ── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.left-panel {
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.right-panel {
+  min-height: 0;
+}
+
+/* Desktop: equal 50/50 split, sticky left panel */
+@media (min-width: 768px) {
+  .main-grid {
+    grid-template-columns: 1fr 1fr;
+    min-height: calc(100vh - 56px);
+  }
+
+  .left-panel {
+    border-bottom: none;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+
+  .right-panel {
+    overflow-y: auto;
+    max-height: calc(100vh - 56px);
+  }
+}
+
+/* Large desktop: slightly favour right (chart needs more space) */
+@media (min-width: 1280px) {
+  .main-grid {
+    grid-template-columns: 2fr 3fr;
+  }
+}
+
+/* Analysis report responsive */
+.analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 640px) {
+  .analysis-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Patterns responsive */
+.patterns-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .patterns-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Stock metrics grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}

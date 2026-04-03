@@ -429,12 +429,15 @@ export async function POST() {
             continue
           }
 
-          // Rule 8 & 9: Dynamic SL/TP with SGX wider bands
+          // Rule 9: ATR-based SL/TP (dynamic per stock volatility)
+          // SGX uses wider multipliers due to lower liquidity & wider spreads
           const isSGXStock = isSGX(candidate.ticker)
-          const defaultSLPct = isSGXStock ? 0.07 : 0.05
-          const defaultTPPct = isSGXStock ? 0.12 : 0.08
-          const sl = llmDecision.stopLoss || (currentPrice * (1 - defaultSLPct))
-          const tp = llmDecision.takeProfit || (currentPrice * (1 + defaultTPPct))
+          const atr = analysis.atr
+          const slMultiplier = isSGXStock ? 2.0 : 1.5   // ATR × multiplier below price
+          const tpMultiplier = isSGXStock ? 4.0 : 3.0   // ATR × multiplier above price
+          // LLM-provided levels (based on S/R) take priority over ATR fallback
+          const sl = llmDecision.stopLoss || Math.max(currentPrice - atr * slMultiplier, currentPrice * 0.85)
+          const tp = llmDecision.takeProfit || Math.min(currentPrice + atr * tpMultiplier, currentPrice * 1.30)
 
           // Rule 5: Min 1:2 risk/reward
           const risk = currentPrice - sl

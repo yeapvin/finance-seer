@@ -397,22 +397,22 @@ html, body { overflow-x: hidden; width: 100%; }
   line-height: 1.5;
   padding: 6px 10px;
   border-radius: 7px;
-  white-space: nowrap;
-  max-width: 220px;
+  width: max-content;
+  max-width: 180px;
   white-space: normal;
+  word-break: normal;
   text-align: center;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.2s;
-  z-index: 999;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.8);
 }
 
 [data-tooltip]:hover::after {
-  opacity: 0;
-  animation: tooltipDelay 0.2s ease 5s forwards;
+  animation: tooltipDelay 0.15s ease 5s forwards;
 }
 
 @keyframes tooltipDelay {
+  from { opacity: 0; }
   to { opacity: 1; }
 }

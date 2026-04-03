@@ -82,11 +82,22 @@ export default function Home() {
       try {
         const r = await fetch(`/api/search?q=${encodeURIComponent(v)}`)
         if (r.ok) {
-          const d = await r.json()
-          const prefix = v.toUpperCase()
-          const filtered = (d.results || []).filter((s: SearchResult) => s.ticker.toUpperCase().startsWith(prefix))
-          setResults(filtered)
-          setOpen(filtered.length > 0)
+          const raw = await r.json()
+          // API returns array directly; map to SearchResult shape
+          const results: SearchResult[] = (Array.isArray(raw) ? raw : raw.results || [])
+            .filter((s: any) => {
+              // Only show US equities/ETFs (no .XX suffixes) + SGX (.SI)
+              const sym: string = (s.symbol || s.ticker || '')
+              return !sym.includes('.') || sym.endsWith('.SI')
+            })
+            .map((s: any) => ({
+              ticker: s.symbol || s.ticker,
+              name: s.description || s.name || s.symbol || s.ticker,
+              exchange: s.type || ''
+            }))
+            .slice(0, 8)
+          setResults(results)
+          setOpen(results.length > 0)
         }
       } catch {} finally { setSearchLoading(false) }
     }, 200)

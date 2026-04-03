@@ -99,23 +99,6 @@ export function StockChart({ data, indicators, showIndicators }: StockChartProps
     })
     candleSeries.setData(candleData)
 
-    // Volume
-    const volumeSeries = priceChart.addHistogramSeries({
-      color: '#3b82f6',
-      priceFormat: { type: 'volume' },
-      priceScaleId: 'volume',
-    })
-    priceChart.priceScale('volume').applyOptions({
-      scaleMargins: { top: 0.85, bottom: 0 },
-    })
-    volumeSeries.setData(
-      data.map((d) => ({
-        time: toTime(d.date),
-        value: d.volume,
-        color: d.close >= d.open ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
-      }))
-    )
-
     // SMA 20
     if (showIndicators.sma20 && indicators.sma20) {
       const s = priceChart.addLineSeries({ color: '#f59e0b', lineWidth: 1 })

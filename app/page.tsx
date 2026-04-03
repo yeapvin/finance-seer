@@ -312,35 +312,54 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Row 2: Indicator toggles inline */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingBottom: '14px', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '16px' }}>
-                  {([
-                    { key: 'sma20', label: 'SMA 20', color: '#3b82f6' },
-                    { key: 'sma50', label: 'SMA 50', color: '#8b5cf6' },
-                    { key: 'sma200', label: 'SMA 200', color: '#ec4899' },
-                    { key: 'ema12', label: 'EMA 12', color: '#10b981' },
-                    { key: 'ema26', label: 'EMA 26', color: '#f59e0b' },
-                    { key: 'bollingerBands', label: 'Bollinger', color: '#06b6d4' },
-                    { key: 'rsi', label: 'RSI', color: '#f97316' },
-                    { key: 'macd', label: 'MACD', color: '#a78bfa' },
-                    { key: 'stochastic', label: 'Stoch', color: '#34d399' },
-                    { key: 'volume', label: 'Volume', color: '#60a5fa' },
-                  ] as { key: keyof typeof showIndicators; label: string; color: string }[]).map(({ key, label, color }) => {
-                    const active = showIndicators[key]
-                    return (
-                      <button key={key}
-                        onClick={() => setShowIndicators(prev => ({ ...prev, [key]: !prev[key] }))}
-                        style={{
-                          padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
-                          cursor: 'pointer', border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,
-                          background: active ? `${color}22` : 'transparent',
-                          color: active ? color : '#52525b',
-                          transition: 'all 0.15s'
-                        }}>
-                        {label}
-                      </button>
-                    )
-                  })}
+                {/* Row 2: Overlay indicators (on price chart) */}
+                <div style={{ marginBottom: '8px' }}>
+                  <div style={{ color: '#3f3f46', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>Overlays</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {([
+                      { key: 'sma20', label: 'SMA 20', color: '#f59e0b' },
+                      { key: 'sma50', label: 'SMA 50', color: '#8b5cf6' },
+                      { key: 'sma200', label: 'SMA 200', color: '#ec4899' },
+                      { key: 'ema12', label: 'EMA 12', color: '#06b6d4' },
+                      { key: 'ema26', label: 'EMA 26', color: '#14b8a6' },
+                      { key: 'bollingerBands', label: 'Bollinger', color: '#6366f1' },
+                    ] as { key: keyof typeof showIndicators; label: string; color: string }[]).map(({ key, label, color }) => {
+                      const active = showIndicators[key]
+                      return (
+                        <button key={key} onClick={() => setShowIndicators(prev => ({ ...prev, [key]: !prev[key] }))}
+                          style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                            border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,
+                            background: active ? `${color}22` : 'transparent',
+                            color: active ? color : '#52525b', transition: 'all 0.15s' }}>
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Subchart indicators (below price chart) */}
+                <div style={{ paddingBottom: '14px', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '16px' }}>
+                  <div style={{ color: '#3f3f46', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>Subcharts</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {([
+                      { key: 'volume', label: 'Volume', color: '#3b82f6' },
+                      { key: 'rsi', label: 'RSI', color: '#f97316' },
+                      { key: 'macd', label: 'MACD', color: '#a78bfa' },
+                      { key: 'stochastic', label: 'Stoch', color: '#34d399' },
+                    ] as { key: keyof typeof showIndicators; label: string; color: string }[]).map(({ key, label, color }) => {
+                      const active = showIndicators[key]
+                      return (
+                        <button key={key} onClick={() => setShowIndicators(prev => ({ ...prev, [key]: !prev[key] }))}
+                          style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                            border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,
+                            background: active ? `${color}22` : 'transparent',
+                            color: active ? color : '#52525b', transition: 'all 0.15s' }}>
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 {/* Chart */}

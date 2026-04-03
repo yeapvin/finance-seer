@@ -20,8 +20,16 @@ export async function POST(request: NextRequest) {
     const opens = history.map((h) => h.open)
     const volumes = history.map((h) => h.volume)
 
+    // Use full 1y for indicators (SMA200 needs 200 days)
     const indicators = calculateAllIndicators(prices, highs, lows)
-    const patterns = detectPatterns(prices, { open: opens, high: highs, low: lows, close: prices })
+
+    // Cap pattern detection to last 6 months (~126 trading days)
+    const SIX_MONTHS = 126
+    const recentPrices = prices.slice(-SIX_MONTHS)
+    const recentHighs = highs.slice(-SIX_MONTHS)
+    const recentLows = lows.slice(-SIX_MONTHS)
+    const recentOpens = opens.slice(-SIX_MONTHS)
+    const patterns = detectPatterns(recentPrices, { open: recentOpens, high: recentHighs, low: recentLows, close: recentPrices })
 
     const newsHeadlines = [
       `${tickerUpper} shows strong momentum`,

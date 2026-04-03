@@ -106,7 +106,10 @@ async function analyseStock(ticker: string, portfolio: any, apiKey: string): Pro
 
   const { prices, highs, lows, volumes, currentPrice, newsHeadlines, sentimentScore } = detail
   const indicators = calculateAllIndicators(prices, highs, lows)
-  const patterns = detectPatterns(prices, { open: prices, high: highs, low: lows, close: prices })
+  // Cap patterns to last 6 months (~126 trading days)
+  const SIX_MONTHS = 126
+  const rp = prices.slice(-SIX_MONTHS), rh = highs.slice(-SIX_MONTHS), rl = lows.slice(-SIX_MONTHS)
+  const patterns = detectPatterns(rp, { open: rp, high: rh, low: rl, close: rp })
   const { support, resistance } = findSupportResistance(prices)
 
   const last = (arr: number[] | undefined) => arr?.filter(v => !isNaN(v)).slice(-1)[0] ?? 0

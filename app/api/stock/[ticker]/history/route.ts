@@ -85,7 +85,10 @@ export async function GET(
     const opens = history.map((h) => h.open)
 
     const indicators = calculateAllIndicators(prices, highs, lows)
-    const patterns = detectPatterns(prices, { open: opens, high: highs, low: lows, close: prices })
+    // Cap patterns to last 6 months (~126 trading days)
+    const SIX_MONTHS = 126
+    const rp = prices.slice(-SIX_MONTHS), rh = highs.slice(-SIX_MONTHS), rl = lows.slice(-SIX_MONTHS), ro = opens.slice(-SIX_MONTHS)
+    const patterns = detectPatterns(rp, { open: ro, high: rh, low: rl, close: rp })
 
     const response = NextResponse.json({
       ticker,

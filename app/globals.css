@@ -445,15 +445,17 @@ html, body {
   }
 }
 
-/* Hide empty right panel on mobile */
-.right-panel-empty {
-  display: none !important;
+/* Hide empty right panel on mobile only */
+@media (max-width: 767px) {
+  .right-panel-empty {
+    display: none;
+  }
 }
 
 /* Always show on desktop even when empty */
 @media (min-width: 768px) {
   .right-panel-empty {
-    display: flex !important;
+    display: flex;
     align-items: center;
     justify-content: center;
   }

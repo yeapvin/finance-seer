@@ -30,6 +30,7 @@ function writePortfolio(data: any) { writeFileSync(PORTFOLIO_PATH, JSON.stringif
 function today() { return new Date().toISOString().split('T')[0] }
 function nowISO() { return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z') }
 function isSGX(ticker: string) { return ticker.endsWith('.SI') }
+function finnhubSymbol(ticker: string) { return ticker.endsWith('.SI') ? ticker.replace('.SI', ':SP') : ticker }
 function getCurrency(ticker: string) { return isSGX(ticker) ? 'SGD' : 'USD' }
 function fmt(n: number, currency = 'USD') { return `${currency} $${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
 
@@ -83,22 +84,17 @@ const SECTOR_MAP: Record<string, string> = {
   SPY:'ETF',QQQ:'ETF',IWM:'ETF',DIA:'ETF',XLK:'ETF',XLF:'ETF',XLE:'ETF',
   XLV:'ETF',XLY:'ETF',ARKK:'ETF',VTI:'ETF',VOO:'ETF',VGT:'ETF',SOXX:'ETF',
   // SGX
-  'D05.SI':'Finance','O39.SI':'Finance','U11.SI':'Finance',
-  'Z74.SI':'Telecom','Y92.SI':'Telecom',
-  'C6L.SI':'Transport','S58.SI':'Transport',
-  'A17U.SI':'REIT','C38U.SI':'REIT','ME8U.SI':'REIT','N2IU.SI':'REIT',
 }
 function getSector(ticker: string): string {
   return SECTOR_MAP[ticker] || 'Other'
 }
 
 // Check if market is bearish today (SPY down >1.5%)
-async function isMarketBearish(session: string): Promise<boolean> {
+async function isMarketBearish(): Promise<boolean> {
   try {
     const apiKey = process.env.FINNHUB_API_KEY
     if (!apiKey) return false
-    const benchmark = session === 'SGX' ? 'ES3.SI' : 'SPY'
-    const sym = benchmark.endsWith('.SI') ? benchmark.replace('.SI', ':SP') : benchmark
+    const sym = 'SPY'
     const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`)
     const q = await res.json()
     if (!q.c || !q.pc) return false
@@ -419,17 +415,17 @@ export async function POST() {
 
       // Hard stops always take priority over LLM
       if (currentPrice <= stopLossPrice) {
-        await executeTrade(portfolio, 'SELL', pos, currentPrice, `Stop-loss triggered at ${fmt(currentPrice, currency)}. Buy was ${fmt(pos.buyPrice, currency)}. Loss: ${(((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(2)}%.`, executedTrades, fxRate)
+        await executeTrade(portfolio, 'SELL', pos, currentPrice, `Stop-loss triggered at ${fmt(currentPrice, currency)}. Buy was ${fmt(pos.buyPrice, currency)}. Loss: ${(((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(2)}%.`, executedTrades)
         continue
       }
       if (currentPrice >= takeProfitPrice) {
-        await executeTrade(portfolio, 'SELL', pos, currentPrice, `Take-profit hit at ${fmt(currentPrice, currency)} (TP: ${fmt(takeProfitPrice, currency)}). Profit: +${(((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(2)}%.`, executedTrades, fxRate)
+        await executeTrade(portfolio, 'SELL', pos, currentPrice, `Take-profit hit at ${fmt(currentPrice, currency)} (TP: ${fmt(takeProfitPrice, currency)}). Profit: +${(((currentPrice - pos.buyPrice) / pos.buyPrice) * 100).toFixed(2)}%.`, executedTrades)
         continue
       }
 
       // LLM says sell
       if (llmDecision?.action === 'SELL' && llmDecision?.conviction !== 'LOW') {
-        await executeTrade(portfolio, 'SELL', pos, currentPrice, llmDecision.reason || `LLM sell signal. ${llmDecision.strategy || ''}`, executedTrades, fxRate)
+        await executeTrade(portfolio, 'SELL', pos, currentPrice, llmDecision.reason || `LLM sell signal. ${llmDecision.strategy || ''}`, executedTrades)
       }
     }
 
@@ -450,7 +446,7 @@ export async function POST() {
       } else {
 
         // Rule 6: Market condition check (US only — SPY)
-        const bearMarket = await isMarketBearish('NYSE')
+        const bearMarket = await isMarketBearish()
         const signalThreshold = bearMarket ? 'STRONG_BUY' : 'BUY'
 
         const screenResults = await screenMarket('NYSE', apiKey, 60)
@@ -534,7 +530,7 @@ export async function POST() {
           const reason = `${llmDecision.reason || `Technical buy at ${fmt(currentPrice, currency)}. RSI ${rsi.toFixed(0)}.`}${learnNote} R/R: 1:${rr.toFixed(1)}.`
 
           await executeBuy(portfolio, candidate.ticker, shares, currentPrice, sl, tp, currency,
-            reason, llmDecision.strategy || '', executedTrades, fxRate
+            reason, llmDecision.strategy || '', executedTrades
           )
 
           // Update sector count
@@ -595,7 +591,6 @@ export async function POST() {
       executedTrades,
       watchlistAlerts,
       totalValue: newTotalUSD,
-      fxRate
     })
   } catch (error) {
     console.error('Monitor error:', error)
@@ -603,7 +598,7 @@ export async function POST() {
   }
 }
 
-async function executeTrade(portfolio: any, type: 'SELL', pos: any, price: number, reason: string, executedTrades: any[], fxRate: number) {
+async function executeTrade(portfolio: any, type: 'SELL', pos: any, price: number, reason: string, executedTrades: any[]) {
   const todayStr = today()
   const currency = getCurrency(pos.ticker)
   const proceeds = price * pos.shares
@@ -633,7 +628,7 @@ async function executeTrade(portfolio: any, type: 'SELL', pos: any, price: numbe
   await sendTelegram(`${emoji} *Finance Seer — SELL*\n\n*${pos.ticker}* ${pos.shares} shares @ ${fmt(price, currency)}\nP&L: ${pnl >= 0 ? '+' : ''}${fmt(Math.abs(pnl), currency)} (${pnl >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)\n\n_${note.substring(0, 200)}_`)
 }
 
-async function executeBuy(portfolio: any, ticker: string, shares: number, price: number, sl: number, tp: number, currency: string, reason: string, strategy: string, executedTrades: any[], fxRate: number) {
+async function executeBuy(portfolio: any, ticker: string, shares: number, price: number, sl: number, tp: number, currency: string, reason: string, strategy: string, executedTrades: any[]) {
   const todayStr = today()
   const cost = price * shares
 

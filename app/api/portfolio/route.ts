@@ -41,9 +41,9 @@ export async function GET() {
     
     // Fetch live prices via market-data (Finnhub primary)
     const priceResults = await Promise.allSettled(
-      tickers.map(async (ticker: string) => {
-        const q = await getLiveQuote(ticker as string)
-        return { ticker: (ticker as string).toUpperCase(), price: q?.price || null }
+      tickers.map(async (ticker: unknown) => { const t = ticker as string;
+        const q = await getLiveQuote(t)
+        return { ticker: t.toUpperCase(), price: q?.price || null }
       })
     )
     const priceMap: Record<string, number> = {}

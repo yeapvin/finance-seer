@@ -28,14 +28,6 @@ function marketSession(): string {
   return '📊 Scheduled Check'
 }
 
-// SGX public holidays 2025-2026 (YYYY-MM-DD)
-const SGX_HOLIDAYS = [
-  '2025-01-01','2025-01-29','2025-01-30','2025-04-18','2025-05-01',
-  '2025-05-12','2025-06-07','2025-08-09','2025-10-20','2025-12-25',
-  '2026-01-01','2026-01-29','2026-01-30','2026-04-03','2026-05-01',
-  '2026-05-31','2026-06-26','2026-08-10','2026-11-08','2026-12-25'
-]
-
 // NYSE public holidays 2025-2026
 const NYSE_HOLIDAYS = [
   '2025-01-01','2025-01-20','2025-02-17','2025-04-18','2025-05-26',
@@ -80,13 +72,12 @@ export async function GET(request: NextRequest) {
 
     const executedTrades: any[] = result.executedTrades || []
     const totalValue: number = result.totalValue || 0
-    const fxRate: number = result.fxRate || 0
     const currentSession = marketSession()
 
     // Send Telegram summary
     if (token && chatId) {
       let msg = `*Finance Seer — ${currentSession}*\n`
-      msg += `Portfolio: USD $${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}${fxRate ? ` | SGD/USD: ${fxRate.toFixed(4)}` : ''}\n\n`
+      msg += `Portfolio: USD $${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}\n\n`
 
       if (executedTrades.length > 0) {
         msg += `⚡ *${executedTrades.length} Trade${executedTrades.length > 1 ? 's' : ''} Executed*\n`

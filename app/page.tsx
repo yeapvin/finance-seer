@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, Loader, AlertTriangle, Briefcase, TrendingUp, TrendingDown } from 'lucide-react'
+import { Search, Loader, AlertTriangle, Briefcase, TrendingUp, TrendingDown, Zap } from 'lucide-react'
 import { FinanceSeerLogo } from '@/components/Logo'
 import { StockChart } from '@/components/StockChart'
 import { AnalysisReport } from '@/components/AnalysisReport'

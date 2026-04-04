@@ -304,6 +304,31 @@
       "ticker": "NBIS",
       "note": "Nebius \u2014 AI infrastructure, watched during IPO. Looking for re-entry.",
       "alertThreshold": 5
+    },
+    {
+      "ticker": "BN4.SI",
+      "note": "Keppel \u2014 holding since Covid lows 2020.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "U96.SI",
+      "note": "SembCorp \u2014 holding since Covid lows 2020.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "C6L.SI",
+      "note": "SIA \u2014 holding since Covid lows 2020.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "Z74.SI",
+      "note": "Singtel \u2014 holding since Covid lows 2020.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "U11.SI",
+      "note": "UOB \u2014 holding since Covid lows 2020.",
+      "alertThreshold": 5
     }
   ]
 }

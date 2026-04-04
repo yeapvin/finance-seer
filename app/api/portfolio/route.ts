@@ -110,13 +110,80 @@ export async function GET() {
       }
     })
 
+    // Strategy notes: last 30 days only
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const recentStrategyNotes = (portfolio.strategyNotes || []).filter((n: any) => {
+      const noteDate = (n.date || '').substring(0, 10)
+      return noteDate >= thirtyDaysAgo
+    })
+
+    // Trade history: last 3 years only
+    const threeYearsAgo = new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const recentHistory = (portfolio.history || []).filter((t: any) => (t.date || '') >= threeYearsAgo)
+
     // Cooldowns removed — no longer used
 
     // Value history for chart
-    const valueHistory: any[] = portfolio.valueHistory || []
+    // Rules:
+    // 1. Only show trading days (Mon-Fri) — strip any weekend entries
+    // 2. Past trading day snapshots written by cron are locked — never overwrite
+    // 3. If today is a trading day and cron hasn't run yet, inject live value
+    const SGX_HOLIDAYS = [
+      '2025-01-01','2025-01-29','2025-01-30','2025-04-18','2025-05-01',
+      '2025-05-12','2025-06-07','2025-08-09','2025-10-20','2025-12-25',
+      '2026-01-01','2026-01-29','2026-01-30','2026-04-03','2026-05-01',
+      '2026-05-31','2026-06-26','2026-08-10','2026-11-08','2026-12-25'
+    ]
+    const NYSE_HOLIDAYS = [
+      '2025-01-01','2025-01-20','2025-02-17','2025-04-18','2025-05-26',
+      '2025-06-19','2025-07-04','2025-09-01','2025-11-27','2025-12-25',
+      '2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25',
+      '2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25'
+    ]
+    const isTradeDay = (dateStr: string) => {
+      const d = new Date(dateStr)
+      const dow = d.getUTCDay() // 0=Sun, 6=Sat
+      if (dow === 0 || dow === 6) return false
+      if (SGX_HOLIDAYS.includes(dateStr) && NYSE_HOLIDAYS.includes(dateStr)) return false
+      return true
+    }
+
+    const sgtNow = new Date(Date.now() + 8 * 60 * 60 * 1000) // UTC+8
+    const todaySGT = sgtNow.toISOString().split('T')[0]
+    const sgtHour = sgtNow.getUTCHours()
+    const sgtMin = sgtNow.getUTCMinutes()
+    const sgtTime = sgtHour * 100 + sgtMin
+    const sgtDow = sgtNow.getUTCDay() // 0=Sun, 6=Sat
+
+    // Trading hours in SGT:
+    //   SGX:  Mon-Fri 09:00-17:30
+    //   NYSE: Mon-Fri 21:30-04:00 (next calendar day in SGT)
+    const inSGX = sgtDow >= 1 && sgtDow <= 5 && sgtTime >= 900 && sgtTime < 1730
+    const inNYSE = (sgtDow >= 1 && sgtDow <= 5 && sgtTime >= 2130) ||
+                   (sgtDow >= 2 && sgtDow <= 6 && sgtTime < 400) // after midnight SGT
+    const marketsOpen = inSGX || inNYSE
+
+    // Strip non-trading days from history (in case any crept in)
+    const valueHistory: any[] = (portfolio.valueHistory || []).filter((e: any) => isTradeDay(e.date))
+    const lastEntry = valueHistory[valueHistory.length - 1]
+
+    if (isTradeDay(todaySGT)) {
+      if (marketsOpen) {
+        // During trading hours: always show live value (overwrite any existing today entry)
+        if (lastEntry && lastEntry.date === todaySGT) {
+          valueHistory[valueHistory.length - 1] = { date: todaySGT, value: Math.round(totalValue * 100) / 100 }
+        } else {
+          valueHistory.push({ date: todaySGT, value: Math.round(totalValue * 100) / 100 })
+        }
+      } else if (!lastEntry || lastEntry.date !== todaySGT) {
+        // After hours, no cron snapshot yet for today — inject live as best effort
+        valueHistory.push({ date: todaySGT, value: Math.round(totalValue * 100) / 100 })
+      }
+      // After hours + cron already wrote today's snapshot → leave it locked
+    }
 
     // Enrich history with company names; for SELL trades, attach buy context and P&L
-    const enrichedHistory = (portfolio.history || []).map((trade: any) => {
+    const enrichedHistory = recentHistory.map((trade: any) => {
       const companyName = COMPANY_NAMES[trade.ticker] || trade.ticker
       const enriched: any = { ...trade, companyName }
 
@@ -154,6 +221,7 @@ export async function GET() {
       positions: enrichedPositions,
       history: enrichedHistory,
       closedPositions: enrichedClosed,
+      strategyNotes: recentStrategyNotes,
       cooldowns: {},
       valueHistory,
       fxRates,

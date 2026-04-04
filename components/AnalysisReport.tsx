@@ -82,7 +82,7 @@ export function AnalysisReportComponent({ report, patterns }: { report: Analysis
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Zap size={16} style={{ color: '#facc15' }} />
           <h3 style={{ color: 'white', fontWeight: 800, fontSize: '16px', margin: 0 }}>Analysis Report</h3>
-          <span style={{ color: '#3f3f46', fontSize: '11px' }}>{new Date(report.timestamp).toLocaleString()}</span>
+          <span style={{ color: '#e4e4e7', fontSize: '11px' }}>{new Date(report.timestamp).toLocaleString()}</span>
         </div>
         <button onClick={downloadPDF}
           style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '7px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#a1a1aa', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
@@ -107,7 +107,7 @@ export function AnalysisReportComponent({ report, patterns }: { report: Analysis
         <div>
           {/* Recommendation */}
           <RecommendationBadge rec={report.recommendation} />
-          <div style={{ color: '#a1a1aa', fontSize: '12px', lineHeight: '1.6', marginBottom: '20px', padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+          <div style={{ color: '#e4e4e7', fontSize: '12px', lineHeight: '1.6', marginBottom: '20px', padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
             {report.recommendationReason}
           </div>
 
@@ -119,7 +119,7 @@ export function AnalysisReportComponent({ report, patterns }: { report: Analysis
                 ? report.priceTargets.support.map((s, i) => (
                     <div key={i} style={{ color: '#6ee7b7', fontSize: '13px', fontWeight: 600, marginBottom: '3px' }}>${s.toFixed(2)}</div>
                   ))
-                : <div style={{ color: '#3f3f46', fontSize: '12px' }}>N/A</div>}
+                : <div style={{ color: '#e4e4e7', fontSize: '12px' }}>N/A</div>}
             </div>
             <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px', padding: '12px' }}>
               <div style={{ color: '#f87171', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '8px' }}>Resistance</div>
@@ -127,7 +127,7 @@ export function AnalysisReportComponent({ report, patterns }: { report: Analysis
                 ? report.priceTargets.resistance.map((r, i) => (
                     <div key={i} style={{ color: '#fca5a5', fontSize: '13px', fontWeight: 600, marginBottom: '3px' }}>${r.toFixed(2)}</div>
                   ))
-                : <div style={{ color: '#3f3f46', fontSize: '12px' }}>N/A</div>}
+                : <div style={{ color: '#e4e4e7', fontSize: '12px' }}>N/A</div>}
             </div>
           </div>
 
@@ -157,10 +157,11 @@ export function AnalysisReportComponent({ report, patterns }: { report: Analysis
               <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
                 <span style={{ color: '#6366f1' }}>⬡</span>
                 <h4 style={{ color: '#a5b4fc', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>Detected Patterns</h4>
-                <span style={{ color: '#3f3f46', fontSize: '10px' }}>{patterns.length} found · 1yr</span>
+                <span style={{ color: '#e4e4e7', fontSize: '10px' }}>{patterns.length} found · 6mo</span>
+                <span style={{ color: '#52525b', fontSize: '10px', marginLeft: 'auto' }}>latest first ↑</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {patterns.map((pattern: any, i: number) => (
+                {[...patterns].sort((a, b) => (b.endIndex ?? 0) - (a.endIndex ?? 0)).map((pattern: any, i: number) => (
                   <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pattern.type === 'bullish' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: '8px', padding: '10px 12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -169,12 +170,21 @@ export function AnalysisReportComponent({ report, patterns }: { report: Analysis
                           : <span style={{ color: '#f87171', fontSize: '12px' }}>▼</span>}
                         <span style={{ color: 'white', fontWeight: 600, fontSize: '12px' }}>{pattern.name}</span>
                       </div>
-                      <span style={{ color: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#71717a', fontSize: '11px', fontWeight: 700 }}>{pattern.confidence?.toFixed(0)}%</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {pattern.endDate && (
+                          <span style={{ color: '#e4e4e7', fontSize: '10px' }}>
+                            {pattern.startDate && pattern.startDate !== pattern.endDate
+                              ? `${pattern.startDate} → ${pattern.endDate}`
+                              : pattern.endDate}
+                          </span>
+                        )}
+                        <span style={{ color: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#71717a', fontSize: '11px', fontWeight: 700 }}>{pattern.confidence?.toFixed(0)}%</span>
+                      </div>
                     </div>
                     <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)', borderRadius: '1px', marginBottom: '4px' }}>
-                      <div style={{ height: '100%', borderRadius: '1px', width: `${Math.min(pattern.confidence, 100)}%`, background: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#52525b' }} />
+                      <div style={{ height: '100%', borderRadius: '1px', width: `${Math.min(pattern.confidence, 100)}%`, background: pattern.confidence >= 75 ? '#34d399' : pattern.confidence >= 50 ? '#fbbf24' : '#e4e4e7' }} />
                     </div>
-                    <p style={{ color: '#52525b', fontSize: '10px', margin: 0 }}>{pattern.description}</p>
+                    <p style={{ color: '#e4e4e7', fontSize: '10px', margin: 0 }}>{pattern.description}</p>
                   </div>
                 ))}
               </div>

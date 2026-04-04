@@ -24,7 +24,25 @@ export async function GET(request: NextRequest, { params }: { params: { ticker: 
     const opens = history.map(h => h.open)
 
     const indicators = calculateAllIndicators(prices, highs, lows)
-    const patterns = detectPatterns(prices, { open: opens, high: highs, low: lows, close: prices })
+
+    // Always detect patterns from 6mo data for accurate date ranging
+    // regardless of what period the chart is showing
+    const patternHistory = period === '6mo' || period === '1y' || period === '5y'
+      ? history
+      : await getHistoricalOHLCV(ticker, '6mo')
+    const patternPrices = patternHistory.map((h: any) => h.close)
+    const patternHighs = patternHistory.map((h: any) => h.high)
+    const patternLows = patternHistory.map((h: any) => h.low)
+    const patternOpens = patternHistory.map((h: any) => h.open)
+
+    const rawPatterns = detectPatterns(patternPrices, { open: patternOpens, high: patternHighs, low: patternLows, close: patternPrices })
+
+    // Enrich patterns with dates derived from pattern history index
+    const patterns = rawPatterns.map(p => ({
+      ...p,
+      startDate: patternHistory[p.startIndex]?.date ? new Date(patternHistory[p.startIndex].date).toISOString().split('T')[0] : null,
+      endDate: patternHistory[p.endIndex]?.date ? new Date(patternHistory[p.endIndex].date).toISOString().split('T')[0] : null,
+    }))
 
     const cacheMax = period === '1d' ? 900 : 3600
     const response = NextResponse.json({ ticker, period, history, indicators, patterns })

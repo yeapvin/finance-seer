@@ -146,7 +146,7 @@ export default function Home() {
   return (
     <div className='min-h-screen bg-black'>
       {/* ── Top Nav ── */}
-      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)', zIndex: 100 }}>
+      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'sticky', top: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)', zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Zap size={20} style={{ color: '#facc15' }} />
           <span style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '-0.5px', background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Finance Seer</span>
@@ -203,7 +203,7 @@ export default function Home() {
           {/* Search */}
           <div ref={searchBoxRef} style={{ position: 'relative' }}>
             <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', padding: '10px 14px', gap: '10px' }}>
-              <Search size={16} style={{ color: '#52525b', flexShrink: 0 }} />
+              <Search size={16} style={{ color: '#a1a1aa', flexShrink: 0 }} />
               <input
                 type='text' value={query}
                 onChange={e => searchStocks(e.target.value)}
@@ -222,7 +222,7 @@ export default function Home() {
                     className='hover:bg-white/5'>
                     <div>
                       <span style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>{s.ticker}</span>
-                      <span style={{ color: '#71717a', fontSize: '12px', marginLeft: '8px' }}>{s.name}</span>
+                      <span style={{ color: '#e4e4e7', fontSize: '12px', marginLeft: '8px' }}>{s.name}</span>
                     </div>
                     <span style={{ color: '#3b82f6', fontSize: '11px' }}>{s.exchange}</span>
                   </div>
@@ -233,7 +233,7 @@ export default function Home() {
 
           {/* Empty state */}
           {!selectedTicker && !portfolio && (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#3f3f46' }}>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#a1a1aa' }}>
               <TrendingUp size={32} style={{ margin: '0 auto 12px' }} />
               <p style={{ fontSize: '13px' }}>Search for a stock to get started</p>
             </div>
@@ -246,13 +246,13 @@ export default function Home() {
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
                   <div>
                     <span style={{ color: 'white', fontWeight: 800, fontSize: '20px' }}>{stock.ticker}</span>
-                    <span style={{ color: '#52525b', fontSize: '12px', marginLeft: '8px' }}>{stock.exchange}</span>
+                    <span style={{ color: '#a1a1aa', fontSize: '12px', marginLeft: '8px' }}>{stock.exchange}</span>
                   </div>
                   <span style={{ color: isPositive ? '#4ade80' : '#f87171', fontWeight: 700, fontSize: '15px' }}>
                     {isPositive ? '▲' : '▼'} {Math.abs(stock.changePercent || 0).toFixed(2)}%
                   </span>
                 </div>
-                <p style={{ color: '#71717a', fontSize: '12px', marginTop: '2px' }}>{stock.name}</p>
+                <p style={{ color: '#e4e4e7', fontSize: '12px', marginTop: '2px' }}>{stock.name}</p>
                 <p style={{ color: 'white', fontSize: '26px', fontWeight: 800, marginTop: '6px' }}>${stock.price?.toFixed(2)}</p>
               </div>
               <div className='metrics-grid'>
@@ -269,7 +269,7 @@ export default function Home() {
                   { label: 'Div Yield', value: stock.dividendYield ? (stock.dividendYield * 100).toFixed(2) + '%' : '—' },
                 ].map((m, i) => (
                   <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '7px 10px' }}>
-                    <div style={{ color: '#52525b', fontSize: '10px', marginBottom: '2px' }}>{m.label}</div>
+                    <div style={{ color: '#a1a1aa', fontSize: '10px', marginBottom: '2px' }}>{m.label}</div>
                     <div style={{ color: (m as any).color || 'white', fontWeight: 600, fontSize: '13px' }}>{m.value}</div>
                   </div>
                 ))}
@@ -285,14 +285,14 @@ export default function Home() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '300px', color: '#27272a', gap: '16px', padding: '40px' }}>
               <Zap size={48} style={{ opacity: 0.3 }} />
               <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: '16px', color: '#3f3f46', marginBottom: '6px' }}>Select a stock to get started</p>
+                <p style={{ fontSize: '16px', color: '#a1a1aa', marginBottom: '6px' }}>Select a stock to get started</p>
                 <p style={{ fontSize: '12px', color: '#27272a' }}>Search by ticker symbol or company name</p>
               </div>
             </div>
           ) : stockLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>
               <Loader className='animate-spin' size={32} style={{ color: '#3b82f6' }} />
-              <span style={{ color: '#52525b' }}>Loading {selectedTicker}...</span>
+              <span style={{ color: '#a1a1aa' }}>Loading {selectedTicker}...</span>
             </div>
           ) : (
             <>
@@ -320,7 +320,7 @@ export default function Home() {
                           style={{
                             padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none',
                             background: isActive ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : 'rgba(255,255,255,0.06)',
-                            color: isActive ? 'white' : '#71717a',
+                            color: isActive ? 'white' : '#a1a1aa',
                             opacity: !cached && loading ? 0.5 : 1
                           }}>
                           {p.toUpperCase()}
@@ -346,7 +346,7 @@ export default function Home() {
                           style={{ padding: '3px 9px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                             border: `1px solid ${active ? color : 'rgba(255,255,255,0.1)'}`,
                             background: active ? `${color}22` : 'transparent',
-                            color: active ? color : '#52525b', transition: 'all 0.15s' }}>
+                            color: active ? color : '#71717a', transition: 'all 0.15s' }}>
                           {label}
                         </button>
                       )
@@ -358,7 +358,7 @@ export default function Home() {
                 {isPeriodLoading ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '10px' }}>
                     <Loader className='animate-spin' size={20} style={{ color: '#3b82f6' }} />
-                    <span style={{ color: '#52525b', fontSize: '13px' }}>Loading {period.toUpperCase()}...</span>
+                    <span style={{ color: '#a1a1aa', fontSize: '13px' }}>Loading {period.toUpperCase()}...</span>
                   </div>
                 ) : currentData?.history.length && currentData.indicators ? (
                   <StockChart data={currentData.history} indicators={currentData.indicators} showIndicators={showIndicators} onToggleIndicator={toggleIndicator} />
@@ -368,7 +368,7 @@ export default function Home() {
               {/* Analysis Report */}
               <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '24px' }}>
                 {analyzing ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#52525b' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#a1a1aa' }}>
                     <Loader className='animate-spin' size={16} style={{ color: '#3b82f6' }} />
                     <span style={{ fontSize: '14px' }}>Generating analysis...</span>
                   </div>

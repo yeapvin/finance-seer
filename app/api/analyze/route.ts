@@ -49,7 +49,12 @@ export async function POST(request: NextRequest) {
     const volumes = history.map(h => h.volume)
 
     const indicators = calculateAllIndicators(prices, highs, lows)
-    const patterns = detectPatterns(prices, { open: opens, high: highs, low: lows, close: prices })
+    const rawPatterns = detectPatterns(prices, { open: opens, high: highs, low: lows, close: prices })
+    const patterns = rawPatterns.map(p => ({
+      ...p,
+      startDate: history[p.startIndex]?.date ? new Date(history[p.startIndex].date).toISOString().split('T')[0] : null,
+      endDate: history[p.endIndex]?.date ? new Date(history[p.endIndex].date).toISOString().split('T')[0] : null,
+    }))
     const headlines = news.map(n => n.headline)
 
     const report = await generateAnalysisReport(stock, prices, indicators, patterns, headlines, volumes)

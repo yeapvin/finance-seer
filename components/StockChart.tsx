@@ -65,18 +65,20 @@ export function StockChart({ data, indicators, showIndicators, onToggleIndicator
       handleScale: false,
     })
 
-    // Prevent wheel zoom from affecting page scroll
+    // Prevent wheel/touch from hijacking page scroll
     const preventWheelZoom = (e: WheelEvent) => {
-      // Allow normal scroll, only prevent if trying to zoom
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault()
-      }
+      if (e.ctrlKey || e.metaKey) e.preventDefault()
+    }
+    const preventTouchHijack = (e: TouchEvent) => {
+      if (e.touches.length === 1) e.stopPropagation()
     }
 
     const chartContainers = [priceRef, volumeRef, rsiRef, macdRef]
     chartContainers.forEach(ref => {
       if (ref.current) {
         ref.current.addEventListener('wheel', preventWheelZoom, { passive: false })
+        ref.current.addEventListener('touchmove', preventTouchHijack, { passive: true })
+        ref.current.style.touchAction = 'pan-x'
       }
     })
 
@@ -265,6 +267,7 @@ export function StockChart({ data, indicators, showIndicators, onToggleIndicator
       chartContainers.forEach(ref => {
         if (ref.current) {
           ref.current.removeEventListener('wheel', preventWheelZoom)
+          ref.current.removeEventListener('touchmove', preventTouchHijack)
         }
       })
       charts.forEach(c => c.remove())

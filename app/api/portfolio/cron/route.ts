@@ -72,65 +72,48 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Run the monitor
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'https://finance-seer.vercel.app'
+    // Always use the stable production URL — VERCEL_URL is deployment-specific and unreliable
+    const baseUrl = process.env.APP_URL || 'https://finance-seer.vercel.app'
 
     const res = await fetch(`${baseUrl}/api/portfolio/monitor`, { method: 'POST' })
     const result = await res.json()
 
+    // Market closed — skip silently
+    if (result.skipped) {
+      return NextResponse.json({ success: true, skipped: true, reason: result.reason })
+    }
+
     if (!result.success) {
-      throw new Error('Monitor failed')
+      throw new Error('Monitor returned failure')
     }
 
-    const { actions, summary, fxRate } = result
-    const session = marketSession()
-
-    const urgent = actions.filter((a: any) => a.urgent)
-    const sells = actions.filter((a: any) => a.type === 'SELL' && !a.urgent)
-    const buys = actions.filter((a: any) => a.type === 'BUY')
-    const holds = actions.filter((a: any) => a.type === 'HOLD')
-    const toExecute = [...urgent, ...sells, ...buys]
-
-    // Auto-execute all BUY and SELL signals
-    const executed: any[] = []
-    for (const action of toExecute) {
-      try {
-        const execRes = await fetch(`${baseUrl}/api/portfolio/monitor`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action })
-        })
-        const execResult = await execRes.json()
-        if (execResult.success) executed.push(action)
-      } catch (e) {
-        console.error(`Failed to execute ${action.type} ${action.ticker}:`, e)
-      }
-    }
+    const executedTrades: any[] = result.executedTrades || []
+    const totalValue: number = result.totalValue || 0
+    const fxRate: number = result.fxRate || 0
+    const currentSession = marketSession()
 
     // Send Telegram summary
     if (token && chatId) {
-      let msg = `*Finance Seer — ${session}*\n`
-      msg += `Portfolio: USD $${summary?.totalValueUSD?.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || 'N/A'} | SGD/USD: ${fxRate?.toFixed(4) || 'N/A'}\n\n`
+      let msg = `*Finance Seer — ${currentSession}*\n`
+      msg += `Portfolio: USD $${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}${fxRate ? ` | SGD/USD: ${fxRate.toFixed(4)}` : ''}\n\n`
 
-      if (executed.length > 0) {
-        msg += `⚡ *${executed.length} Trade${executed.length > 1 ? 's' : ''} Executed*\n`
-        executed.forEach((a: any) => {
-          const emoji = a.type === 'BUY' ? '🟢' : '🔴'
-          msg += `${emoji} ${a.type} ${a.ticker} — ${a.shares} shares @ ${a.currency} $${a.currentPrice?.toFixed(2)}\n`
-          msg += `   _${a.reason.replace(/[*_`]/g, '').substring(0, 80)}_\n`
+      if (executedTrades.length > 0) {
+        msg += `⚡ *${executedTrades.length} Trade${executedTrades.length > 1 ? 's' : ''} Executed*\n`
+        executedTrades.forEach((t: any) => {
+          const emoji = t.type === 'BUY' ? '🟢' : '🔴'
+          msg += `${emoji} ${t.type} *${t.ticker}* — ${t.shares} shares @ ${t.currency} $${t.price?.toFixed(2)}\n`
+          if (t.reason) msg += `   _${t.reason.replace(/[*_`]/g, '').substring(0, 100)}_\n`
         })
         msg += '\n'
       } else {
-        msg += `✅ All ${holds.length} positions HOLD — no action needed.\n`
+        msg += `✅ No trades executed — all positions holding.\n`
       }
 
-      msg += `_View portfolio: finance-seer.vercel.app/portfolio_`
+      msg += `_View: finance-seer.vercel.app/portfolio_`
       await sendTelegram(token, chatId, msg)
     }
 
-    return NextResponse.json({ success: true, session, actionsFound: actions.length })
+    return NextResponse.json({ success: true, session: currentSession, tradesExecuted: executedTrades.length })
   } catch (error) {
     console.error('Cron error:', error)
 

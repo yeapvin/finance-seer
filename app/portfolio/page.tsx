@@ -48,8 +48,8 @@ function PositionCard({ pos, ti }: { pos: Position; ti?: any }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
         <div>
           <span style={{ color: 'white', fontWeight: 800, fontSize: '16px' }}>{pos.ticker}</span>
-          <span style={{ color: '#52525b', fontSize: '11px', marginLeft: '6px' }}>{pos.companyName}</span>
-          <div style={{ color: '#71717a', fontSize: '11px', marginTop: '2px' }}>{pos.shares} shares @ {fmt(pos.avgCost)} {currency}</div>
+          <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '6px' }}>{pos.companyName}</span>
+          <div style={{ color: '#e4e4e7', fontSize: '11px', marginTop: '2px' }}>{pos.shares} shares @ {fmt(pos.avgCost)} {currency}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ color: 'white', fontWeight: 700, fontSize: '15px' }}>{fmt(pos.currentPrice)}</div>
@@ -61,19 +61,22 @@ function PositionCard({ pos, ti }: { pos: Position; ti?: any }) {
 
       {/* SL ↔ TP Progress bar */}
       <div style={{ marginBottom: '6px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#52525b', marginBottom: '3px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#e4e4e7', marginBottom: '3px' }}>
           <span style={{ color: '#f87171' }}>SL {fmt(sl)}</span>
-          <span style={{ color: '#71717a' }}>Entry {fmt(pos.avgCost)}</span>
+          <span style={{ color: '#e4e4e7' }}>Entry {fmt(pos.avgCost)}</span>
           <span style={{ color: '#34d399' }}>TP {fmt(tp)}</span>
         </div>
         <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', position: 'relative' }}>
           <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${progress}%`, background: positive ? '#34d399' : '#f87171', borderRadius: '2px', transition: 'width 0.3s' }} />
           {/* Entry marker */}
-          <div style={{ position: 'absolute', top: '-2px', left: `${Math.max(0, Math.min(100, ((pos.avgCost - sl) / range) * 100))}%`, width: '2px', height: '8px', background: '#71717a', transform: 'translateX(-50%)' }} />
+          <div style={{ position: 'absolute', top: '-2px', left: `${Math.max(0, Math.min(100, ((pos.avgCost - sl) / range) * 100))}%`, width: '2px', height: '8px', background: '#e4e4e7', transform: 'translateX(-50%)' }} />
         </div>
       </div>
 
-      <div style={{ color: '#3f3f46', fontSize: '10px' }}>Bought {pos.buyDate} · {ti?.daysHeld ?? 0}d held</div>
+      <div style={{ marginTop: '6px' }}>
+        <div style={{ color: '#e4e4e7', fontSize: '10px', marginBottom: '3px' }}>Bought {pos.buyDate} · {ti?.daysHeld ?? 0}d held</div>
+        {pos.reason && <div style={{ color: '#a5b4fc', fontSize: '11px', fontStyle: 'italic', lineHeight: '1.4' }}>💡 {pos.reason}</div>}
+      </div>
     </div>
   )
 }
@@ -118,7 +121,7 @@ export default function PortfolioPage() {
     <div className='min-h-screen bg-black'>
       {/* Header */}
       <header style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(12px)', zIndex: 100 }}>
-        <a href='/' style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#71717a', textDecoration: 'none', fontSize: '13px' }}>
+        <a href='/' style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e4e4e7', textDecoration: 'none', fontSize: '13px' }}>
           <ArrowLeft size={15} /> Finance Seer
         </a>
         <span style={{ fontSize: '18px', fontWeight: 900, background: 'linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AI Portfolio</span>
@@ -133,20 +136,25 @@ export default function PortfolioPage() {
 
           {/* Summary Card */}
           <div style={{ background: 'linear-gradient(135deg,#0f0f2e,#1a1040)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '14px', padding: '18px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '4px' }}>
-              <span style={{ color: 'white', fontSize: '28px', fontWeight: 900 }}>{fmt(summary.totalValue)}</span>
-              <span style={{ color: isPositive ? '#34d399' : '#f87171', fontWeight: 700, fontSize: '16px' }}>
+            <div style={{ marginBottom: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <div style={{ color: 'white', fontSize: 'clamp(20px, 5vw, 28px)', fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmt(summary.totalValue)}</div>
+                <div style={{ color: '#e4e4e7', fontSize: '10px', whiteSpace: 'nowrap' }}>live</div>
+              </div>
+              <div style={{ color: isPositive ? '#34d399' : '#f87171', fontWeight: 700, fontSize: 'clamp(12px, 3.5vw, 16px)', marginTop: '2px', whiteSpace: 'nowrap' }}>
                 {isPositive ? '▲' : '▼'} {fmt(Math.abs(summary.totalReturn))} ({fmtPct(summary.totalReturnPct)})
-              </span>
+              </div>
             </div>
-            <div style={{ color: '#6366f1', fontSize: '11px', marginBottom: '16px' }}>
-              Since {summary.startDate} · {summary.daysSinceStart} days active
+            <div style={{ color: '#6366f1', fontSize: '11px', marginBottom: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <span>Started {summary.startDate} · {summary.daysSinceStart} days active</span>
+              <span style={{ color: '#e4e4e7' }}>·</span>
+              <span>Capital <span style={{ color: '#a5b4fc', fontWeight: 600 }}>{fmt(data.startingCapital || 100000)}</span></span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {/* Invested */}
               <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '10px 12px' }}>
-                <div style={{ color: '#52525b', fontSize: '10px', marginBottom: '3px' }}>Invested</div>
+                <div style={{ color: '#e4e4e7', fontSize: '10px', marginBottom: '3px' }}>Invested</div>
                 <div style={{ color: 'white', fontWeight: 700, fontSize: '14px' }}>{fmt(summary.positionsValue)}</div>
                 <div style={{ color: avgOpenReturn >= 0 ? '#34d399' : '#f87171', fontSize: '11px', fontWeight: 600 }}>
                   {fmtPct(avgOpenReturn)} avg
@@ -154,41 +162,44 @@ export default function PortfolioPage() {
               </div>
               {/* Cash */}
               <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '10px 12px' }}>
-                <div style={{ color: '#52525b', fontSize: '10px', marginBottom: '3px' }}>Cash</div>
+                <div style={{ color: '#e4e4e7', fontSize: '10px', marginBottom: '3px' }}>Cash</div>
                 <div style={{ color: 'white', fontWeight: 700, fontSize: '14px' }}>{fmt(summary.cashUSD)} USD</div>
                 {summary.cashSGD > 0 && <div style={{ color: '#a5b4fc', fontSize: '11px' }}>{fmt(summary.cashSGD)} SGD</div>}
               </div>
               {/* Win Rate */}
               <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '10px 12px' }}>
-                <div style={{ color: '#52525b', fontSize: '10px', marginBottom: '3px' }}>Win Rate</div>
+                <div style={{ color: '#e4e4e7', fontSize: '10px', marginBottom: '3px' }}>Win Rate</div>
                 <div style={{ color: '#34d399', fontWeight: 700, fontSize: '14px' }}>{performance.winRate}%</div>
-                <div style={{ color: '#52525b', fontSize: '11px' }}>{performance.profitableTrades}/{performance.totalTrades} trades</div>
+                <div style={{ color: '#e4e4e7', fontSize: '11px' }}>{performance.profitableTrades}/{performance.totalTrades} trades</div>
               </div>
               {/* Best Trade */}
               <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '10px 12px' }}>
-                <div style={{ color: '#52525b', fontSize: '10px', marginBottom: '3px' }}>Best Trade</div>
+                <div style={{ color: '#e4e4e7', fontSize: '10px', marginBottom: '3px' }}>Best Trade</div>
                 {performance.bestTrade ? (
                   <>
                     <div style={{ color: '#34d399', fontWeight: 700, fontSize: '14px' }}>{performance.bestTrade.ticker}</div>
                     <div style={{ color: '#34d399', fontSize: '11px' }}>+{performance.bestTrade.pnlPct?.toFixed(2)}%</div>
                   </>
-                ) : <div style={{ color: '#52525b', fontSize: '12px' }}>—</div>}
+                ) : <div style={{ color: '#e4e4e7', fontSize: '12px' }}>—</div>}
               </div>
             </div>
           </div>
 
           {/* Portfolio Value Chart — fixed height, won't grow */}
           <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-              <LineChart size={14} style={{ color: '#6366f1' }} />
-              <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portfolio Value</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <LineChart size={14} style={{ color: '#6366f1' }} />
+                <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portfolio Value</span>
+              </div>
+              <span style={{ color: '#e4e4e7', fontSize: '10px' }}>Daily snapshots (SGT) · today live</span>
             </div>
             <PortfolioValueChart data={valueHistory} startingCapital={data.startingCapital || 100000} />
           </div>
 
           {/* Disclaimer */}
           <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '10px 12px', marginTop: 'auto' }}>
-            <p style={{ color: '#3f3f46', fontSize: '10px', lineHeight: '1.5', margin: 0 }}>
+            <p style={{ color: '#71717a', fontSize: '10px', lineHeight: '1.5', margin: 0 }}>
               Simulated portfolio for educational purposes. No real money invested. Not financial advice.
             </p>
           </div>
@@ -202,10 +213,10 @@ export default function PortfolioPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
               <BarChart3 size={14} style={{ color: '#3b82f6' }} />
               <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Open Positions</span>
-              <span style={{ color: '#3f3f46', fontSize: '11px', marginLeft: '4px' }}>{positions.length} active</span>
+              <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '4px' }}>{positions.length} active</span>
             </div>
             {positions.length === 0 ? (
-              <p style={{ color: '#3f3f46', fontSize: '13px' }}>No open positions.</p>
+              <p style={{ color: '#e4e4e7', fontSize: '13px' }}>No open positions.</p>
             ) : (
               positions.map((pos, i) => {
                 const ti = tradeIndicators.find(t => t.ticker === pos.ticker)
@@ -220,7 +231,7 @@ export default function PortfolioPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
                 <TrendingDown size={14} style={{ color: '#a78bfa' }} />
                 <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Closed Positions</span>
-                <span style={{ color: '#3f3f46', fontSize: '11px', marginLeft: '4px' }}>{closedPositions.length} trades</span>
+                <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '4px' }}>{closedPositions.length} trades</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {closedPositions.slice().reverse().map((cp, i) => (
@@ -228,8 +239,8 @@ export default function PortfolioPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                       <div>
                         <span style={{ color: 'white', fontWeight: 700, fontSize: '15px' }}>{cp.ticker}</span>
-                        <span style={{ color: '#52525b', fontSize: '11px', marginLeft: '6px' }}>{cp.companyName}</span>
-                        <div style={{ color: '#52525b', fontSize: '11px', marginTop: '2px' }}>{cp.shares} shares · {cp.currency || 'USD'}</div>
+                        <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '6px' }}>{cp.companyName}</span>
+                        <div style={{ color: '#e4e4e7', fontSize: '11px', marginTop: '2px' }}>{cp.shares} shares · {cp.currency || 'USD'}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ color: cp.pnl >= 0 ? '#34d399' : '#f87171', fontWeight: 700, fontSize: '14px' }}>
@@ -239,11 +250,11 @@ export default function PortfolioPage() {
                       </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '6px' }}>
-                      <div><div style={{ color: '#3f3f46', fontSize: '10px' }}>Buy</div><div style={{ color: '#d4d4d8', fontSize: '12px' }}>{fmt(cp.buyPrice)} · {cp.buyDate}</div></div>
-                      <div><div style={{ color: '#3f3f46', fontSize: '10px' }}>Sell</div><div style={{ color: '#d4d4d8', fontSize: '12px' }}>{fmt(cp.sellPrice)} · {cp.sellDate}</div></div>
-                      <div><div style={{ color: '#3f3f46', fontSize: '10px' }}>Proceeds</div><div style={{ color: 'white', fontSize: '12px', fontWeight: 600 }}>{fmt(cp.sellPrice * cp.shares)}</div></div>
+                      <div><div style={{ color: '#e4e4e7', fontSize: '10px' }}>Buy</div><div style={{ color: '#e4e4e7', fontSize: '12px' }}>{fmt(cp.buyPrice)} · {cp.buyDate}</div></div>
+                      <div><div style={{ color: '#e4e4e7', fontSize: '10px' }}>Sell</div><div style={{ color: '#e4e4e7', fontSize: '12px' }}>{fmt(cp.sellPrice)} · {cp.sellDate}</div></div>
+                      <div><div style={{ color: '#e4e4e7', fontSize: '10px' }}>Proceeds</div><div style={{ color: 'white', fontSize: '12px', fontWeight: 600 }}>{fmt(cp.sellPrice * cp.shares)}</div></div>
                     </div>
-                    <div style={{ color: '#3f3f46', fontSize: '10px' }}>{cp.reason}</div>
+                    <div style={{ color: '#a5b4fc', fontSize: '11px', fontStyle: 'italic', lineHeight: '1.4' }}>💡 {cp.reason}</div>
                   </div>
                 ))}
               </div>
@@ -260,8 +271,8 @@ export default function PortfolioPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {strategyNotes.slice().reverse().map((note: any, i: number) => (
                   <div key={i} style={{ borderLeft: '2px solid rgba(99,102,241,0.3)', paddingLeft: '10px' }}>
-                    <div style={{ color: '#52525b', fontSize: '10px', marginBottom: '2px' }}>{note.date}</div>
-                    <p style={{ color: '#a1a1aa', fontSize: '12px', lineHeight: '1.5', margin: 0 }}>{note.note}</p>
+                    <div style={{ color: '#e4e4e7', fontSize: '10px', marginBottom: '2px' }}>{(note.date || '').substring(0, 10)}</div>
+                    <p style={{ color: '#e4e4e7', fontSize: '12px', lineHeight: '1.5', margin: 0 }}>{note.note}</p>
                   </div>
                 ))}
               </div>
@@ -283,7 +294,7 @@ export default function PortfolioPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '3px', background: isSell ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)', color: isSell ? '#f87171' : '#34d399' }}>{trade.action}</span>
                         <span style={{ color: 'white', fontWeight: 600, fontSize: '13px' }}>{trade.ticker}</span>
-                        <span style={{ color: '#52525b', fontSize: '11px' }}>{trade.companyName}</span>
+                        <span style={{ color: '#e4e4e7', fontSize: '11px' }}>{trade.companyName}</span>
                       </div>
                       {isSell && trade.pnl !== undefined && (
                         <span style={{ color: trade.pnl >= 0 ? '#34d399' : '#f87171', fontSize: '12px', fontWeight: 600 }}>
@@ -291,13 +302,13 @@ export default function PortfolioPage() {
                         </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: '#71717a', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: '#e4e4e7', marginBottom: '4px' }}>
                       <span>{trade.shares} shares @ {fmt(trade.price)}</span>
                       <span>Total: {fmt(trade.total)}</span>
                       <span>{trade.date}</span>
                       {trade.currency && trade.currency !== 'USD' && <span style={{ color: '#a5b4fc' }}>{trade.currency}</span>}
                     </div>
-                    <div style={{ color: '#3f3f46', fontSize: '10px' }}>{trade.reason}</div>
+                    <div style={{ color: '#e4e4e7', fontSize: '10px' }}>{trade.reason}</div>
                   </div>
                 )
               })}

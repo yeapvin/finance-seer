@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, Loader, Zap, AlertTriangle, Briefcase, TrendingUp, TrendingDown } from 'lucide-react'
+import { Search, Loader, AlertTriangle, Briefcase, TrendingUp, TrendingDown } from 'lucide-react'
+import { FinanceSeerLogo } from '@/components/Logo'
 import { StockChart } from '@/components/StockChart'
 import { AnalysisReport } from '@/components/AnalysisReport'
 
@@ -148,7 +149,7 @@ export default function Home() {
       {/* ── Top Nav ── */}
       <header style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'sticky', top: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)', zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Zap size={20} style={{ color: '#facc15' }} />
+          <FinanceSeerLogo size={28} />
           <span style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '-0.5px', background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Finance Seer</span>
         </div>
       </header>

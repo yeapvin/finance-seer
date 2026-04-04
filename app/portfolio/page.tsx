@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Loader, ArrowLeft, TrendingUp, TrendingDown, DollarSign, FileText, Clock, LineChart, BarChart3 } from 'lucide-react'
+import { FinanceSeerLogo } from '@/components/Logo'
 import dynamic from 'next/dynamic'
 
 const PortfolioValueChart = dynamic(() => import('@/components/PortfolioValueChart'), { ssr: false })
@@ -122,7 +123,7 @@ export default function PortfolioPage() {
       {/* Header */}
       <header style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(12px)', zIndex: 100 }}>
         <a href='/' style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e4e4e7', textDecoration: 'none', fontSize: '13px' }}>
-          <ArrowLeft size={15} /> Finance Seer
+          <ArrowLeft size={15} /> <FinanceSeerLogo size={18} /> Finance Seer
         </a>
         <span style={{ fontSize: '18px', fontWeight: 900, background: 'linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AI Portfolio</span>
         <div style={{ width: '80px' }} />

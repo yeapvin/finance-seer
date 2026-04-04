@@ -329,6 +329,11 @@
       "ticker": "U11.SI",
       "note": "UOB \u2014 holding since Covid lows 2020.",
       "alertThreshold": 5
+    },
+    {
+      "ticker": "SNOW",
+      "note": "Live position: 100 shares @ $151.30 (Tiger). Also in paper portfolio.",
+      "alertThreshold": 5
     }
   ]
 }

@@ -22,9 +22,6 @@ function marketSession(): string {
   const sgtMin = now.getUTCMinutes()
   const time = sgtHour * 100 + sgtMin
 
-  if (time >= 900 && time < 930) return '🇸🇬 SGX Open'
-  if (time >= 1200 && time < 1230) return '🇸🇬 SGX Mid-Session'
-  if (time >= 1700 && time < 1730) return '🇸🇬 SGX Close'
   if (time >= 2130 && time < 2200) return '🇺🇸 NYSE Open'
   if (time >= 100 && time < 130) return '🇺🇸 NYSE Mid-Session'
   if (time >= 400 && time < 430) return '🇺🇸 NYSE Close'
@@ -58,17 +55,11 @@ export async function GET(request: NextRequest) {
   const token = process.env.TELEGRAM_BOT_TOKEN
   const chatId = process.env.TELEGRAM_CHAT_ID
 
-  // Check if today is a market holiday
+  // Check if today is a NYSE holiday
   const todayUTC = new Date().toISOString().split('T')[0]
-  const session = marketSession()
-  const isSGXSession = session.includes('SGX')
-  const isNYSESession = session.includes('NYSE')
-  const isSGXHoliday = SGX_HOLIDAYS.includes(todayUTC)
-  const isNYSEHoliday = NYSE_HOLIDAYS.includes(todayUTC)
-
-  if ((isSGXSession && isSGXHoliday) || (isNYSESession && isNYSEHoliday)) {
-    console.log(`Skipping ${session} — market holiday on ${todayUTC}`)
-    return NextResponse.json({ skipped: true, reason: `Market holiday: ${todayUTC}` })
+  if (NYSE_HOLIDAYS.includes(todayUTC)) {
+    console.log(`Skipping — NYSE holiday on ${todayUTC}`)
+    return NextResponse.json({ skipped: true, reason: `NYSE holiday: ${todayUTC}` })
   }
 
   try {

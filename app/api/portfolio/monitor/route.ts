@@ -10,7 +10,7 @@
  * 6. Trend filter: only long if price > SMA200 OR RSI < 30 (oversold reversal)
  * 7. Market condition check: conservative if SPY/STI down >1.5% on the day
  * 8. Earnings blackout: skip stocks with earnings within 3 days
- * 9. SGX-specific: wider SL/TP (-7%/+12%) vs US (-5%/+8%)
+ * 9. US-only: ATR-based SL/TP (1.5x/3x ATR default, self-tuning)
  * 10. Learning loop: boost weighting of successful signal types
  */
 import { NextResponse } from 'next/server'
@@ -385,26 +385,21 @@ export async function POST() {
   try {
     const portfolio = readPortfolio()
     const apiKey = process.env.FINNHUB_API_KEY || ''
-    const fxRate = await fetchFXRate()
-    portfolio.fxRates = { SGDUSD: fxRate, lastUpdated: nowISO() }
 
+    // US-only: only run during NYSE hours
     const session = getCurrentMarketSession()
-    if (session === 'CLOSED') {
-      return NextResponse.json({ success: true, skipped: true, reason: 'Market closed' })
+    if (session === 'CLOSED' || session === 'SGX') {
+      return NextResponse.json({ success: true, skipped: true, reason: session === 'SGX' ? 'SGX session — US only mode' : 'Market closed' })
     }
 
     // Self-tune ATR multipliers based on recent trade history
     tuneATRMultipliers(portfolio)
 
     const cashUSD = portfolio.cashByValue?.USD || 0
-    const cashSGD = portfolio.cashByValue?.SGD || 0
     const posValueUSD = (portfolio.positions || [])
       .filter((p: any) => !isSGX(p.ticker))
       .reduce((s: number, p: any) => s + (p.currentPrice || p.buyPrice) * p.shares, 0)
-    const posValueSGD = (portfolio.positions || [])
-      .filter((p: any) => isSGX(p.ticker))
-      .reduce((s: number, p: any) => s + (p.currentPrice || p.buyPrice) * p.shares, 0)
-    const totalPortfolioUSD = cashUSD + posValueUSD + (cashSGD + posValueSGD) * fxRate
+    const totalPortfolioUSD = cashUSD + posValueUSD
     const maxPositionUSD = totalPortfolioUSD * 0.20
 
     const executedTrades: any[] = []
@@ -449,17 +444,16 @@ export async function POST() {
       // Rule 2: Cash reserve check — must keep 20% cash
       const minCashUSD = totalPortfolioUSD * MIN_CASH_RESERVE_PCT
       const deployableUSD = Math.max(0, cashUSD - minCashUSD)
-      const deployableSGD = Math.max(0, cashSGD - (minCashUSD / fxRate))
 
-      if (deployableUSD < 2000 && deployableSGD < 2000) {
+      if (deployableUSD < 2000) {
         console.log('Cash reserve limit reached, skipping buys')
       } else {
 
-        // Rule 6: Market condition check
-        const bearMarket = await isMarketBearish(session)
+        // Rule 6: Market condition check (US only — SPY)
+        const bearMarket = await isMarketBearish('NYSE')
         const signalThreshold = bearMarket ? 'STRONG_BUY' : 'BUY'
 
-        const screenResults = await screenMarket(session, apiKey, 60)
+        const screenResults = await screenMarket('NYSE', apiKey, 60)
         const heldTickers = portfolio.positions.map((p: any) => p.ticker)
 
         // Rule 4: Build sector counts from current positions
@@ -479,7 +473,8 @@ export async function POST() {
 
         for (const candidate of buyOpportunities) {
           const currency = candidate.currency
-          const availableCash = currency === 'SGD' ? deployableSGD : deployableUSD
+          if (currency !== 'USD') continue // US only
+          const availableCash = deployableUSD
           if (availableCash < 2000) continue
           if (executedTrades.filter(t => t.type === 'BUY').length >= 2) break
           if (currentPositionCount + executedTrades.filter(t => t.type === 'BUY').length >= MAX_POSITIONS) break
@@ -510,11 +505,9 @@ export async function POST() {
             continue
           }
 
-          // Rule 9: ATR-based SL/TP using self-tuning multipliers
-          const isSGXStock = isSGX(candidate.ticker)
+          // Rule 9: ATR-based SL/TP using self-tuning multipliers (US only)
           const atr = analysis.atr
-          const marketKey = isSGXStock ? 'SGX' : 'US'
-          const multipliers = portfolio.atrMultipliers?.[marketKey] || (isSGXStock ? { sl: 2.0, tp: 4.0 } : { sl: 1.5, tp: 3.0 })
+          const multipliers = portfolio.atrMultipliers?.['US'] || { sl: 1.5, tp: 3.0 }
           // LLM-provided levels (based on S/R) take priority over ATR fallback
           const sl = llmDecision.stopLoss || Math.max(currentPrice - atr * multipliers.sl, currentPrice * 0.85)
           const tp = llmDecision.takeProfit || Math.min(currentPrice + atr * multipliers.tp, currentPrice * 1.30)
@@ -533,7 +526,7 @@ export async function POST() {
           const learnNote = dominantSignal && dominantSignal[1] > 1 ? ` Historical edge: ${dominantSignal[0].replace('_',' ')}.` : ''
 
           // Rule 3: Position sizing (20% max)
-          const maxInCurrency = currency === 'SGD' ? maxPositionUSD / fxRate : maxPositionUSD
+          const maxInCurrency = maxPositionUSD
           const positionSize = Math.min(availableCash, maxInCurrency)
           const shares = Math.floor(positionSize / currentPrice)
           if (shares <= 0) continue
@@ -552,8 +545,7 @@ export async function POST() {
 
     // ── STEP 3: Update value history ──────────────────────────────────────────
     const newPosValueUSD = portfolio.positions.filter((p: any) => !isSGX(p.ticker)).reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
-    const newPosValueSGD = portfolio.positions.filter((p: any) => isSGX(p.ticker)).reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
-    const newTotalUSD = (portfolio.cashByValue?.USD || 0) + newPosValueUSD + ((portfolio.cashByValue?.SGD || 0) + newPosValueSGD) * fxRate
+    const newTotalUSD = (portfolio.cashByValue?.USD || 0) + newPosValueUSD
     const lastEntry = portfolio.valueHistory?.[portfolio.valueHistory.length - 1]
     if (!lastEntry || lastEntry.date !== todayStr) {
       portfolio.valueHistory = [...(portfolio.valueHistory || []), { date: todayStr, value: newTotalUSD }]

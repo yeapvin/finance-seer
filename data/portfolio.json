@@ -294,6 +294,11 @@
       "ticker": "GLD",
       "note": "Gold \u2014 macro hedge.",
       "alertThreshold": 3
+    },
+    {
+      "ticker": "CRWV",
+      "note": "Watching \u2014 CoreWeave AI infrastructure play.",
+      "alertThreshold": 5
     }
   ]
 }

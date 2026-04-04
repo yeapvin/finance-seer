@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getLiveQuote } from '@/lib/market-data'
+import { readPortfolio } from '@/lib/portfolio-store'
 
 export const dynamic = 'force-dynamic'
-
-// Read portfolio from static JSON bundled at build time
-import portfolioData from '@/data/portfolio.json'
 
 // Company name lookup
 const COMPANY_NAMES: Record<string, string> = {
@@ -30,7 +28,7 @@ const COMPANY_NAMES: Record<string, string> = {
 
 export async function GET() {
   try {
-    const portfolio = JSON.parse(JSON.stringify(portfolioData)) as any
+    const portfolio = await readPortfolio()
 
     // Use FX rates from portfolio.json (updated by monitor on market open)
     const fxRates = portfolio.fxRates || { SGDUSD: 0.7498 }

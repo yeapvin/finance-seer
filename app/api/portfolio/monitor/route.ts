@@ -14,19 +14,13 @@
  * 10. Learning loop: boost weighting of successful signal types
  */
 import { NextResponse } from 'next/server'
-import { readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { readPortfolio, writePortfolio } from '@/lib/portfolio-store'
 import { calculateAllIndicators } from '@/lib/indicators'
 import { detectPatterns, findSupportResistance } from '@/lib/patterns'
 import { screenMarket, getCurrentMarketSession } from '@/lib/screener'
 import { getHistoricalOHLCV, getNews } from '@/lib/market-data'
 
 export const dynamic = 'force-dynamic'
-
-const PORTFOLIO_PATH = join(process.cwd(), 'data', 'portfolio.json')
-
-function readPortfolio() { return JSON.parse(readFileSync(PORTFOLIO_PATH, 'utf-8')) }
-function writePortfolio(data: any) { writeFileSync(PORTFOLIO_PATH, JSON.stringify(data, null, 2)) }
 function today() { return new Date().toISOString().split('T')[0] }
 function nowISO() { return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z') }
 function isSGX(ticker: string) { return ticker.endsWith('.SI') }
@@ -379,7 +373,7 @@ Based on ALL of the above, provide your trading decision as JSON:
 
 export async function POST() {
   try {
-    const portfolio = readPortfolio()
+    const portfolio = await readPortfolio()
     const apiKey = process.env.FINNHUB_API_KEY || ''
 
     // US-only: only run during NYSE hours
@@ -583,7 +577,7 @@ export async function POST() {
     }
 
     portfolio.watchlist = watchlist
-    writePortfolio(portfolio)
+    await writePortfolio(portfolio)
 
     return NextResponse.json({
       success: true,

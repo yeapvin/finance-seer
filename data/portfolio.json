@@ -299,6 +299,11 @@
       "ticker": "CRWV",
       "note": "Watching \u2014 CoreWeave AI infrastructure play.",
       "alertThreshold": 5
+    },
+    {
+      "ticker": "NBIS",
+      "note": "Nebius \u2014 AI infrastructure, watched during IPO. Looking for re-entry.",
+      "alertThreshold": 5
     }
   ]
 }

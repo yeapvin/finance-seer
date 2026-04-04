@@ -334,6 +334,26 @@
       "ticker": "SNOW",
       "note": "Live position: 100 shares @ $151.30 (Tiger). Also in paper portfolio.",
       "alertThreshold": 5
+    },
+    {
+      "ticker": "5E2.SI",
+      "note": "Seatrium \u2014 CDP holding, +902% gain.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "K71U.SI",
+      "note": "Keppel REIT \u2014 CDP holding.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "O5RU.SI",
+      "note": "AIMS APAC REIT \u2014 CDP holding.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "S59.SI",
+      "note": "SIA Engineering \u2014 CDP holding, +52% gain.",
+      "alertThreshold": 5
     }
   ]
 }

@@ -222,6 +222,7 @@ export async function GET() {
       history: enrichedHistory,
       closedPositions: enrichedClosed,
       strategyNotes: recentStrategyNotes,
+      watchlist: portfolio.watchlist || [],
       cooldowns: {},
       valueHistory,
       fxRates,

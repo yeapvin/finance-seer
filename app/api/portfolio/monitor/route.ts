@@ -561,12 +561,47 @@ export async function POST() {
       portfolio.valueHistory[portfolio.valueHistory.length - 1].value = newTotalUSD
     }
 
+    // ── STEP 4: Watchlist alerts ──────────────────────────────────────────────
+    const watchlist = portfolio.watchlist || []
+    const watchlistAlerts: any[] = []
+
+    for (const item of watchlist) {
+      try {
+        const apiKey = process.env.FINNHUB_API_KEY || ''
+        const sym = finnhubSymbol(item.ticker)
+        const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`)
+        const q = await res.json()
+        if (!q.c || !q.pc) continue
+
+        const price = q.c
+        const prevClose = q.pc
+        const changePct = ((price - prevClose) / prevClose) * 100
+        const threshold = item.alertThreshold || 5
+
+        // Update last known price
+        item.lastPrice = price
+        item.lastChecked = nowISO()
+        item.changePct = parseFloat(changePct.toFixed(2))
+
+        if (Math.abs(changePct) >= threshold) {
+          const emoji = changePct >= 0 ? '📈' : '📉'
+          const alert = `${emoji} *Watchlist: ${item.ticker}*\n${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}% today @ $${price.toFixed(2)}\n_${item.note || ''}_`
+          await sendTelegram(alert)
+          watchlistAlerts.push({ ticker: item.ticker, price, changePct })
+        }
+      } catch (e) {
+        console.error(`Watchlist error for ${item.ticker}:`, e)
+      }
+    }
+
+    portfolio.watchlist = watchlist
     writePortfolio(portfolio)
 
     return NextResponse.json({
       success: true,
       session,
       executedTrades,
+      watchlistAlerts,
       totalValue: newTotalUSD,
       fxRate
     })

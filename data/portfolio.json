@@ -258,5 +258,42 @@
     },
     "tuningHistory": [],
     "lastTuned": null
-  }
+  },
+  "watchlist": [
+    {
+      "ticker": "MSFT",
+      "note": "Holding at $364.5 avg. Watching Copilot/Azure AI thesis.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "ADSK",
+      "note": "Deep domain knowledge \u2014 CAD industry insider view.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "INTC",
+      "note": "Watching turnaround story.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "AMD",
+      "note": "AI chip competition with NVDA.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "NVDA",
+      "note": "Already in portfolio. Monitoring.",
+      "alertThreshold": 3
+    },
+    {
+      "ticker": "BTC",
+      "note": "Crypto macro indicator.",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "GLD",
+      "note": "Gold \u2014 macro hedge.",
+      "alertThreshold": 3
+    }
+  ]
 }

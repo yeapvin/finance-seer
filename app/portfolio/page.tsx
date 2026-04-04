@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader, ArrowLeft, TrendingUp, TrendingDown, DollarSign, FileText, Clock, LineChart, BarChart3 } from 'lucide-react'
+import { Loader, ArrowLeft, TrendingUp, TrendingDown, DollarSign, FileText, Clock, LineChart, BarChart3, Eye } from 'lucide-react'
 import { FinanceSeerLogo } from '@/components/Logo'
 import dynamic from 'next/dynamic'
 
@@ -106,6 +106,7 @@ export default function PortfolioPage() {
   const summary = data.summary || {}
   const positions: Position[] = data.positions || []
   const history: Trade[] = data.history || []
+  const watchlist = data.watchlist || []
   const strategyNotes = data.strategyNotes || []
   const closedPositions: ClosedPosition[] = data.closedPositions || []
   const valueHistory: ValuePoint[] = data.valueHistory || []
@@ -225,6 +226,40 @@ export default function PortfolioPage() {
               })
             )}
           </div>
+
+          {/* Watchlist */}
+          {watchlist.length > 0 && (
+            <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
+                <Eye size={14} style={{ color: '#f59e0b' }} />
+                <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Watchlist</span>
+                <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '4px' }}>{watchlist.length} stocks</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {watchlist.map((item: any, i: number) => {
+                  const chg = item.changePct || 0
+                  const isUp = chg >= 0
+                  return (
+                    <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ color: 'white', fontWeight: 700, fontSize: '14px' }}>{item.ticker}</span>
+                        {item.lastPrice && <span style={{ color: '#e4e4e7', fontSize: '12px', marginLeft: '8px' }}>${item.lastPrice.toFixed(2)}</span>}
+                        {item.note && <div style={{ color: '#a1a1aa', fontSize: '10px', marginTop: '2px' }}>{item.note}</div>}
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        {item.changePct !== undefined && (
+                          <div style={{ color: isUp ? '#34d399' : '#f87171', fontWeight: 600, fontSize: '13px' }}>
+                            {isUp ? '+' : ''}{chg.toFixed(2)}%
+                          </div>
+                        )}
+                        {item.lastChecked && <div style={{ color: '#a1a1aa', fontSize: '10px' }}>{item.lastChecked.substring(0, 10)}</div>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Closed Positions */}
           {closedPositions.length > 0 && (

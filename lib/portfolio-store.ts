@@ -19,19 +19,31 @@ async function kvGet(key: string): Promise<any> {
     cache: 'no-store',
   })
   const data = await res.json()
-  if (!data.result) return null
-  return typeof data.result === 'string' ? JSON.parse(data.result) : data.result
+  if (data.result === null || data.result === undefined) return null
+  const result = data.result
+  // Result may be the object directly, or a JSON string (legacy)
+  if (typeof result === 'object') return result
+  // String: may be single or double-encoded
+  try {
+    const parsed = JSON.parse(result)
+    if (typeof parsed === 'object') return parsed
+    // Double-encoded string
+    return JSON.parse(parsed)
+  } catch {
+    return null
+  }
 }
 
 async function kvSet(key: string, value: any): Promise<void> {
   const url = `${process.env.KV_REST_API_URL}/set/${key}`
+  // Store as JSON object directly (not string-encoded)
   await fetch(url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify([JSON.stringify(value)]),
+    body: JSON.stringify(value),
   })
 }
 

@@ -125,8 +125,7 @@ function tuneATRMultipliers(portfolio: any): void {
   }
 
   // Categorise exits
-  const usExits = closed.filter((cp: any) => !isSGX(cp.ticker))
-  const sgxExits = closed.filter((cp: any) => isSGX(cp.ticker))
+  const usExits = closed.filter((cp: any) => !isSGX(cp.ticker)) // US positions only
 
   const tune = (exits: any[], market: 'US' | 'SGX') => {
     if (exits.length < 3) return
@@ -182,7 +181,6 @@ function tuneATRMultipliers(portfolio: any): void {
   }
 
   tune(usExits, 'US')
-  tune(sgxExits, 'SGX')
   portfolio.atrMultipliers.lastTuned = today
 }
 

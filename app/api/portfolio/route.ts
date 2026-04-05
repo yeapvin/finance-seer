@@ -33,20 +33,27 @@ export async function GET() {
     // Use FX rates from portfolio.json (updated by monitor on market open)
     const fxRates = portfolio.fxRates || { SGDUSD: 0.7498 }
 
-    // Fetch current prices for all position tickers
+    // Fetch current prices for all position + watchlist tickers
     const positions = portfolio.positions || []
-    const tickers = [...new Set(positions.map((p: any) => p.ticker))]
+    const watchlistItems = portfolio.watchlist || []
+    const positionTickers = positions.map((p: any) => p.ticker)
+    const watchlistTickers = watchlistItems.map((w: any) => w.ticker)
+    const allTickers = [...new Set([...positionTickers, ...watchlistTickers])]
     
     // Fetch live prices via market-data (Finnhub primary)
     const priceResults = await Promise.allSettled(
-      tickers.map(async (ticker: unknown) => { const t = ticker as string;
+      allTickers.map(async (ticker: unknown) => { const t = ticker as string;
         const q = await getLiveQuote(t)
-        return { ticker: t.toUpperCase(), price: q?.price || null }
+        return { ticker: t.toUpperCase(), price: q?.price || null, changePct: q?.changePercent ?? null }
       })
     )
     const priceMap: Record<string, number> = {}
+    const changePctMap: Record<string, number> = {}
     priceResults.forEach(r => {
-      if (r.status === 'fulfilled' && r.value.price) priceMap[r.value.ticker] = r.value.price
+      if (r.status === 'fulfilled' && r.value.price) {
+        priceMap[r.value.ticker] = r.value.price
+        if (r.value.changePct !== null) changePctMap[r.value.ticker] = r.value.changePct
+      }
     })
 
     // Update positions with live prices, fall back to avgCost if unavailable
@@ -220,7 +227,12 @@ export async function GET() {
       history: enrichedHistory,
       closedPositions: enrichedClosed,
       strategyNotes: recentStrategyNotes,
-      watchlist: portfolio.watchlist || [],
+      watchlist: watchlistItems.map((w: any) => ({
+        ...w,
+        lastPrice: priceMap[w.ticker] ?? w.lastPrice ?? null,
+        changePct: changePctMap[w.ticker] ?? w.changePct ?? null,
+        lastChecked: new Date().toISOString(),
+      })),
       cooldowns: {},
       valueHistory,
       fxRates,

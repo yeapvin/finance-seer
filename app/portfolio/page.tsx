@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader, ArrowLeft, TrendingUp, TrendingDown, DollarSign, FileText, Clock, LineChart, BarChart3, Eye } from 'lucide-react'
+import { Loader, ArrowLeft, TrendingUp, TrendingDown, DollarSign, FileText, Clock, LineChart, BarChart3, Eye, Plus, X } from 'lucide-react'
 import { FinanceSeerLogo } from '@/components/Logo'
 import dynamic from 'next/dynamic'
 
@@ -85,10 +85,34 @@ function PositionCard({ pos, ti }: { pos: Position; ti?: any }) {
 export default function PortfolioPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [watchInput, setWatchInput] = useState('')
+  const [watchLoading, setWatchLoading] = useState(false)
+  const [watchError, setWatchError] = useState('')
+
+  const refreshPortfolio = () => {
+    fetch('/api/portfolio').then(r => r.json()).then(d => setData(d))
+  }
 
   useEffect(() => {
     fetch('/api/portfolio').then(r => r.json()).then(d => { setData(d); setLoading(false) }).catch(() => setLoading(false))
   }, [])
+
+  const addToWatchlist = async () => {
+    const ticker = watchInput.trim().toUpperCase()
+    if (!ticker) return
+    setWatchLoading(true); setWatchError('')
+    const res = await fetch('/api/watchlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticker }) })
+    const json = await res.json()
+    setWatchLoading(false)
+    if (!res.ok) { setWatchError(json.error || 'Failed'); return }
+    setWatchInput('')
+    refreshPortfolio()
+  }
+
+  const removeFromWatchlist = async (ticker: string) => {
+    await fetch('/api/watchlist', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticker }) })
+    refreshPortfolio()
+  }
 
   if (loading) return (
     <div className='min-h-screen bg-black flex items-center justify-center gap-4'>
@@ -320,30 +344,49 @@ export default function PortfolioPage() {
           </div>
 
           {/* Watchlist */}
-          {watchlist.length > 0 && (
-            <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                <Eye size={14} style={{ color: '#f59e0b' }} />
-                <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Watchlist</span>
-                <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '4px' }}>{watchlist.length} stocks</span>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {watchlist.map((item: any, i: number) => {
-                  const chg = item.changePct || 0
-                  const isUp = chg >= 0
-                  return (
-                    <div key={i} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '6px', padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ color: 'white', fontWeight: 700, fontSize: '12px' }}>{item.ticker}</span>
-                      {item.lastPrice && <span style={{ color: '#e4e4e7', fontSize: '12px' }}>${item.lastPrice.toFixed(2)}</span>}
-                      {item.changePct !== undefined && (
-                        <span style={{ color: isUp ? '#34d399' : '#f87171', fontSize: '11px', fontWeight: 600 }}>{isUp ? '+' : ''}{chg.toFixed(2)}%</span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+          <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+              <Eye size={14} style={{ color: '#f59e0b' }} />
+              <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Watchlist</span>
+              <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '4px' }}>{watchlist.length} stocks</span>
             </div>
-          )}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: watchlist.length > 0 ? '10px' : '0' }}>
+              {watchlist.map((item: any, i: number) => {
+                const chg = item.changePct || 0
+                const isUp = chg >= 0
+                return (
+                  <div key={i} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '6px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ color: 'white', fontWeight: 700, fontSize: '12px' }}>{item.ticker}</span>
+                    {item.lastPrice && <span style={{ color: '#e4e4e7', fontSize: '12px' }}>${item.lastPrice.toFixed(2)}</span>}
+                    {item.changePct !== undefined && (
+                      <span style={{ color: isUp ? '#34d399' : '#f87171', fontSize: '11px', fontWeight: 600 }}>{isUp ? '+' : ''}{chg.toFixed(2)}%</span>
+                    )}
+                    <button onClick={() => removeFromWatchlist(item.ticker)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', padding: '0 0 0 2px', display: 'flex', alignItems: 'center' }}>
+                      <X size={11} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <input
+                type='text'
+                placeholder='Add ticker (e.g. AAPL)'
+                value={watchInput}
+                onChange={e => { setWatchInput(e.target.value.toUpperCase()); setWatchError('') }}
+                onKeyDown={e => e.key === 'Enter' && addToWatchlist()}
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '5px 10px', color: 'white', fontSize: '12px', width: '160px', outline: 'none' }}
+              />
+              <button
+                onClick={addToWatchlist}
+                disabled={watchLoading || !watchInput.trim()}
+                style={{ background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '6px', padding: '5px 10px', color: '#a5b4fc', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', opacity: watchLoading || !watchInput.trim() ? 0.5 : 1 }}
+              >
+                <Plus size={12} />{watchLoading ? 'Adding...' : 'Add'}
+              </button>
+              {watchError && <span style={{ color: '#f87171', fontSize: '11px' }}>{watchError}</span>}
+            </div>
+          </div>
         </main>
       </div>
     </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { createChart, IChartApi, CandlestickData } from 'lightweight-charts'
+import { createChart, IChartApi, CandlestickData, ColorType, LineWidth } from 'lightweight-charts'
 import { HistoricalData } from '@/lib/market-data'
 import { IndicatorValues } from '@/lib/indicators'
 
@@ -51,7 +51,7 @@ export function StockChart({ data, indicators, showIndicators, onToggleIndicator
     const chartOpts = (height: number) => ({
       layout: {
         textColor: '#71717a',
-        background: { type: 'solid' as const, color: '#0a0a0a' },
+        background: { type: ColorType.Solid, color: '#0a0a0a' },
         fontFamily: '-apple-system, BlinkMacSystemFont, system-ui, sans-serif',
         fontSize: isMobile ? 10 : 12,
       },
@@ -176,7 +176,7 @@ export function StockChart({ data, indicators, showIndicators, onToggleIndicator
           for (let j = i - 19; j <= i; j++) sum += data[j].volume
           volMA.push({ time: toTime(data[i].date), value: sum / 20 })
         }
-        const maLine = volChart.addLineSeries({ color: '#f59e0b', lineWidth: 1.5 })
+        const maLine = volChart.addLineSeries({ color: '#f59e0b', lineWidth: 2 as LineWidth })
         maLine.setData(volMA)
       }
 

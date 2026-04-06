@@ -339,7 +339,7 @@ export default function Home() {
                       { key: 'ema12', label: 'EMA 12', color: '#06b6d4', tip: 'Exponential MA (12 days) — faster, reacts quicker to recent price changes.' },
                       { key: 'ema26', label: 'EMA 26', color: '#14b8a6', tip: 'Exponential MA (26 days) — slower EMA. Used with EMA 12 to form MACD.' },
                       { key: 'bollingerBands', label: 'Bollinger', color: '#6366f1', tip: 'Bollinger Bands — volatility envelope. Price near upper = overbought, lower = oversold.' },
-                    ]).map(({ key, label, color, tip }: { key: keyof typeof showIndicators; label: string; color: string; tip: string }) => {
+                    ] as { key: keyof typeof showIndicators; label: string; color: string; tip: string }[]).map(({ key, label, color, tip }) => {
                       const active = showIndicators[key]
                       return (
                         <button key={key} onClick={() => toggleIndicator(key)}

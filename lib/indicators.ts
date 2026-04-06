@@ -214,7 +214,7 @@ export function calculateAllIndicators(
     ema12: calculateEMA(prices, 12),
     ema26: calculateEMA(prices, 26),
     rsi: calculateRSI(prices, 14),
-    ...calculateMACD(prices),
+    ...(() => { const m = calculateMACD(prices); return { macd: m.macd, macdSignal: m.signal, macdHistogram: m.histogram } })(),
     bollingerBands: calculateBollingerBands(prices, 20, 2),
     stochastic: calculateStochastic(highs, lows, prices, 14, 3, 3),
   }

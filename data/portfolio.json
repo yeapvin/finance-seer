@@ -300,6 +300,51 @@
       "ticker": "SNOW",
       "note": "Live position: 100 shares @ $151.30 (Tiger). Also in paper portfolio.",
       "alertThreshold": 5
+    },
+    {
+      "ticker": "BN4.SI",
+      "note": "Keppel Ltd",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "U96.SI",
+      "note": "SembCorp Industries",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "C6L.SI",
+      "note": "Singapore Airlines",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "Z74.SI",
+      "note": "Singtel",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "U11.SI",
+      "note": "UOB",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "5E2.SI",
+      "note": "Seatrium",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "K71U.SI",
+      "note": "Keppel REIT",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "O5RU.SI",
+      "note": "AIMS APAC REIT",
+      "alertThreshold": 5
+    },
+    {
+      "ticker": "S59.SI",
+      "note": "SIA Engineering",
+      "alertThreshold": 5
     }
   ]
 }

@@ -380,7 +380,7 @@ export default function PortfolioPage() {
               <button
                 onClick={addToWatchlist}
                 disabled={watchLoading || !watchInput.trim()}
-                style={{ background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '6px', padding: '5px 10px', color: '#a5b4fc', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', opacity: watchLoading || !watchInput.trim() ? 0.5 : 1 }}
+                style={{ background: 'rgba(99,102,241,0.75)', border: '1px solid rgba(99,102,241,0.9)', borderRadius: '6px', padding: '5px 10px', color: '#ffffff', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', opacity: watchLoading || !watchInput.trim() ? 0.5 : 1 }}
               >
                 <Plus size={12} />{watchLoading ? 'Adding...' : 'Add'}
               </button>

@@ -144,15 +144,12 @@ export async function GET() {
       }
     }
 
-    // Sort: BUY first ranked by R/R, then HOLD, then SELL
-    const signalRank = (s: string) => s === 'BUY' ? 0 : s === 'HOLD' ? 1 : 2
-    results.sort((a, b) => {
-      const sr = signalRank(a.signal) - signalRank(b.signal)
-      if (sr !== 0) return sr
-      return parseFloat(b.rr) - parseFloat(a.rr)
-    })
+    // Keep only BUY signals, ranked by R/R
+    const buys = results
+      .filter(r => r.signal === 'BUY' || r.signal === 'STRONG BUY')
+      .sort((a, b) => parseFloat(b.rr) - parseFloat(a.rr))
 
-    return NextResponse.json(results)
+    return NextResponse.json(buys)
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

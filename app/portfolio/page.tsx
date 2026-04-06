@@ -190,7 +190,6 @@ export default function PortfolioPage() {
               <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '10px 12px' }}>
                 <div style={{ color: '#e4e4e7', fontSize: '10px', marginBottom: '3px' }}>Cash</div>
                 <div style={{ color: 'white', fontWeight: 700, fontSize: '14px' }}>{fmt(summary.cashUSD)} USD</div>
-                {summary.cashSGD > 0 && <div style={{ color: '#a5b4fc', fontSize: '11px' }}>{fmt(summary.cashSGD)} SGD</div>}
               </div>
               {/* Win Rate */}
               <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '10px 12px' }}>

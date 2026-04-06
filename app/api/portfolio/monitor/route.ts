@@ -39,16 +39,6 @@ async function sendTelegram(message: string) {
   } catch (e) { console.error('Telegram failed:', e) }
 }
 
-async function fetchFXRate(): Promise<number> {
-  try {
-    const apiKey = process.env.FINNHUB_API_KEY
-    if (!apiKey) return 0.7498
-    const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=OANDA:SGD_USD&token=${apiKey}`)
-    const data = await res.json()
-    return data.c || 0.7498
-  } catch { return 0.7498 }
-}
-
 // ── Trading Rules Constants ──────────────────────────────────────────────────
 const MAX_POSITIONS = 5
 const MIN_CASH_RESERVE_PCT = 0.20   // Keep 20% cash
@@ -602,8 +592,8 @@ async function executeTrade(portfolio: any, type: 'SELL', pos: any, price: numbe
   portfolio.closedPositions = portfolio.closedPositions || []
   portfolio.closedPositions.push({ ticker: pos.ticker, shares: pos.shares, buyDate: pos.buyDate, buyPrice: pos.buyPrice, sellDate: todayStr, sellPrice: price, reason: note, pnl, pnlPct, currency })
 
-  portfolio.cashByValue = portfolio.cashByValue || { USD: 0, SGD: 0 }
-  portfolio.cashByValue[currency] = (portfolio.cashByValue[currency] || 0) + proceeds
+  portfolio.cashByValue = portfolio.cashByValue || { USD: 0 }
+  portfolio.cashByValue['USD'] = (portfolio.cashByValue['USD'] || 0) + proceeds
 
   const posIdx = portfolio.positions.findIndex((p: any) => p.ticker === pos.ticker)
   if (posIdx >= 0) portfolio.positions.splice(posIdx, 1)
@@ -622,8 +612,8 @@ async function executeBuy(portfolio: any, ticker: string, shares: number, price:
   const todayStr = today()
   const cost = price * shares
 
-  portfolio.cashByValue = portfolio.cashByValue || { USD: 0, SGD: 0 }
-  portfolio.cashByValue[currency] = (portfolio.cashByValue[currency] || 0) - cost
+  portfolio.cashByValue = portfolio.cashByValue || { USD: 0 }
+  portfolio.cashByValue['USD'] = (portfolio.cashByValue['USD'] || 0) - cost
 
   portfolio.positions = portfolio.positions || []
   portfolio.positions.push({ ticker, shares, avgCost: price, buyDate: todayStr, buyPrice: price, currentPrice: price, stopLoss: sl, takeProfit: tp, signal: 'BUY', reason, currency })

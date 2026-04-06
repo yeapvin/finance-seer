@@ -30,9 +30,6 @@ export async function GET() {
   try {
     const portfolio = await readPortfolio()
 
-    // Use FX rates from portfolio.json (updated by monitor on market open)
-    const fxRates = portfolio.fxRates || { SGDUSD: 0.7498 }
-
     // Fetch current prices for all position + watchlist tickers
     const positions = portfolio.positions || []
     const watchlistItems = portfolio.watchlist || []
@@ -71,10 +68,9 @@ export async function GET() {
       0
     )
     
-    // Total cash: USD + (SGD / FX rate)
-    const cashByValue = portfolio.cashByValue || { USD: portfolio.cash || 0, SGD: 0 }
-    const sgdUsdConversion = fxRates.SGDUSD || 0.75
-    const totalCash = (cashByValue.USD || 0) + ((cashByValue.SGD || 0) / sgdUsdConversion)
+    // Total cash (USD only)
+    const cashByValue = portfolio.cashByValue || { USD: portfolio.cash || 0 }
+    const totalCash = cashByValue.USD || 0
     
     const totalValue = totalCash + positionsValue
     const totalReturn = totalValue - portfolio.startingCapital
@@ -235,17 +231,14 @@ export async function GET() {
       })),
       cooldowns: {},
       valueHistory,
-      fxRates,
       cashByValue: {
         USD: cashByValue.USD || 0,
-        SGD: cashByValue.SGD || 0,
       },
       summary: {
         totalValue: Math.round(totalValue * 100) / 100,
         capitalCeiling: Math.round(totalValue * 100) / 100,
         cash: Math.round(totalCash * 100) / 100,
         cashUSD: Math.round((cashByValue.USD || 0) * 100) / 100,
-        cashSGD: Math.round((cashByValue.SGD || 0) * 100) / 100,
         positionsValue: Math.round(positionsValue * 100) / 100,
         totalReturn: Math.round(totalReturn * 100) / 100,
         totalReturnPct: Math.round(totalReturnPct * 100) / 100,

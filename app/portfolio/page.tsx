@@ -112,6 +112,8 @@ export default function PortfolioPage() {
   const [watchError, setWatchError] = useState('')
   const [watchAnalysis, setWatchAnalysis] = useState<Record<string, any>>({})
   const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [basket, setBasket] = useState<any[]>([])
+  const [basketLoading, setBasketLoading] = useState(false)
 
   const refreshPortfolio = () => {
     fetch('/api/portfolio').then(r => r.json()).then(d => setData(d))
@@ -122,9 +124,15 @@ export default function PortfolioPage() {
     fetch('/api/watchlist/analyze').then(r => r.json()).then(d => { setWatchAnalysis(d); setAnalysisLoading(false) }).catch(() => setAnalysisLoading(false))
   }
 
+  const refreshBasket = () => {
+    setBasketLoading(true)
+    fetch('/api/basket').then(r => r.json()).then(d => { setBasket(Array.isArray(d) ? d : []); setBasketLoading(false) }).catch(() => setBasketLoading(false))
+  }
+
   useEffect(() => {
     fetch('/api/portfolio').then(r => r.json()).then(d => { setData(d); setLoading(false) }).catch(() => setLoading(false))
     refreshAnalysis()
+    refreshBasket()
   }, [])
 
   const addToWatchlist = async () => {
@@ -434,7 +442,7 @@ export default function PortfolioPage() {
                               <div style={{ color: '#f87171', fontSize: '11px', fontWeight: 700 }}>${an.stopLoss}</div>
                             </div>
                             <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '5px', padding: '5px 7px' }}>
-                              <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Target</div>
+                              <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Take Profit</div>
                               <div style={{ color: '#34d399', fontSize: '11px', fontWeight: 700 }}>${an.takeProfit}</div>
                             </div>
                             <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '5px', padding: '5px 7px' }}>
@@ -472,6 +480,75 @@ export default function PortfolioPage() {
               </button>
               {watchError && <span style={{ color: '#f87171', fontSize: '11px' }}>{watchError}</span>}
             </div>
+          </div>
+
+          {/* Joobi's Picks */}
+          <div style={{ background: '#0a0a0a', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '12px', padding: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px' }}>⚡</span>
+              <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Joobi&apos;s Picks</span>
+              <span style={{ color: '#71717a', fontSize: '11px', marginLeft: '4px' }}>curated watchlist</span>
+              {basketLoading && <span style={{ color: '#71717a', fontSize: '10px', marginLeft: 'auto' }}>Analysing...</span>}
+              {!basketLoading && basket.length > 0 && (
+                <button onClick={refreshBasket} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', fontSize: '10px', marginLeft: 'auto' }}>↻ Refresh</button>
+              )}
+            </div>
+
+            {basketLoading && (
+              <div style={{ color: '#71717a', fontSize: '12px', padding: '8px 0' }}>Running analysis across {30} stocks...</div>
+            )}
+
+            {!basketLoading && basket.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {basket.map((item: any, i: number) => {
+                  const sig = item.signal || ''
+                  const sigColor = sig === 'BUY' ? '#34d399' : sig === 'SELL' ? '#f87171' : '#f59e0b'
+                  const sigBg   = sig === 'BUY' ? 'rgba(16,185,129,0.12)' : sig === 'SELL' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)'
+                  const isUp = (item.changePct ?? 0) >= 0
+                  return (
+                    <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px 12px' }}>
+                      {/* Row 1 */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                        <div style={{ minWidth: '140px' }}>
+                          <div style={{ color: 'white', fontWeight: 700, fontSize: '13px' }}>{item.ticker}</div>
+                          {item.name && <div style={{ color: '#a1a1aa', fontSize: '11px', marginTop: '1px' }}>{item.name}</div>}
+                        </div>
+                        <span style={{ color: '#e4e4e7', fontSize: '12px', minWidth: '68px' }}>${item.currentPrice?.toFixed(2)}</span>
+                        <span style={{ color: isUp ? '#34d399' : '#f87171', fontSize: '11px', fontWeight: 600, minWidth: '56px' }}>
+                          {item.changePct != null ? (isUp ? '+' : '') + item.changePct.toFixed(2) + '%' : '—'}
+                        </span>
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', background: sigBg, color: sigColor, letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>{sig}</span>
+                        <span style={{ color: '#a1a1aa', fontSize: '10px' }}>{item.conviction}</span>
+                      </div>
+                      {/* Metrics */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '7px' }}>
+                        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '5px', padding: '5px 7px' }}>
+                          <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Entry</div>
+                          <div style={{ color: '#ffffff', fontSize: '11px', fontWeight: 700 }}>${item.suggestedEntry}</div>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '5px', padding: '5px 7px' }}>
+                          <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Stop Loss</div>
+                          <div style={{ color: '#f87171', fontSize: '11px', fontWeight: 700 }}>${item.stopLoss}</div>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '5px', padding: '5px 7px' }}>
+                          <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Take Profit</div>
+                          <div style={{ color: '#34d399', fontSize: '11px', fontWeight: 700 }}>${item.takeProfit}</div>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '5px', padding: '5px 7px' }}>
+                          <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>RSI · R/R</div>
+                          <div style={{ color: '#c4b5fd', fontSize: '11px', fontWeight: 700 }}>{item.rsi} · 1:{item.rr}</div>
+                        </div>
+                      </div>
+                      {/* Strategy */}
+                      <div style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '5px', padding: '7px 9px' }}>
+                        <div style={{ color: '#c4b5fd', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>Strategy</div>
+                        <div style={{ color: '#f4f4f5', fontSize: '11px', lineHeight: '1.6' }}>{item.strategy}</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </main>
       </div>

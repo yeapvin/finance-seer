@@ -6,9 +6,9 @@ export const dynamic = 'force-dynamic'
 
 // Company name lookup
 const COMPANY_NAMES: Record<string, string> = {
-  AAPL: 'Apple', GOOGL: 'Alphabet', AMZN: 'Amazon', NVDA: 'NVIDIA',
-  COST: 'Costco', MSFT: 'Microsoft', META: 'Meta', TSLA: 'Tesla',
-  NFLX: 'Netflix', AMD: 'AMD', INTC: 'Intel', SNOW: 'Snowflake',
+  AAPL: 'Apple Inc.', GOOGL: 'Alphabet Inc.', AMZN: 'Amazon.com', NVDA: 'NVIDIA Corp.',
+  COST: 'Costco Wholesale', MSFT: 'Microsoft Corp.', META: 'Meta Platforms', TSLA: 'Tesla Inc.',
+  NFLX: 'Netflix Inc.', AMD: 'Advanced Micro Devices', INTC: 'Intel Corp.', SNOW: 'Snowflake Inc.',
   ADSK: 'Autodesk', CRWV: 'CoreWeave', NBIS: 'Nebius', PLTR: 'Palantir',
   CRM: 'Salesforce', ADBE: 'Adobe', ORCL: 'Oracle', QCOM: 'Qualcomm',
   AVGO: 'Broadcom', MU: 'Micron', AMAT: 'Applied Materials',
@@ -239,7 +239,7 @@ export async function GET() {
         ...w,
         lastPrice: priceMap[w.ticker] ?? w.lastPrice ?? null,
         changePct: changePctMap[w.ticker] ?? w.changePct ?? null,
-        companyName: (nameMap[w.ticker] && nameMap[w.ticker] !== w.ticker) ? nameMap[w.ticker] : (COMPANY_NAMES[w.ticker] || w.companyName || null),
+        companyName: COMPANY_NAMES[w.ticker] || (nameMap[w.ticker] && nameMap[w.ticker] !== w.ticker ? nameMap[w.ticker] : null) || w.companyName || null,
         lastChecked: new Date().toISOString(),
       })),
       cooldowns: {},

@@ -13,8 +13,8 @@ export const dynamic = 'force-dynamic'
 
 // Company name fallback (for tickers where live quote returns ticker as name)
 const NAMES: Record<string, string> = {
-  AAPL:'Apple', MSFT:'Microsoft', NVDA:'NVIDIA', GOOGL:'Alphabet', META:'Meta',
-  AMZN:'Amazon', TSLA:'Tesla', AMD:'AMD', INTC:'Intel', ADSK:'Autodesk',
+  AAPL:'Apple Inc.', MSFT:'Microsoft Corp.', NVDA:'NVIDIA Corp.', GOOGL:'Alphabet Inc.', META:'Meta Platforms',
+  AMZN:'Amazon.com', TSLA:'Tesla Inc.', AMD:'Advanced Micro Devices', INTC:'Intel Corp.', ADSK:'Autodesk Inc.',
   SNOW:'Snowflake', PLTR:'Palantir', CRM:'Salesforce', NET:'Cloudflare',
   DDOG:'Datadog', CRWD:'CrowdStrike', AVGO:'Broadcom', TSM:'Taiwan Semiconductor',
   AMAT:'Applied Materials', LRCX:'Lam Research', V:'Visa', MA:'Mastercard',
@@ -123,7 +123,7 @@ async function analyseTicker(ticker: string): Promise<any | null> {
 
     const result = {
       ticker,
-      name: (stock.name && stock.name !== ticker) ? stock.name : (NAMES[ticker] || ticker),
+      name: NAMES[ticker] || (stock.name && stock.name !== ticker ? stock.name : null) || ticker,
       signal,
       conviction: signal === 'BUY' ? (rr >= 2 ? 'HIGH' : 'MEDIUM') : signal === 'HOLD' ? 'LOW' : 'MEDIUM',
       currentPrice:   parseFloat(p.toFixed(2)),

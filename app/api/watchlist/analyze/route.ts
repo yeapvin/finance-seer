@@ -76,11 +76,9 @@ async function analyseTicker(ticker: string): Promise<any> {
       signal:         report.recommendation,
       conviction:     report.recommendation === 'HOLD' ? 'LOW' : 'MEDIUM',
       currentPrice:   stock.price,
-      suggestedEntry: report.priceTargets?.support?.[0] 
-                        ? parseFloat(report.priceTargets.support[0].toFixed(2))
-                        : parseFloat(stock.price.toFixed(2)),
-      stopLoss:       slMatch  ? parseFloat(slMatch[1])  : parseFloat((stock.price * 0.95).toFixed(2)),
-      takeProfit:     tpMatch  ? parseFloat(tpMatch[1])  : parseFloat((stock.price * 1.08).toFixed(2)),
+      suggestedEntry: parseFloat(stock.price.toFixed(2)),
+      stopLoss:       slMatch  ? parseFloat(slMatch[1])  : parseFloat((report.recommendation === 'SELL' ? stock.price * 1.08 : stock.price * 0.95).toFixed(2)),
+      takeProfit:     tpMatch  ? parseFloat(tpMatch[1])  : parseFloat((report.recommendation === 'SELL' ? stock.price * 0.90 : stock.price * 1.12).toFixed(2)),
       rsi:            rsiMatch ? parseFloat(rsiMatch[1]) : 0,
       rr:             rrMatch  ? rrMatch[1] : '—',
       strategy:       report.recommendationReason || '',

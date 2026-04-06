@@ -235,13 +235,24 @@ function generateDataDrivenAnalysis(stock: StockData, rsi: number, macd: number,
   // Use price-relative fallbacks if no S/R found within 20% range
   const nearestSupport = support[0] || p * 0.95
   const nearestResistance = resistance[0] || p * 1.08
-  const stopLossPrice = nearestSupport * 0.97
-  const takeProfitPrice = nearestResistance * 1.02
 
-  // Sanity: clamp stop loss to no more than 12% below current price
-  const clampedStopLoss = Math.max(stopLossPrice, p * 0.88)
-  // Sanity: clamp take profit to no more than 20% above current price
-  const clampedTakeProfit = Math.min(takeProfitPrice, p * 1.20)
+  // Signal-aware SL/TP
+  let clampedStopLoss: number
+  let clampedTakeProfit: number
+
+  if (recommendation === 'SELL') {
+    // SELL: SL above entry (at resistance + buffer), TP below entry (at support)
+    const sellSL = Math.min(nearestResistance * 1.03, p * 1.12)
+    const sellTP = Math.max(nearestSupport * 0.98, p * 0.80)
+    clampedStopLoss = sellSL
+    clampedTakeProfit = sellTP
+  } else {
+    // BUY / HOLD: SL below entry (at support - buffer), TP above entry (at resistance)
+    const buySL = Math.max(nearestSupport * 0.97, p * 0.88)
+    const buyTP = Math.min(nearestResistance * 1.02, p * 1.20)
+    clampedStopLoss = buySL
+    clampedTakeProfit = buyTP
+  }
 
   const supportLabel = support.length > 0 ? fmt(support[0]) : fmt(nearestSupport) + ' (SMA/estimated)'
   const resistanceLabel = resistance.length > 0 ? fmt(resistance[0]) : fmt(nearestResistance) + ' (SMA/estimated)'
@@ -257,7 +268,7 @@ function generateDataDrivenAnalysis(stock: StockData, rsi: number, macd: number,
 
     newsAnalysis: `Market sentiment analysis indicates ${bullSignals > bearSignals ? 'a positive bias in recent market activity' : bearSignals > bullSignals ? 'cautious sentiment prevailing' : 'neutral market sentiment'}. ${near52High ? 'The stock is near its 52-week high, suggesting strong momentum but also potential for profit-taking.' : near52Low ? 'Trading near 52-week lows could represent either a value trap or a genuine buying opportunity — further due diligence is recommended.' : 'The stock is in the middle of its 52-week range, offering balanced risk/reward.'} Broader market conditions should be considered alongside this analysis. ${patterns.length > 0 ? 'Chart pattern analysis detected: ' + patterns.map(p => p.name + ' (' + p.confidence.toFixed(0) + '% confidence, ' + p.type + ')').join('; ') + '. These patterns provide additional context for the trading strategy below.' : ''}`,
 
-    riskAssessment: `**Downside Risks:** (1) A break below support at ${supportLabel} could trigger accelerated selling toward ${fmt(support[1] || nearestSupport * 0.95)}. (2) ${rsiOverbought ? 'Overbought RSI conditions increase the probability of a near-term pullback.' : macdBearish ? 'Bearish MACD divergence suggests momentum is fading.' : 'Broader market corrections could drag the stock lower regardless of individual fundamentals.'} (3) ${stock.peRatio > 30 ? 'Elevated valuation (P/E ' + stock.peRatio.toFixed(1) + 'x) leaves limited margin for error on earnings.' : 'Sector-specific headwinds or macro changes could impact the stock.'}\n\n**Upside Catalysts:** (1) A breakout above resistance at ${resistanceLabel} with volume confirmation could target ${fmt(resistance[1] || nearestResistance * 1.05)}. (2) ${goldenCross ? 'The active golden cross is a traditionally strong bullish signal.' : 'Improving technical momentum could attract momentum buyers.'} (3) Positive earnings surprises or guidance upgrades could rerate the stock higher.\n\n**Risk/Reward Assessment:** Current price ${fmt(p)}. Downside to stop at ${fmt(clampedStopLoss)} = ${((p - clampedStopLoss) / p * 100).toFixed(1)}% risk. Upside to target at ${fmt(clampedTakeProfit)} = ${((clampedTakeProfit - p) / p * 100).toFixed(1)}% reward. Risk/reward ratio: 1:${((clampedTakeProfit - p) / (p - clampedStopLoss)).toFixed(1)}.`,
+    riskAssessment: `**Downside Risks:** (1) A break below support at ${supportLabel} could trigger accelerated selling toward ${fmt(support[1] || nearestSupport * 0.95)}. (2) ${rsiOverbought ? 'Overbought RSI conditions increase the probability of a near-term pullback.' : macdBearish ? 'Bearish MACD divergence suggests momentum is fading.' : 'Broader market corrections could drag the stock lower regardless of individual fundamentals.'} (3) ${stock.peRatio > 30 ? 'Elevated valuation (P/E ' + stock.peRatio.toFixed(1) + 'x) leaves limited margin for error on earnings.' : 'Sector-specific headwinds or macro changes could impact the stock.'}\n\n**Upside Catalysts:** (1) A breakout above resistance at ${resistanceLabel} with volume confirmation could target ${fmt(resistance[1] || nearestResistance * 1.05)}. (2) ${goldenCross ? 'The active golden cross is a traditionally strong bullish signal.' : 'Improving technical momentum could attract momentum buyers.'} (3) Positive earnings surprises or guidance upgrades could rerate the stock higher.\n\n**Risk/Reward Assessment:** Current price ${fmt(p)}. ${recommendation === 'SELL' ? `Stop at ${fmt(clampedStopLoss)} (+${((clampedStopLoss - p) / p * 100).toFixed(1)}% risk). Target ${fmt(clampedTakeProfit)} (${((p - clampedTakeProfit) / p * 100).toFixed(1)}% reward). Risk/reward ratio: 1:${((p - clampedTakeProfit) / (clampedStopLoss - p)).toFixed(1)}.` : `Stop at ${fmt(clampedStopLoss)} (${((p - clampedStopLoss) / p * 100).toFixed(1)}% risk). Target ${fmt(clampedTakeProfit)} (+${((clampedTakeProfit - p) / p * 100).toFixed(1)}% reward). Risk/reward ratio: 1:${((clampedTakeProfit - p) / (p - clampedStopLoss)).toFixed(1)}.`}` ,
 
     recommendation,
     recommendationReason: recReason,
@@ -268,9 +279,13 @@ function generateDataDrivenAnalysis(stock: StockData, rsi: number, macd: number,
       ? `Current price: ${fmt(p)}. Exit current long positions at market. If shorting, enter near resistance at ${resistanceLabel} with a stop above ${fmt(nearestResistance * 1.03)}. Wait for confirmed breakdown below ${supportLabel} for additional short entries.`
       : `Current price: ${fmt(p)}. Hold current positions. Accumulate only on dips to ${supportLabel} with confirming bullish signals (RSI bounce from <35, MACD crossover). Reduce exposure if price closes below ${fmt(nearestSupport)} on heavy volume.`,
 
-    stopLoss: `Place stop-loss at ${fmt(clampedStopLoss)} (${((p - clampedStopLoss) / p * 100).toFixed(1)}% below current price ${fmt(p)}). This is set 3% below the nearest support at ${supportLabel}. For swing trades, use a tighter stop at ${supportLabel} — exit on a daily close below this level.`,
+    stopLoss: recommendation === 'SELL'
+      ? `Stop-loss at ${fmt(clampedStopLoss)} (+${((clampedStopLoss - p) / p * 100).toFixed(1)}% above entry ${fmt(p)}). Close/cover position if price reclaims ${resistanceLabel} on volume.`
+      : `Stop-loss at ${fmt(clampedStopLoss)} (${((p - clampedStopLoss) / p * 100).toFixed(1)}% below entry ${fmt(p)}). Set 3% below nearest support at ${supportLabel}. Exit on a daily close below this level.`,
 
-    takeProfit: `Primary target: ${fmt(nearestResistance)} (nearest resistance, +${((nearestResistance - p) / p * 100).toFixed(1)}% from current ${fmt(p)}). Secondary target: ${fmt(clampedTakeProfit)} (+${((clampedTakeProfit - p) / p * 100).toFixed(1)}% upside). Consider taking 50% profits at the first target and trailing the stop on the remainder. ${near52High ? 'Near 52-week highs — trail stops tightly as breakout failure is possible.' : ''}`,
+    takeProfit: recommendation === 'SELL'
+      ? `Downside target: ${fmt(clampedTakeProfit)} (${((p - clampedTakeProfit) / p * 100).toFixed(1)}% below current price ${fmt(p)}). Cover at ${supportLabel} or secondary target ${fmt(support[1] || nearestSupport * 0.95)}. Trail stops as price moves in your favour.`
+      : `Primary target: ${fmt(nearestResistance)} (nearest resistance, +${((nearestResistance - p) / p * 100).toFixed(1)}% from ${fmt(p)}). Secondary target: ${fmt(clampedTakeProfit)} (+${((clampedTakeProfit - p) / p * 100).toFixed(1)}% upside). Take 50% at first target, trail the rest. ${near52High ? 'Near 52-week highs — trail stops tightly.' : ''}`,
   })
 }
 

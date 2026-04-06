@@ -563,11 +563,26 @@ export async function POST() {
     portfolio.watchlist = watchlist
     await writePortfolio(portfolio)
 
+    // Build near-miss alerts (positions within 3% of SL or TP)
+    const nearMisses: any[] = []
+    for (const pos of portfolio.positions) {
+      const price = pos.currentPrice || pos.buyPrice
+      const sl = pos.stopLoss
+      const tp = pos.takeProfit
+      if (sl && Math.abs(price - sl) / price < 0.03) {
+        nearMisses.push({ ticker: pos.ticker, type: 'SL', price, level: sl, pct: ((price - sl) / price * 100).toFixed(1) })
+      } else if (tp && Math.abs(price - tp) / price < 0.03) {
+        nearMisses.push({ ticker: pos.ticker, type: 'TP', price, level: tp, pct: ((tp - price) / price * 100).toFixed(1) })
+      }
+    }
+
     return NextResponse.json({
       success: true,
       session,
       executedTrades,
       watchlistAlerts,
+      nearMisses,
+      positions: portfolio.positions,
       totalValue: newTotalUSD,
     })
   } catch (error) {

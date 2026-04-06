@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
     }
 
     const executedTrades: any[] = result.executedTrades || []
+    const nearMisses: any[] = result.nearMisses || []
     const totalValue: number = result.totalValue || 0
     const currentSession = marketSession()
 
@@ -91,7 +92,17 @@ export async function GET(request: NextRequest) {
         msg += `✅ No trades executed — all positions holding.\n`
       }
 
-      msg += `_View: finance-seer.vercel.app/portfolio_`
+      // Near-miss alerts
+      if (nearMisses.length > 0) {
+        msg += '\n👀 *Watch closely:*\n'
+        nearMisses.forEach((n: any) => {
+          const emoji = n.type === 'TP' ? '🎯' : '⚠️'
+          const label = n.type === 'TP' ? 'Take Profit' : 'Stop Loss'
+          msg += `${emoji} *${n.ticker}* within ${n.pct}% of ${label} ($${n.price?.toFixed(2)} vs $${n.level?.toFixed(2)})\n`
+        })
+      }
+
+      msg += `\n_View: finance-seer.vercel.app/portfolio_`
       await sendTelegram(token, chatId, msg)
     }
 

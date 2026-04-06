@@ -110,13 +110,21 @@ export default function PortfolioPage() {
   const [watchInput, setWatchInput] = useState('')
   const [watchLoading, setWatchLoading] = useState(false)
   const [watchError, setWatchError] = useState('')
+  const [watchAnalysis, setWatchAnalysis] = useState<Record<string, any>>({})
+  const [analysisLoading, setAnalysisLoading] = useState(false)
 
   const refreshPortfolio = () => {
     fetch('/api/portfolio').then(r => r.json()).then(d => setData(d))
   }
 
+  const refreshAnalysis = () => {
+    setAnalysisLoading(true)
+    fetch('/api/watchlist/analyze').then(r => r.json()).then(d => { setWatchAnalysis(d); setAnalysisLoading(false) }).catch(() => setAnalysisLoading(false))
+  }
+
   useEffect(() => {
     fetch('/api/portfolio').then(r => r.json()).then(d => { setData(d); setLoading(false) }).catch(() => setLoading(false))
+    refreshAnalysis()
   }, [])
 
   const addToWatchlist = async () => {
@@ -366,32 +374,78 @@ export default function PortfolioPage() {
 
           {/* Watchlist */}
           <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
               <Eye size={14} style={{ color: '#f59e0b' }} />
               <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Watchlist</span>
               <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '4px' }}>{watchlist.length} stocks</span>
+              {analysisLoading && <span style={{ color: '#71717a', fontSize: '10px', marginLeft: 'auto' }}>Analysing...</span>}
+              {!analysisLoading && Object.keys(watchAnalysis).length > 0 && (
+                <button onClick={refreshAnalysis} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', fontSize: '10px', marginLeft: 'auto' }}>↻ Refresh</button>
+              )}
             </div>
+
             {watchlist.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
                 {watchlist.map((item: any, i: number) => {
                   const chg = item.changePct ?? null
                   const isUp = (chg ?? 0) >= 0
+                  const an = watchAnalysis[item.ticker]
+                  const sig = an?.signal || ''
+                  const sigColor = sig.includes('BUY') ? '#34d399' : sig.includes('SELL') ? '#f87171' : '#f59e0b'
+                  const sigBg   = sig.includes('BUY') ? 'rgba(16,185,129,0.12)' : sig.includes('SELL') ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)'
                   return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 80px 60px 1fr 20px', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '6px 10px' }}>
-                      <span style={{ color: 'white', fontWeight: 700, fontSize: '12px' }}>{item.ticker}</span>
-                      <span style={{ color: '#e4e4e7', fontSize: '12px' }}>{item.lastPrice != null ? '$' + item.lastPrice.toFixed(2) : '—'}</span>
-                      <span style={{ color: chg != null ? (isUp ? '#34d399' : '#f87171') : '#71717a', fontSize: '11px', fontWeight: 600 }}>
-                        {chg != null ? (isUp ? '+' : '') + chg.toFixed(2) + '%' : '—'}
-                      </span>
-                      <span style={{ color: '#71717a', fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.note || ''}</span>
-                      <button onClick={() => removeFromWatchlist(item.ticker)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <X size={11} />
-                      </button>
+                    <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px 12px' }}>
+                      {/* Row 1: ticker / price / change / signal / remove */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: an ? '8px' : '0' }}>
+                        <span style={{ color: 'white', fontWeight: 700, fontSize: '13px', minWidth: '72px' }}>{item.ticker}</span>
+                        <span style={{ color: '#e4e4e7', fontSize: '12px', minWidth: '68px' }}>{item.lastPrice != null ? '$' + item.lastPrice.toFixed(2) : '—'}</span>
+                        <span style={{ color: chg != null ? (isUp ? '#34d399' : '#f87171') : '#71717a', fontSize: '11px', fontWeight: 600, minWidth: '56px' }}>
+                          {chg != null ? (isUp ? '+' : '') + chg.toFixed(2) + '%' : '—'}
+                        </span>
+                        {sig && (
+                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', background: sigBg, color: sigColor, letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>{sig}</span>
+                        )}
+                        {an?.conviction && (
+                          <span style={{ color: '#71717a', fontSize: '10px' }}>{an.conviction}</span>
+                        )}
+                        <button onClick={() => removeFromWatchlist(item.ticker)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', padding: 0, display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+                          <X size={11} />
+                        </button>
+                      </div>
+
+                      {/* Row 2: key metrics + strategy */}
+                      {an && (
+                        <>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '7px' }}>
+                            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
+                              <div style={{ color: '#71717a', fontSize: '9px' }}>ENTRY</div>
+                              <div style={{ color: '#e4e4e7', fontSize: '11px', fontWeight: 600 }}>${an.suggestedEntry}</div>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
+                              <div style={{ color: '#71717a', fontSize: '9px' }}>STOP LOSS</div>
+                              <div style={{ color: '#f87171', fontSize: '11px', fontWeight: 600 }}>${an.stopLoss}</div>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
+                              <div style={{ color: '#71717a', fontSize: '9px' }}>TARGET</div>
+                              <div style={{ color: '#34d399', fontSize: '11px', fontWeight: 600 }}>${an.takeProfit}</div>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
+                              <div style={{ color: '#71717a', fontSize: '9px' }}>RSI · R/R</div>
+                              <div style={{ color: '#a5b4fc', fontSize: '11px', fontWeight: 600 }}>{an.rsi} · 1:{an.rr}</div>
+                            </div>
+                          </div>
+                          <div style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '5px', padding: '6px 9px' }}>
+                            <div style={{ color: '#71717a', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>Strategy</div>
+                            <div style={{ color: '#c4b5fd', fontSize: '10px', lineHeight: '1.5' }}>{an.strategy}</div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )
                 })}
               </div>
             )}
+
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <input
                 type='text'

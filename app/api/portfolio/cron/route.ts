@@ -1,6 +1,6 @@
 /**
  * Scheduled portfolio monitor — called by Vercel Cron
- * Runs at SGX open/mid/close and NYSE open/mid/close
+ * Runs at NYSE open/mid/close (SGX trading discontinued)
  * Sends Telegram alerts for any actionable signals
  */
 import { NextRequest, NextResponse } from 'next/server'

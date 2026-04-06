@@ -23,9 +23,7 @@ import { getHistoricalOHLCV, getNews } from '@/lib/market-data'
 export const dynamic = 'force-dynamic'
 function today() { return new Date().toISOString().split('T')[0] }
 function nowISO() { return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z') }
-function isSGX(ticker: string) { return ticker.endsWith('.SI') }
-function finnhubSymbol(ticker: string) { return ticker.endsWith('.SI') ? ticker.replace('.SI', ':SP') : ticker }
-function getCurrency(ticker: string) { return isSGX(ticker) ? 'SGD' : 'USD' }
+function getCurrency(_ticker: string) { return 'USD' }
 function fmt(n: number, currency = 'USD') { return `${currency} $${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
 
 async function sendTelegram(message: string) {
@@ -125,9 +123,9 @@ function tuneATRMultipliers(portfolio: any): void {
   }
 
   // Categorise exits
-  const usExits = closed.filter((cp: any) => !isSGX(cp.ticker)) // US positions only
+  const usExits = closed // US positions only
 
-  const tune = (exits: any[], market: 'US' | 'SGX') => {
+  const tune = (exits: any[], market: 'US') => {
     if (exits.length < 3) return
     const slHits = exits.filter((cp: any) => (cp.reason || '').toLowerCase().includes('stop-loss') || (cp.reason || '').toLowerCase().includes('stop loss')).length
     const tpHits = exits.filter((cp: any) => (cp.reason || '').toLowerCase().includes('take-profit') || (cp.reason || '').toLowerCase().includes('take profit')).length
@@ -181,6 +179,7 @@ function tuneATRMultipliers(portfolio: any): void {
   }
 
   tune(usExits, 'US')
+  // SGX trading discontinued
   portfolio.atrMultipliers.lastTuned = today
 }
 
@@ -376,8 +375,8 @@ export async function POST() {
 
     // US-only: only run during NYSE hours
     const session = getCurrentMarketSession()
-    if (session === 'CLOSED' || session === 'SGX') {
-      return NextResponse.json({ success: true, skipped: true, reason: session === 'SGX' ? 'SGX session — US only mode' : 'Market closed' })
+    if (session === 'CLOSED') {
+      return NextResponse.json({ success: true, skipped: true, reason: 'Market closed' })
     }
 
     // Self-tune ATR multipliers based on recent trade history
@@ -385,7 +384,6 @@ export async function POST() {
 
     const cashUSD = portfolio.cashByValue?.USD || 0
     const posValueUSD = (portfolio.positions || [])
-      .filter((p: any) => !isSGX(p.ticker))
       .reduce((s: number, p: any) => s + (p.currentPrice || p.buyPrice) * p.shares, 0)
     const totalPortfolioUSD = cashUSD + posValueUSD
     const maxPositionUSD = totalPortfolioUSD * 0.20
@@ -532,7 +530,7 @@ export async function POST() {
     }
 
     // ── STEP 3: Update value history ──────────────────────────────────────────
-    const newPosValueUSD = portfolio.positions.filter((p: any) => !isSGX(p.ticker)).reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
+    const newPosValueUSD = portfolio.positions.reduce((s: number, p: any) => s + p.currentPrice * p.shares, 0)
     const newTotalUSD = (portfolio.cashByValue?.USD || 0) + newPosValueUSD
     const lastEntry = portfolio.valueHistory?.[portfolio.valueHistory.length - 1]
     if (!lastEntry || lastEntry.date !== todayStr) {
@@ -548,7 +546,7 @@ export async function POST() {
     for (const item of watchlist) {
       try {
         const apiKey = process.env.FINNHUB_API_KEY || ''
-        const sym = finnhubSymbol(item.ticker)
+        const sym = item.ticker
         const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`)
         const q = await res.json()
         if (!q.c || !q.pc) continue

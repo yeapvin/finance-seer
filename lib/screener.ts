@@ -1,6 +1,6 @@
 /**
  * Market Screener — Full universe scan
- * Scans SGX (during SG hours) and US markets (during US hours)
+ * Scans US markets (NYSE/NASDAQ) during NYSE hours
  * Returns ranked opportunities based on technical + fundamental + sentiment scores
  */
 
@@ -32,32 +32,7 @@ const US_LARGE_CAP = [
   'VTI','VOO','VGT','SOXX','GDX','XBI','IBB','IYR','XLP','XLU',
 ]
 
-// ─── SGX Universe ─────────────────────────────────────────────────────────────
-const SGX_EQUITIES = [
-  // Banks
-  'D05.SI','O39.SI','U11.SI',
-  // Telecoms
-  'Z74.SI','Y92.SI',
-  // Transport/Logistics
-  'C6L.SI','S58.SI','AJBU.SI',
-  // REITs
-  'A17U.SI','C38U.SI','ME8U.SI','N2IU.SI','J69U.SI','T82U.SI',
-  'BUOU.SI','K71U.SI','SK6U.SI','RW0U.SI',
-  // Consumer/Retail
-  'F34.SI','CC3.SI','BN4.SI','G13.SI',
-  // Property
-  'C09.SI','H78.SI','U14.SI','S61.SI',
-  // Healthcare
-  'BSL.SI','Q0F.SI','5WA.SI',
-  // Tech/Industrial
-  'V03.SI','BVA.SI','42C.SI','A7RU.SI',
-  // Commodities/Resources
-  'EB5.SI','S51.SI',
-  // ETFs
-  'ES3.SI','CLR.SI','G3B.SI',
-]
-
-export function getCurrentMarketSession(): 'SGX' | 'NYSE' | 'BOTH' | 'CLOSED' {
+export function getCurrentMarketSession(): 'NYSE' | 'CLOSED' {
   const now = new Date()
   const sgtHour = (now.getUTCHours() + 8) % 24
   const sgtMin = now.getUTCMinutes()
@@ -66,19 +41,12 @@ export function getCurrentMarketSession(): 'SGX' | 'NYSE' | 'BOTH' | 'CLOSED' {
 
   if (dayOfWeek === 0 || dayOfWeek === 6) return 'CLOSED'
 
-  const sgxOpen = time >= 900 && time < 1700   // 9AM-5PM SGT
   const nyseOpen = time >= 2130 || time < 400   // 9:30PM-4AM SGT
-
-  if (sgxOpen && nyseOpen) return 'BOTH'
-  if (sgxOpen) return 'SGX'
-  if (nyseOpen) return 'NYSE'
-  return 'CLOSED'
+  return nyseOpen ? 'NYSE' : 'CLOSED'
 }
 
-export function getTickersForSession(session: 'SGX' | 'NYSE' | 'BOTH'): string[] {
-  if (session === 'SGX') return SGX_EQUITIES
-  if (session === 'NYSE') return US_LARGE_CAP
-  return [...SGX_EQUITIES, ...US_LARGE_CAP]
+export function getTickersForSession(session: 'NYSE'): string[] {
+  return US_LARGE_CAP
 }
 
 interface ScreenResult {
@@ -93,7 +61,7 @@ interface ScreenResult {
 }
 
 export async function screenMarket(
-  session: 'SGX' | 'NYSE' | 'BOTH',
+  session: 'NYSE',
   apiKey: string,
   limit = 60
 ): Promise<ScreenResult[]> {
@@ -131,8 +99,8 @@ export async function screenMarket(
 
 async function fetchQuoteAndScore(ticker: string, apiKey: string): Promise<ScreenResult | null> {
   try {
-    const symbol = ticker.endsWith('.SI') ? ticker.replace('.SI', ':SP') : ticker
-    const currency = ticker.endsWith('.SI') ? 'SGD' : 'USD'
+    const symbol = ticker
+    const currency = 'USD'
 
     // Fetch quote
     const qRes = await fetch(`${FINNHUB_BASE}/quote?symbol=${symbol}&token=${apiKey}`)
@@ -196,7 +164,7 @@ export async function getDetailedAnalysis(
   sentimentScore: number
 } | null> {
   try {
-    const symbol = ticker.endsWith('.SI') ? ticker.replace('.SI', ':SP') : ticker
+    const symbol = ticker
     const to = Math.floor(Date.now() / 1000)
     const from = to - 180 * 24 * 60 * 60 // 6 months
 

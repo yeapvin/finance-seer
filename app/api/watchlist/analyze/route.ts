@@ -93,21 +93,10 @@ async function analyseTicker(ticker: string): Promise<any> {
     let stopLoss: number
     let takeProfit: number
 
-    if (signal === 'BUY') {
-      // SL: just below nearest support, capped at 10% below entry
-      stopLoss   = parseFloat(Math.max(nearSupport - atr * 0.5, p * 0.90).toFixed(2))
-      // TP: nearest resistance above, extended by ATR, capped at 20% above entry
-      takeProfit = parseFloat(Math.min(nearResistance + atr * 0.5, p * 1.20).toFixed(2))
-    } else if (signal === 'SELL') {
-      // SL: just above nearest resistance, capped at 10% above entry
-      stopLoss   = parseFloat(Math.min(nearResistance + atr * 0.5, p * 1.10).toFixed(2))
-      // TP: nearest support below, extended by ATR, capped at 20% below entry
-      takeProfit = parseFloat(Math.max(nearSupport - atr * 0.5, p * 0.80).toFixed(2))
-    } else {
-      // HOLD: show conservative levels either side
-      stopLoss   = parseFloat(Math.max(nearSupport - atr * 0.3, p * 0.93).toFixed(2))
-      takeProfit = parseFloat(Math.min(nearResistance + atr * 0.3, p * 1.10).toFixed(2))
-    }
+    // Always long perspective — Finance Seer never shorts
+    // SELL signal means "don't enter" — SL/TP still shown as long levels for reference
+    stopLoss   = parseFloat(Math.max(nearSupport - atr * 0.5, p * 0.90).toFixed(2))
+    takeProfit = parseFloat(Math.min(nearResistance + atr * 0.5, p * 1.20).toFixed(2))
 
     // R/R
     const risk   = Math.abs(p - stopLoss)

@@ -4,6 +4,7 @@
  * Sends Telegram alerts for any actionable signals
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { getLiveQuote } from '@/lib/market-data'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,13 +73,49 @@ export async function GET(request: NextRequest) {
 
     const executedTrades: any[] = result.executedTrades || []
     const nearMisses: any[] = result.nearMisses || []
+    const positions: any[] = result.positions || []
     const totalValue: number = result.totalValue || 0
     const currentSession = marketSession()
+
+    // Fetch SPY for market mood
+    let marketMood = ''
+    try {
+      const spy = await getLiveQuote('SPY')
+      if (spy) {
+        const pct = spy.changePercent
+        if (pct <= -2) marketMood = `📉 Market: SPY ${pct.toFixed(2)}% — broad selloff, stay defensive`
+        else if (pct <= -1) marketMood = `📉 Market: SPY ${pct.toFixed(2)}% — weak session`
+        else if (pct >= 2) marketMood = `📈 Market: SPY +${pct.toFixed(2)}% — strong rally`
+        else if (pct >= 1) marketMood = `📈 Market: SPY +${pct.toFixed(2)}% — positive session`
+        else marketMood = `➡️ Market: SPY ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% — flat/mixed`
+      }
+    } catch { /* skip */ }
+
+    // Build position commentary
+    const posComments: string[] = []
+    for (const pos of positions) {
+      const price = pos.currentPrice || pos.buyPrice
+      const cost = pos.avgCost || pos.buyPrice
+      const pnlPct = cost > 0 ? ((price - cost) / cost * 100) : 0
+      const sl = pos.stopLoss
+      const tp = pos.takeProfit
+      const distToTP = tp ? ((tp - price) / price * 100) : null
+      const distToSL = sl ? ((price - sl) / price * 100) : null
+
+      let comment = `${pnlPct >= 0 ? '🟢' : '🔴'} *${pos.ticker}* $${price?.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%)`
+      if (distToTP !== null && distToTP < 5) comment += ` — 🎯 ${distToTP.toFixed(1)}% from TP`
+      else if (distToSL !== null && distToSL < 5) comment += ` — ⚠️ ${distToSL.toFixed(1)}% from SL`
+      else if (pnlPct > 10) comment += ` — strong gain, consider trailing stop`
+      else if (pnlPct < -5) comment += ` — watch closely`
+      posComments.push(comment)
+    }
 
     // Send Telegram summary
     if (token && chatId) {
       let msg = `*Finance Seer — ${currentSession}*\n`
-      msg += `Portfolio: USD $${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}\n\n`
+      msg += `Portfolio: USD $${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}\n`
+      if (marketMood) msg += `${marketMood}\n`
+      msg += '\n'
 
       if (executedTrades.length > 0) {
         msg += `⚡ *${executedTrades.length} Trade${executedTrades.length > 1 ? 's' : ''} Executed*\n`
@@ -88,21 +125,29 @@ export async function GET(request: NextRequest) {
           if (t.reason) msg += `   _${t.reason.replace(/[*_`]/g, '').substring(0, 100)}_\n`
         })
         msg += '\n'
+      }
+
+      // Position summary
+      if (posComments.length > 0) {
+        msg += `*Open Positions (${posComments.length}):*\n`
+        posComments.forEach(c => msg += `${c}\n`)
+        msg += '\n'
       } else {
-        msg += `✅ No trades executed — all positions holding.\n`
+        msg += `No open positions.\n\n`
       }
 
       // Near-miss alerts
       if (nearMisses.length > 0) {
-        msg += '\n👀 *Watch closely:*\n'
+        msg += '👀 *Watch closely:*\n'
         nearMisses.forEach((n: any) => {
           const emoji = n.type === 'TP' ? '🎯' : '⚠️'
           const label = n.type === 'TP' ? 'Take Profit' : 'Stop Loss'
           msg += `${emoji} *${n.ticker}* within ${n.pct}% of ${label} ($${n.price?.toFixed(2)} vs $${n.level?.toFixed(2)})\n`
         })
+        msg += '\n'
       }
 
-      msg += `\n_View: finance-seer.vercel.app/portfolio_`
+      msg += `_finance-seer.vercel.app/portfolio_`
       await sendTelegram(token, chatId, msg)
     }
 

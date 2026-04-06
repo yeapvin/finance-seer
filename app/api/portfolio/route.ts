@@ -35,15 +35,17 @@ export async function GET() {
     const priceResults = await Promise.allSettled(
       allTickers.map(async (ticker: unknown) => { const t = ticker as string;
         const q = await getLiveQuote(t)
-        return { ticker: t.toUpperCase(), price: q?.price || null, changePct: q?.changePercent ?? null }
+        return { ticker: t.toUpperCase(), price: q?.price || null, changePct: q?.changePercent ?? null, name: q?.name || null }
       })
     )
     const priceMap: Record<string, number> = {}
     const changePctMap: Record<string, number> = {}
+    const nameMap: Record<string, string> = {}
     priceResults.forEach(r => {
       if (r.status === 'fulfilled' && r.value.price) {
         priceMap[r.value.ticker] = r.value.price
         if (r.value.changePct !== null) changePctMap[r.value.ticker] = r.value.changePct
+        if (r.value.name) nameMap[r.value.ticker] = r.value.name
       }
     })
 
@@ -212,6 +214,7 @@ export async function GET() {
         ...w,
         lastPrice: priceMap[w.ticker] ?? w.lastPrice ?? null,
         changePct: changePctMap[w.ticker] ?? w.changePct ?? null,
+        companyName: nameMap[w.ticker] || COMPANY_NAMES[w.ticker] || w.companyName || null,
         lastChecked: new Date().toISOString(),
       })),
       cooldowns: {},

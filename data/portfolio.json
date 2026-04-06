@@ -2,13 +2,8 @@
   "startDate": "2026-03-29",
   "startingCapital": 100000,
   "baseCurrency": "USD",
-  "fxRates": {
-    "SGDUSD": 0.7498,
-    "lastUpdated": "2026-04-02T16:50Z"
-  },
   "cashByValue": {
-    "USD": 22615.76,
-    "SGD": 0
+    "USD": 22615.76
   },
   "positions": [
     {
@@ -252,10 +247,6 @@
       "sl": 1.5,
       "tp": 3.0
     },
-    "SGX": {
-      "sl": 2.0,
-      "tp": 4.0
-    },
     "tuningHistory": [],
     "lastTuned": null
   },
@@ -306,53 +297,8 @@
       "alertThreshold": 5
     },
     {
-      "ticker": "BN4.SI",
-      "note": "Keppel \u2014 holding since Covid lows 2020.",
-      "alertThreshold": 5
-    },
-    {
-      "ticker": "U96.SI",
-      "note": "SembCorp \u2014 holding since Covid lows 2020.",
-      "alertThreshold": 5
-    },
-    {
-      "ticker": "C6L.SI",
-      "note": "SIA \u2014 holding since Covid lows 2020.",
-      "alertThreshold": 5
-    },
-    {
-      "ticker": "Z74.SI",
-      "note": "Singtel \u2014 holding since Covid lows 2020.",
-      "alertThreshold": 5
-    },
-    {
-      "ticker": "U11.SI",
-      "note": "UOB \u2014 holding since Covid lows 2020.",
-      "alertThreshold": 5
-    },
-    {
       "ticker": "SNOW",
       "note": "Live position: 100 shares @ $151.30 (Tiger). Also in paper portfolio.",
-      "alertThreshold": 5
-    },
-    {
-      "ticker": "5E2.SI",
-      "note": "Seatrium \u2014 CDP holding, +902% gain.",
-      "alertThreshold": 5
-    },
-    {
-      "ticker": "K71U.SI",
-      "note": "Keppel REIT \u2014 CDP holding.",
-      "alertThreshold": 5
-    },
-    {
-      "ticker": "O5RU.SI",
-      "note": "AIMS APAC REIT \u2014 CDP holding.",
-      "alertThreshold": 5
-    },
-    {
-      "ticker": "S59.SI",
-      "note": "SIA Engineering \u2014 CDP holding, +52% gain.",
       "alertThreshold": 5
     }
   ]

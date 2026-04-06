@@ -16,12 +16,6 @@ const COMPANY_NAMES: Record<string, string> = {
   TSLA: 'Tesla Inc.',
   NFLX: 'Netflix Inc.',
   AMD: 'Advanced Micro Devices Inc.',
-  // SGX
-  'DBS.SI': 'DBS Group Holdings',
-  'UOB.SI': 'United Overseas Bank',
-  'OCBC.SI': 'OCBC Bank',
-  'SIA.SI': 'Singapore Airlines',
-  'ST.SI': 'Singtel',
 }
 
 
@@ -129,12 +123,6 @@ export async function GET() {
     // 1. Only show trading days (Mon-Fri) — strip any weekend entries
     // 2. Past trading day snapshots written by cron are locked — never overwrite
     // 3. If today is a trading day and cron hasn't run yet, inject live value
-    const SGX_HOLIDAYS = [
-      '2025-01-01','2025-01-29','2025-01-30','2025-04-18','2025-05-01',
-      '2025-05-12','2025-06-07','2025-08-09','2025-10-20','2025-12-25',
-      '2026-01-01','2026-01-29','2026-01-30','2026-04-03','2026-05-01',
-      '2026-05-31','2026-06-26','2026-08-10','2026-11-08','2026-12-25'
-    ]
     const NYSE_HOLIDAYS = [
       '2025-01-01','2025-01-20','2025-02-17','2025-04-18','2025-05-26',
       '2025-06-19','2025-07-04','2025-09-01','2025-11-27','2025-12-25',
@@ -145,7 +133,7 @@ export async function GET() {
       const d = new Date(dateStr)
       const dow = d.getUTCDay() // 0=Sun, 6=Sat
       if (dow === 0 || dow === 6) return false
-      if (SGX_HOLIDAYS.includes(dateStr) && NYSE_HOLIDAYS.includes(dateStr)) return false
+      if (NYSE_HOLIDAYS.includes(dateStr)) return false
       return true
     }
 
@@ -156,13 +144,10 @@ export async function GET() {
     const sgtTime = sgtHour * 100 + sgtMin
     const sgtDow = sgtNow.getUTCDay() // 0=Sun, 6=Sat
 
-    // Trading hours in SGT:
-    //   SGX:  Mon-Fri 09:00-17:30
-    //   NYSE: Mon-Fri 21:30-04:00 (next calendar day in SGT)
-    const inSGX = sgtDow >= 1 && sgtDow <= 5 && sgtTime >= 900 && sgtTime < 1730
+    // NYSE trading hours in SGT: Mon-Fri 21:30-04:00 (next calendar day)
     const inNYSE = (sgtDow >= 1 && sgtDow <= 5 && sgtTime >= 2130) ||
-                   (sgtDow >= 2 && sgtDow <= 6 && sgtTime < 400) // after midnight SGT
-    const marketsOpen = inSGX || inNYSE
+                   (sgtDow >= 2 && sgtDow <= 6 && sgtTime < 400)
+    const marketsOpen = inNYSE
 
     // Strip non-trading days from history (in case any crept in)
     const valueHistory: any[] = (portfolio.valueHistory || []).filter((e: any) => isTradeDay(e.date))

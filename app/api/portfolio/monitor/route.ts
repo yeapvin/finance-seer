@@ -65,7 +65,6 @@ const SECTOR_MAP: Record<string, string> = {
   LMT:'Industrial',NOC:'Industrial',BA:'Industrial',UPS:'Industrial',FDX:'Industrial',
   SPY:'ETF',QQQ:'ETF',IWM:'ETF',DIA:'ETF',XLK:'ETF',XLF:'ETF',XLE:'ETF',
   XLV:'ETF',XLY:'ETF',ARKK:'ETF',VTI:'ETF',VOO:'ETF',VGT:'ETF',SOXX:'ETF',
-  // SGX
 }
 function getSector(ticker: string): string {
   return SECTOR_MAP[ticker] || 'Other'
@@ -169,7 +168,6 @@ function tuneATRMultipliers(portfolio: any): void {
   }
 
   tune(usExits, 'US')
-  // SGX trading discontinued
   portfolio.atrMultipliers.lastTuned = today
 }
 

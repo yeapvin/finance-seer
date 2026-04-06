@@ -71,7 +71,7 @@ export default function Home() {
         if (r.ok) {
           const raw = await r.json()
           const results: SearchResult[] = (Array.isArray(raw) ? raw : raw.results || [])
-            .filter((s: any) => { const sym: string = (s.symbol || s.ticker || ''); return !sym.includes('.') || sym.endsWith('.SI') })
+            .filter((s: any) => { const sym: string = (s.symbol || s.ticker || ''); return !sym.includes('.') })
             .map((s: any) => ({ ticker: s.symbol || s.ticker, name: s.description || s.name || s.symbol, exchange: s.type || '' }))
             .slice(0, 8)
           setResults(results)

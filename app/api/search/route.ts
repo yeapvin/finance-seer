@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         const sym: string = r.symbol || ''
         // Equities and ETFs only; prefer US listings
         return (type === 'Common Stock' || type === 'ETP') &&
-          (!sym.includes('.') || sym.endsWith('.SI'))
+          !sym.includes('.')
       })
       .slice(0, 10)
       .map((r: any) => ({

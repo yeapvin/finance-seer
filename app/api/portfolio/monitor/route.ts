@@ -222,22 +222,30 @@ async function getLLMDecision(prompt: string): Promise<any> {
         messages: [
           {
             role: 'system',
-            content: `You are an expert quantitative trader and portfolio manager. 
-You analyse stocks using technical indicators, chart patterns, and news sentiment.
-You make precise, data-driven trading decisions with specific price targets.
-Always respond with valid JSON only — no markdown, no explanation outside the JSON.`
+            content: `You are an expert quantitative trader. Respond with valid JSON only. No markdown, no extra text.
+The reason field must be a concise human-readable string like: "Deeply oversold (RSI 22) at support $179. Contrarian reversal setup."
+Do not use quotes or special characters inside string values.`
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.3,
-        max_tokens: 2048
+        temperature: 0.2,
+        max_tokens: 512,
+        response_format: { type: 'json_object' }
       })
     })
     if (!res.ok) return null
     const data = await res.json()
     const content = data.choices?.[0]?.message?.content || ''
-    const match = content.match(/\{[\s\S]*\}/)
-    return match ? JSON.parse(match[0]) : null
+    try {
+      // Try direct parse first (response_format guarantees valid JSON)
+      return JSON.parse(content)
+    } catch {
+      // Fallback: extract JSON block
+      try {
+        const match = content.match(/\{[\s\S]*\}/)
+        return match ? JSON.parse(match[0]) : null
+      } catch { return null }
+    }
   } catch { return null }
 }
 
@@ -334,7 +342,7 @@ Based on ALL of the above, provide your trading decision as JSON:
   "stopLoss": <price — set dynamically using ATR and nearest support, NOT a fixed %>,
   "takeProfit": <price — set dynamically using ATR and nearest resistance, NOT a fixed %>,
   "strategy": "<concise trading strategy: entry rationale, what to watch, time horizon>",
-  "reason": "<specific reason matching style: 'Contrarian buy at support $X. RSI Y (oversold). SMA20 $Z. Resistance $W.'>",
+  "reason": "<punchy 1-sentence reason with specific numbers, e.g. 'Deeply oversold (RSI 22) at support $179. Contrarian reversal.' or 'Death cross + RSI 68 overbought near resistance $205. Bearish.'> ",
   "riskRewardRatio": <number>
 }`
 

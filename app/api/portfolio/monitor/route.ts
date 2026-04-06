@@ -617,8 +617,13 @@ async function executeTrade(portfolio: any, type: 'SELL', pos: any, price: numbe
 
   executedTrades.push({ type: 'SELL', ticker: pos.ticker, shares: pos.shares, price, proceeds, pnl, pnlPct, currency, reason: note })
 
+  const portfolioValue = (portfolio.cashByValue?.USD || 0) +
+    (portfolio.positions || []).reduce((s: number, p: any) => s + (p.currentPrice || p.buyPrice) * p.shares, 0)
+  const valueK = (portfolioValue / 1000).toFixed(1)
   const emoji = pnl >= 0 ? '🟢' : '🔴'
-  await sendTelegram(`${emoji} *Finance Seer — SELL*\n\n*${pos.ticker}* ${pos.shares} shares @ ${fmt(price, currency)}\nP&L: ${pnl >= 0 ? '+' : ''}${fmt(Math.abs(pnl), currency)} (${pnl >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)\n\n_${note.substring(0, 200)}_`)
+  // Compact single-line format
+  const shortReason = (reason.split('.')[0] || reason).substring(0, 120)
+  await sendTelegram(`${emoji} Portfolio Trade: SELL ${pos.shares}x *${pos.ticker}* @ $${price.toFixed(2)} — ${shortReason}. P&L: ${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(0)} (${pnl >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%). Portfolio value: $${valueK}K`)
 }
 
 async function executeBuy(portfolio: any, ticker: string, shares: number, price: number, sl: number, tp: number, currency: string, reason: string, strategy: string, executedTrades: any[]) {
@@ -639,5 +644,10 @@ async function executeBuy(portfolio: any, ticker: string, shares: number, price:
 
   executedTrades.push({ type: 'BUY', ticker, shares, price, cost, sl, tp, currency, reason, strategy })
 
-  await sendTelegram(`🟢 *Finance Seer — BUY*\n\n*${ticker}* ${shares} shares @ ${fmt(price, currency)}\nCost: ${fmt(cost, currency)}\nSL: ${fmt(sl, currency)} | TP: ${fmt(tp, currency)}\n\n_${reason.substring(0, 200)}_`)
+  const portfolioValue = (portfolio.cashByValue?.USD || 0) +
+    (portfolio.positions || []).reduce((s: number, p: any) => s + (p.currentPrice || p.buyPrice) * p.shares, 0)
+  const valueK = (portfolioValue / 1000).toFixed(1)
+  // Compact single-line format matching finance-oracle style
+  const shortReason = (reason.split('.')[0] || reason).substring(0, 120)
+  await sendTelegram(`🟢 Portfolio Trade: BUY ${shares}x *${ticker}* @ $${price.toFixed(2)} — ${shortReason}. TP $${tp.toFixed(2)} | SL $${sl.toFixed(2)}. Portfolio value: $${valueK}K`)
 }

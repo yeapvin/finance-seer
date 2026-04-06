@@ -397,9 +397,9 @@ export default function PortfolioPage() {
                     <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px 12px' }}>
                       {/* Row 1: ticker / price / change / signal / remove */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: an ? '8px' : '0' }}>
-                        <div style={{ minWidth: '120px' }}>
+                        <div style={{ minWidth: '140px' }}>
                           <div style={{ color: 'white', fontWeight: 700, fontSize: '13px' }}>{item.ticker}</div>
-                          {item.companyName && <div style={{ color: '#71717a', fontSize: '10px', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px' }}>{item.companyName}</div>}
+                          {item.companyName && <div style={{ color: '#a1a1aa', fontSize: '11px', marginTop: '1px' }}>{item.companyName}</div>}
                         </div>
                         <span style={{ color: '#e4e4e7', fontSize: '12px', minWidth: '68px' }}>{item.lastPrice != null ? '$' + item.lastPrice.toFixed(2) : '—'}</span>
                         <span style={{ color: chg != null ? (isUp ? '#34d399' : '#f87171') : '#71717a', fontSize: '11px', fontWeight: 600, minWidth: '56px' }}>

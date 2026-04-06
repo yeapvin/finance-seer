@@ -6,16 +6,17 @@ export const dynamic = 'force-dynamic'
 
 // Company name lookup
 const COMPANY_NAMES: Record<string, string> = {
-  AAPL: 'Apple Inc.',
-  GOOGL: 'Alphabet Inc.',
-  AMZN: 'Amazon.com Inc.',
-  NVDA: 'NVIDIA Corp.',
-  COST: 'Costco Wholesale Corp.',
-  MSFT: 'Microsoft Corp.',
-  META: 'Meta Platforms Inc.',
-  TSLA: 'Tesla Inc.',
-  NFLX: 'Netflix Inc.',
-  AMD: 'Advanced Micro Devices Inc.',
+  AAPL: 'Apple', GOOGL: 'Alphabet', AMZN: 'Amazon', NVDA: 'NVIDIA',
+  COST: 'Costco', MSFT: 'Microsoft', META: 'Meta', TSLA: 'Tesla',
+  NFLX: 'Netflix', AMD: 'AMD', INTC: 'Intel', SNOW: 'Snowflake',
+  ADSK: 'Autodesk', CRWV: 'CoreWeave', NBIS: 'Nebius', PLTR: 'Palantir',
+  CRM: 'Salesforce', ADBE: 'Adobe', ORCL: 'Oracle', QCOM: 'Qualcomm',
+  AVGO: 'Broadcom', MU: 'Micron', AMAT: 'Applied Materials',
+  NET: 'Cloudflare', DDOG: 'Datadog', ZS: 'Zscaler', CRWD: 'CrowdStrike',
+  PANW: 'Palo Alto Networks', COIN: 'Coinbase', PYPL: 'PayPal',
+  JPM: 'JPMorgan', BAC: 'Bank of America', GS: 'Goldman Sachs',
+  V: 'Visa', MA: 'Mastercard', XOM: 'ExxonMobil', CVX: 'Chevron',
+  SPY: 'S&P 500 ETF', QQQ: 'Nasdaq 100 ETF', IWM: 'Russell 2000 ETF',
 }
 
 

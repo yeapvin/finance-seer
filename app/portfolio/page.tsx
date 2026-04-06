@@ -67,21 +67,21 @@ function PositionCard({ pos, ti }: { pos: Position; ti?: any }) {
 
       {/* Key metrics row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '8px' }}>
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
-          <div style={{ color: '#a1a1aa', fontSize: '9px', marginBottom: '1px' }}>ENTRY</div>
-          <div style={{ color: '#e4e4e7', fontSize: '11px', fontWeight: 600 }}>{fmt(pos.avgCost)}</div>
+        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '6px 8px' }}>
+          <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Entry</div>
+          <div style={{ color: '#ffffff', fontSize: '12px', fontWeight: 700 }}>{fmt(pos.avgCost)}</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
-          <div style={{ color: '#a1a1aa', fontSize: '9px', marginBottom: '1px' }}>STOP LOSS</div>
-          <div style={{ color: '#f87171', fontSize: '11px', fontWeight: 600 }}>{fmt(sl)}</div>
+        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '6px 8px' }}>
+          <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Stop Loss</div>
+          <div style={{ color: '#f87171', fontSize: '12px', fontWeight: 700 }}>{fmt(sl)}</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
-          <div style={{ color: '#a1a1aa', fontSize: '9px', marginBottom: '1px' }}>TAKE PROFIT</div>
-          <div style={{ color: '#34d399', fontSize: '11px', fontWeight: 600 }}>{fmt(tp)}</div>
+        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '6px 8px' }}>
+          <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Take Profit</div>
+          <div style={{ color: '#34d399', fontSize: '12px', fontWeight: 700 }}>{fmt(tp)}</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
-          <div style={{ color: '#a1a1aa', fontSize: '9px', marginBottom: '1px' }}>R/R · HELD</div>
-          <div style={{ color: '#a5b4fc', fontSize: '11px', fontWeight: 600 }}>1:{rr} · {ti?.daysHeld ?? 0}d</div>
+        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '6px 8px' }}>
+          <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>R/R · Held</div>
+          <div style={{ color: '#c4b5fd', fontSize: '12px', fontWeight: 700 }}>1:{rr} · {ti?.daysHeld ?? 0}d</div>
         </div>
       </div>
 
@@ -95,9 +95,9 @@ function PositionCard({ pos, ti }: { pos: Position; ti?: any }) {
 
       {/* Strategy / Reason */}
       {pos.reason && (
-        <div style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '6px', padding: '7px 10px' }}>
-          <div style={{ color: '#a1a1aa', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '3px' }}>Strategy</div>
-          <div style={{ color: '#e4e4e7', fontSize: '11px', lineHeight: '1.5' }}>{pos.reason}</div>
+        <div style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '6px', padding: '8px 10px' }}>
+          <div style={{ color: '#c4b5fd', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Strategy</div>
+          <div style={{ color: '#f4f4f5', fontSize: '12px', lineHeight: '1.6' }}>{pos.reason}</div>
         </div>
       )}
     </div>
@@ -425,26 +425,26 @@ export default function PortfolioPage() {
                       {an && (
                         <>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '7px' }}>
-                            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
-                              <div style={{ color: '#a1a1aa', fontSize: '9px' }}>ENTRY</div>
-                              <div style={{ color: '#e4e4e7', fontSize: '11px', fontWeight: 600 }}>${an.suggestedEntry}</div>
+                            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '5px', padding: '5px 7px' }}>
+                              <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Entry</div>
+                              <div style={{ color: '#ffffff', fontSize: '11px', fontWeight: 700 }}>${an.suggestedEntry}</div>
                             </div>
-                            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
-                              <div style={{ color: '#a1a1aa', fontSize: '9px' }}>STOP LOSS</div>
-                              <div style={{ color: '#f87171', fontSize: '11px', fontWeight: 600 }}>${an.stopLoss}</div>
+                            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '5px', padding: '5px 7px' }}>
+                              <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Stop Loss</div>
+                              <div style={{ color: '#f87171', fontSize: '11px', fontWeight: 700 }}>${an.stopLoss}</div>
                             </div>
-                            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
-                              <div style={{ color: '#a1a1aa', fontSize: '9px' }}>TARGET</div>
-                              <div style={{ color: '#34d399', fontSize: '11px', fontWeight: 600 }}>${an.takeProfit}</div>
+                            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '5px', padding: '5px 7px' }}>
+                              <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>Target</div>
+                              <div style={{ color: '#34d399', fontSize: '11px', fontWeight: 700 }}>${an.takeProfit}</div>
                             </div>
-                            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
-                              <div style={{ color: '#a1a1aa', fontSize: '9px' }}>RSI · R/R</div>
-                              <div style={{ color: '#a5b4fc', fontSize: '11px', fontWeight: 600 }}>{an.rsi} · 1:{an.rr}</div>
+                            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '5px', padding: '5px 7px' }}>
+                              <div style={{ color: '#d4d4d8', fontSize: '10px', fontWeight: 500, marginBottom: '2px' }}>RSI · R/R</div>
+                              <div style={{ color: '#c4b5fd', fontSize: '11px', fontWeight: 700 }}>{an.rsi} · 1:{an.rr}</div>
                             </div>
                           </div>
-                          <div style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '5px', padding: '6px 9px' }}>
-                            <div style={{ color: '#a1a1aa', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>Strategy</div>
-                            <div style={{ color: '#e4e4e7', fontSize: '10px', lineHeight: '1.5' }}>{an.strategy}</div>
+                          <div style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '5px', padding: '7px 9px' }}>
+                            <div style={{ color: '#c4b5fd', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>Strategy</div>
+                            <div style={{ color: '#f4f4f5', fontSize: '11px', lineHeight: '1.6' }}>{an.strategy}</div>
                           </div>
                         </>
                       )}

@@ -37,20 +37,25 @@ function PositionCard({ pos, ti }: { pos: Position; ti?: any }) {
   const positive = pnl >= 0
   const currency = pos.currency || 'USD'
 
-  // SL/TP progress bar
   const sl = pos.stopLoss || pos.buyPrice * 0.95
   const tp = pos.takeProfit || pos.buyPrice * 1.08
   const range = tp - sl
   const progress = range > 0 ? Math.max(0, Math.min(100, ((pos.currentPrice - sl) / range) * 100)) : 50
+  const rr = range > 0 ? ((tp - pos.avgCost) / (pos.avgCost - sl)).toFixed(1) : '—'
+
+  // Parse signal label
+  const sig = (pos.signal || 'HOLD').toUpperCase()
+  const sigColor = sig.includes('BUY') ? '#34d399' : sig.includes('SELL') ? '#f87171' : '#f59e0b'
+  const sigBg = sig.includes('BUY') ? 'rgba(16,185,129,0.15)' : sig.includes('SELL') ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)'
 
   return (
     <div style={{ background: '#0a0a0a', border: `1px solid ${positive ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: '10px', padding: '14px', marginBottom: '8px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{ color: 'white', fontWeight: 800, fontSize: '16px' }}>{pos.ticker}</span>
-          <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '6px' }}>{pos.companyName}</span>
-          <div style={{ color: '#e4e4e7', fontSize: '11px', marginTop: '2px' }}>{pos.shares} shares @ {fmt(pos.avgCost)} {currency}</div>
+          {pos.companyName && <span style={{ color: '#71717a', fontSize: '11px' }}>{pos.companyName}</span>}
+          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', background: sigBg, color: sigColor, letterSpacing: '0.3px' }}>{sig}</span>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ color: 'white', fontWeight: 700, fontSize: '15px' }}>{fmt(pos.currentPrice)}</div>
@@ -60,24 +65,41 @@ function PositionCard({ pos, ti }: { pos: Position; ti?: any }) {
         </div>
       </div>
 
-      {/* SL ↔ TP Progress bar */}
-      <div style={{ marginBottom: '6px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#e4e4e7', marginBottom: '3px' }}>
-          <span style={{ color: '#f87171' }}>SL {fmt(sl)}</span>
-          <span style={{ color: '#e4e4e7' }}>Entry {fmt(pos.avgCost)}</span>
-          <span style={{ color: '#34d399' }}>TP {fmt(tp)}</span>
+      {/* Key metrics row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '8px' }}>
+        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
+          <div style={{ color: '#71717a', fontSize: '9px', marginBottom: '1px' }}>ENTRY</div>
+          <div style={{ color: '#e4e4e7', fontSize: '11px', fontWeight: 600 }}>{fmt(pos.avgCost)}</div>
         </div>
+        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
+          <div style={{ color: '#71717a', fontSize: '9px', marginBottom: '1px' }}>STOP LOSS</div>
+          <div style={{ color: '#f87171', fontSize: '11px', fontWeight: 600 }}>{fmt(sl)}</div>
+        </div>
+        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
+          <div style={{ color: '#71717a', fontSize: '9px', marginBottom: '1px' }}>TAKE PROFIT</div>
+          <div style={{ color: '#34d399', fontSize: '11px', fontWeight: 600 }}>{fmt(tp)}</div>
+        </div>
+        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
+          <div style={{ color: '#71717a', fontSize: '9px', marginBottom: '1px' }}>R/R · HELD</div>
+          <div style={{ color: '#a5b4fc', fontSize: '11px', fontWeight: 600 }}>1:{rr} · {ti?.daysHeld ?? 0}d</div>
+        </div>
+      </div>
+
+      {/* SL ↔ TP Progress bar */}
+      <div style={{ marginBottom: '8px' }}>
         <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', position: 'relative' }}>
           <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${progress}%`, background: positive ? '#34d399' : '#f87171', borderRadius: '2px', transition: 'width 0.3s' }} />
-          {/* Entry marker */}
           <div style={{ position: 'absolute', top: '-2px', left: `${Math.max(0, Math.min(100, ((pos.avgCost - sl) / range) * 100))}%`, width: '2px', height: '8px', background: '#e4e4e7', transform: 'translateX(-50%)' }} />
         </div>
       </div>
 
-      <div style={{ marginTop: '6px' }}>
-        <div style={{ color: '#e4e4e7', fontSize: '10px', marginBottom: '3px' }}>Bought {pos.buyDate} · {ti?.daysHeld ?? 0}d held</div>
-        {pos.reason && <div style={{ color: '#a5b4fc', fontSize: '11px', fontStyle: 'italic', lineHeight: '1.4' }}>💡 {pos.reason}</div>}
-      </div>
+      {/* Strategy / Reason */}
+      {pos.reason && (
+        <div style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '6px', padding: '7px 10px' }}>
+          <div style={{ color: '#71717a', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '3px' }}>Strategy</div>
+          <div style={{ color: '#c4b5fd', fontSize: '11px', lineHeight: '1.5' }}>{pos.reason}</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -349,24 +371,27 @@ export default function PortfolioPage() {
               <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Watchlist</span>
               <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '4px' }}>{watchlist.length} stocks</span>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: watchlist.length > 0 ? '10px' : '0' }}>
-              {watchlist.map((item: any, i: number) => {
-                const chg = item.changePct || 0
-                const isUp = chg >= 0
-                return (
-                  <div key={i} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '6px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{ color: 'white', fontWeight: 700, fontSize: '12px' }}>{item.ticker}</span>
-                    {item.lastPrice && <span style={{ color: '#e4e4e7', fontSize: '12px' }}>${item.lastPrice.toFixed(2)}</span>}
-                    {item.changePct !== undefined && (
-                      <span style={{ color: isUp ? '#34d399' : '#f87171', fontSize: '11px', fontWeight: 600 }}>{isUp ? '+' : ''}{chg.toFixed(2)}%</span>
-                    )}
-                    <button onClick={() => removeFromWatchlist(item.ticker)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', padding: '0 0 0 2px', display: 'flex', alignItems: 'center' }}>
-                      <X size={11} />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+            {watchlist.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}>
+                {watchlist.map((item: any, i: number) => {
+                  const chg = item.changePct ?? null
+                  const isUp = (chg ?? 0) >= 0
+                  return (
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 80px 60px 1fr 20px', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '6px 10px' }}>
+                      <span style={{ color: 'white', fontWeight: 700, fontSize: '12px' }}>{item.ticker}</span>
+                      <span style={{ color: '#e4e4e7', fontSize: '12px' }}>{item.lastPrice != null ? '$' + item.lastPrice.toFixed(2) : '—'}</span>
+                      <span style={{ color: chg != null ? (isUp ? '#34d399' : '#f87171') : '#71717a', fontSize: '11px', fontWeight: 600 }}>
+                        {chg != null ? (isUp ? '+' : '') + chg.toFixed(2) + '%' : '—'}
+                      </span>
+                      <span style={{ color: '#71717a', fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.note || ''}</span>
+                      <button onClick={() => removeFromWatchlist(item.ticker)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <X size={11} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <input
                 type='text'

@@ -11,6 +11,19 @@ import { generateAnalysisReport } from '@/lib/analysis'
 
 export const dynamic = 'force-dynamic'
 
+// Company name fallback (for tickers where live quote returns ticker as name)
+const NAMES: Record<string, string> = {
+  AAPL:'Apple', MSFT:'Microsoft', NVDA:'NVIDIA', GOOGL:'Alphabet', META:'Meta',
+  AMZN:'Amazon', TSLA:'Tesla', AMD:'AMD', INTC:'Intel', ADSK:'Autodesk',
+  SNOW:'Snowflake', PLTR:'Palantir', CRM:'Salesforce', NET:'Cloudflare',
+  DDOG:'Datadog', CRWD:'CrowdStrike', AVGO:'Broadcom', TSM:'Taiwan Semiconductor',
+  AMAT:'Applied Materials', LRCX:'Lam Research', V:'Visa', MA:'Mastercard',
+  JPM:'JPMorgan Chase', GS:'Goldman Sachs', LLY:'Eli Lilly', ABBV:'AbbVie',
+  UNH:'UnitedHealth', COST:'Costco Wholesale', NKE:'Nike', CAT:'Caterpillar',
+  XOM:'ExxonMobil', CVX:'Chevron', SPY:'S&P 500 ETF', QQQ:'Nasdaq 100 ETF',
+  VGT:'Vanguard Tech ETF', SOXX:'Semiconductor ETF',
+}
+
 // Curated universe — diversified across sectors, all US-listed
 const BASKET_UNIVERSE = [
   // Mega-cap tech
@@ -110,7 +123,7 @@ async function analyseTicker(ticker: string): Promise<any | null> {
 
     const result = {
       ticker,
-      name: stock.name,
+      name: (stock.name && stock.name !== ticker) ? stock.name : (NAMES[ticker] || ticker),
       signal,
       conviction: signal === 'BUY' ? (rr >= 2 ? 'HIGH' : 'MEDIUM') : signal === 'HOLD' ? 'LOW' : 'MEDIUM',
       currentPrice:   parseFloat(p.toFixed(2)),

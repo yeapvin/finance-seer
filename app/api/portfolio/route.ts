@@ -18,12 +18,29 @@ const COMPANY_NAMES: Record<string, string> = {
   V: 'Visa', MA: 'Mastercard', XOM: 'ExxonMobil', CVX: 'Chevron',
   SPY: 'S&P 500 ETF', QQQ: 'Nasdaq 100 ETF', IWM: 'Russell 2000 ETF',
   DIA: 'Dow Jones ETF', VTI: 'Vanguard Total Market', VOO: 'Vanguard S&P 500',
-  VGT: 'Vanguard Tech ETF', SOXX: 'Semiconductor ETF', ARKK: 'ARK Innovation ETF',
+  VGT: 'Vanguard Tech ETF', SOXX: 'iShares Semiconductor ETF', ARKK: 'ARK Innovation ETF',
   XLK: 'Tech Select ETF', XLF: 'Financial Select ETF', XLE: 'Energy Select ETF',
+  XLV: 'Health Care Select ETF', XLY: 'Consumer Discr. ETF', XLP: 'Consumer Staples ETF',
   GLD: 'SPDR Gold ETF', SLV: 'iShares Silver ETF', GDX: 'Gold Miners ETF',
   USO: 'US Oil Fund', UNG: 'US Natural Gas Fund',
   BTC: 'Bitcoin (Spot)', IBIT: 'iShares Bitcoin ETF', GBTC: 'Grayscale Bitcoin',
   FBTC: 'Fidelity Bitcoin ETF', BITO: 'Bitcoin Strategy ETF',
+  // Industrials / Energy
+  CAT: 'Caterpillar Inc.', DE: 'Deere & Company', HON: 'Honeywell', GE: 'GE Aerospace',
+  RTX: 'RTX Corp.', LMT: 'Lockheed Martin', BA: 'Boeing', UPS: 'UPS', FDX: 'FedEx',
+  XOM: 'ExxonMobil', CVX: 'Chevron', COP: 'ConocoPhillips', SLB: 'SLB (Schlumberger)',
+  // Consumer
+  COST: 'Costco Wholesale', WMT: 'Walmart', TGT: 'Target', HD: 'Home Depot',
+  LOW: "Lowe's", NKE: 'Nike', SBUX: 'Starbucks', MCD: "McDonald's",
+  // Healthcare
+  JNJ: 'Johnson & Johnson', PFE: 'Pfizer', MRK: 'Merck', ABBV: 'AbbVie',
+  LLY: 'Eli Lilly', TMO: 'Thermo Fisher', ABT: 'Abbott Labs', UNH: 'UnitedHealth',
+  // Finance
+  JPM: 'JPMorgan Chase', BAC: 'Bank of America', GS: 'Goldman Sachs',
+  MS: 'Morgan Stanley', WFC: 'Wells Fargo', C: 'Citigroup', BLK: 'BlackRock',
+  SCHW: 'Charles Schwab', V: 'Visa', MA: 'Mastercard', AXP: 'Amex',
+  // Other tech
+  TSM: 'Taiwan Semiconductor', NFLX: 'Netflix', TSLA: 'Tesla',
 }
 
 
@@ -222,7 +239,7 @@ export async function GET() {
         ...w,
         lastPrice: priceMap[w.ticker] ?? w.lastPrice ?? null,
         changePct: changePctMap[w.ticker] ?? w.changePct ?? null,
-        companyName: nameMap[w.ticker] || COMPANY_NAMES[w.ticker] || w.companyName || null,
+        companyName: (nameMap[w.ticker] && nameMap[w.ticker] !== w.ticker) ? nameMap[w.ticker] : (COMPANY_NAMES[w.ticker] || w.companyName || null),
         lastChecked: new Date().toISOString(),
       })),
       cooldowns: {},

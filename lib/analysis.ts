@@ -52,7 +52,7 @@ export async function generateAnalysisReport(
     return { upper: 0, middle: 0, lower: 0 }
   }
 
-  const analysisData = await callLLM('', stock, lastValid(indicators?.rsi), lastValid(indicators?.macd), lastValid(indicators?.macdSignal), lastValid(indicators?.sma20), lastValid(indicators?.sma50), lastValid(indicators?.sma200), lastBB(indicators?.bollingerBands), patterns, support, resistance, newsHeadlines, historicalVolumes || [])
+  const analysisData = await callLLM('', stock, lastValid(indicators?.rsi), lastValid(indicators?.macd), lastValid(indicators?.macdSignal), lastValid(indicators?.sma20), lastValid(indicators?.sma50), lastValid(indicators?.sma200), lastBB(indicators?.bollingerBands), patterns, support, resistance, newsHeadlines, historicalVolumes || [], historicalPrices, historicalPrices.map((_,i) => i < 1 ? 0 : Math.abs(historicalPrices[i] - historicalPrices[i-1])))
 
   return parseAnalysisResponse(analysisData, stock.ticker, support, resistance)
 }
@@ -125,12 +125,12 @@ Respond with ONLY a JSON object. Keep each field under 100 words. No markdown, n
 }`
 }
 
-async function callLLM(prompt: string, stock: StockData, rsi: number, macd: number, macdSignal: number, sma20: number, sma50: number, sma200: number, bb: any, patterns: PatternMatch[], support: number[], resistance: number[], news: string[], volumes: number[]): Promise<string> {
+async function callLLM(prompt: string, stock: StockData, rsi: number, macd: number, macdSignal: number, sma20: number, sma50: number, sma200: number, bb: any, patterns: PatternMatch[], support: number[], resistance: number[], news: string[], volumes: number[], prices: number[] = [], trueRanges: number[] = []): Promise<string> {
   // Pure algorithmic analysis — no LLM
-  return generateDataDrivenAnalysis(stock, rsi, macd, macdSignal, sma20, sma50, sma200, bb, patterns, support, resistance, news, volumes)
+  return generateDataDrivenAnalysis(stock, rsi, macd, macdSignal, sma20, sma50, sma200, bb, patterns, support, resistance, news, volumes, prices, trueRanges)
 }
 
-function generateDataDrivenAnalysis(stock: StockData, rsi: number, macd: number, macdSignal: number, sma20: number, sma50: number, sma200: number, bb: any, patterns: PatternMatch[], support: number[], resistance: number[], news: string[], volumes: number[]): string {
+function generateDataDrivenAnalysis(stock: StockData, rsi: number, macd: number, macdSignal: number, sma20: number, sma50: number, sma200: number, bb: any, patterns: PatternMatch[], support: number[], resistance: number[], news: string[], volumes: number[], prices: number[] = [], trueRanges: number[] = []): string {
   const p = stock.price
   const fmt = (n: number) => n ? '$' + n.toFixed(2) : 'N/A'
 
@@ -231,27 +231,27 @@ function generateDataDrivenAnalysis(stock: StockData, rsi: number, macd: number,
     }`
     : 'Volume data not available for analysis.'
 
-  // Anchor all price targets relative to current price
-  // Use price-relative fallbacks if no S/R found within 20% range
-  const nearestSupport = support[0] || p * 0.95
-  const nearestResistance = resistance[0] || p * 1.08
+  // Anchor all price targets to current price using nearest S/R + ATR buffer
+  // Always: Entry = current price
+  const atrRecent = (() => {
+    const recent = trueRanges.filter(x => x > 0).slice(-14)
+    return recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : p * 0.02
+  })()
 
-  // Signal-aware SL/TP
+  const nearestSupport    = support.filter(s => s < p).sort((a, b) => b - a)[0]    || p * 0.95
+  const nearestResistance = resistance.filter(r => r > p).sort((a, b) => a - b)[0] || p * 1.08
+
+  // Signal-aware SL/TP anchored to current price
   let clampedStopLoss: number
   let clampedTakeProfit: number
 
   if (recommendation === 'SELL') {
-    // SELL: SL above entry (at resistance + buffer), TP below entry (at support)
-    const sellSL = Math.min(nearestResistance * 1.03, p * 1.12)
-    const sellTP = Math.max(nearestSupport * 0.98, p * 0.80)
-    clampedStopLoss = sellSL
-    clampedTakeProfit = sellTP
+    clampedStopLoss   = parseFloat(Math.min(nearestResistance + atrRecent * 0.5, p * 1.10).toFixed(2))
+    clampedTakeProfit = parseFloat(Math.max(nearestSupport - atrRecent * 0.5, p * 0.80).toFixed(2))
   } else {
-    // BUY / HOLD: SL below entry (at support - buffer), TP above entry (at resistance)
-    const buySL = Math.max(nearestSupport * 0.97, p * 0.88)
-    const buyTP = Math.min(nearestResistance * 1.02, p * 1.20)
-    clampedStopLoss = buySL
-    clampedTakeProfit = buyTP
+    // BUY or HOLD
+    clampedStopLoss   = parseFloat(Math.max(nearestSupport - atrRecent * 0.5, p * 0.90).toFixed(2))
+    clampedTakeProfit = parseFloat(Math.min(nearestResistance + atrRecent * 0.5, p * 1.20).toFixed(2))
   }
 
   const supportLabel = support.length > 0 ? fmt(support[0]) : fmt(nearestSupport) + ' (SMA/estimated)'

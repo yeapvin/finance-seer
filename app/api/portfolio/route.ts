@@ -17,6 +17,13 @@ const COMPANY_NAMES: Record<string, string> = {
   JPM: 'JPMorgan', BAC: 'Bank of America', GS: 'Goldman Sachs',
   V: 'Visa', MA: 'Mastercard', XOM: 'ExxonMobil', CVX: 'Chevron',
   SPY: 'S&P 500 ETF', QQQ: 'Nasdaq 100 ETF', IWM: 'Russell 2000 ETF',
+  DIA: 'Dow Jones ETF', VTI: 'Vanguard Total Market', VOO: 'Vanguard S&P 500',
+  VGT: 'Vanguard Tech ETF', SOXX: 'Semiconductor ETF', ARKK: 'ARK Innovation ETF',
+  XLK: 'Tech Select ETF', XLF: 'Financial Select ETF', XLE: 'Energy Select ETF',
+  GLD: 'SPDR Gold ETF', SLV: 'iShares Silver ETF', GDX: 'Gold Miners ETF',
+  USO: 'US Oil Fund', UNG: 'US Natural Gas Fund',
+  BTC: 'Bitcoin (Spot)', IBIT: 'iShares Bitcoin ETF', GBTC: 'Grayscale Bitcoin',
+  FBTC: 'Fidelity Bitcoin ETF', BITO: 'Bitcoin Strategy ETF',
 }
 
 

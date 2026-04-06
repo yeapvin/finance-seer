@@ -68,7 +68,7 @@ async function analyseTicker(ticker: string): Promise<any> {
     // Pull out just what the watchlist UI needs
     const slMatch  = report.tradingStrategy?.stopLoss?.match(/\$([\d.]+)/)
     const tpMatch  = report.tradingStrategy?.takeProfit?.match(/\$([\d.]+)/)
-    const rrMatch  = report.riskAssessment?.match(/1:([\d.]+)/)
+    const rrMatch  = report.riskAssessment?.match(/1:(\d+\.?\d*)/)
     const rsiMatch = report.technicalAnalysis?.match(/RSI \((\d+\.?\d*)\)/)
 
     const result = {

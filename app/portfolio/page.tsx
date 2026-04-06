@@ -137,6 +137,11 @@ export default function PortfolioPage() {
     if (!res.ok) { setWatchError(json.error || 'Failed'); return }
     setWatchInput('')
     refreshPortfolio()
+    // Fetch analysis for the new ticker immediately in the background
+    fetch(`/api/watchlist/analyze?ticker=${ticker}`)
+      .then(r => r.json())
+      .then(d => { if (d && !d.error) setWatchAnalysis(prev => ({ ...prev, [ticker]: d })) })
+      .catch(() => {})
   }
 
   const removeFromWatchlist = async (ticker: string) => {

@@ -54,7 +54,7 @@ function PositionCard({ pos, ti }: { pos: Position; ti?: any }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{ color: 'white', fontWeight: 800, fontSize: '16px' }}>{pos.ticker}</span>
-          {pos.companyName && <span style={{ color: '#71717a', fontSize: '11px' }}>{pos.companyName}</span>}
+          {pos.companyName && <span style={{ color: '#a1a1aa', fontSize: '11px' }}>{pos.companyName}</span>}
           <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', background: sigBg, color: sigColor, letterSpacing: '0.3px' }}>{sig}</span>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -68,19 +68,19 @@ function PositionCard({ pos, ti }: { pos: Position; ti?: any }) {
       {/* Key metrics row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '8px' }}>
         <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
-          <div style={{ color: '#71717a', fontSize: '9px', marginBottom: '1px' }}>ENTRY</div>
+          <div style={{ color: '#a1a1aa', fontSize: '9px', marginBottom: '1px' }}>ENTRY</div>
           <div style={{ color: '#e4e4e7', fontSize: '11px', fontWeight: 600 }}>{fmt(pos.avgCost)}</div>
         </div>
         <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
-          <div style={{ color: '#71717a', fontSize: '9px', marginBottom: '1px' }}>STOP LOSS</div>
+          <div style={{ color: '#a1a1aa', fontSize: '9px', marginBottom: '1px' }}>STOP LOSS</div>
           <div style={{ color: '#f87171', fontSize: '11px', fontWeight: 600 }}>{fmt(sl)}</div>
         </div>
         <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
-          <div style={{ color: '#71717a', fontSize: '9px', marginBottom: '1px' }}>TAKE PROFIT</div>
+          <div style={{ color: '#a1a1aa', fontSize: '9px', marginBottom: '1px' }}>TAKE PROFIT</div>
           <div style={{ color: '#34d399', fontSize: '11px', fontWeight: 600 }}>{fmt(tp)}</div>
         </div>
         <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '5px 8px' }}>
-          <div style={{ color: '#71717a', fontSize: '9px', marginBottom: '1px' }}>R/R · HELD</div>
+          <div style={{ color: '#a1a1aa', fontSize: '9px', marginBottom: '1px' }}>R/R · HELD</div>
           <div style={{ color: '#a5b4fc', fontSize: '11px', fontWeight: 600 }}>1:{rr} · {ti?.daysHeld ?? 0}d</div>
         </div>
       </div>
@@ -96,8 +96,8 @@ function PositionCard({ pos, ti }: { pos: Position; ti?: any }) {
       {/* Strategy / Reason */}
       {pos.reason && (
         <div style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '6px', padding: '7px 10px' }}>
-          <div style={{ color: '#71717a', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '3px' }}>Strategy</div>
-          <div style={{ color: '#c4b5fd', fontSize: '11px', lineHeight: '1.5' }}>{pos.reason}</div>
+          <div style={{ color: '#a1a1aa', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '3px' }}>Strategy</div>
+          <div style={{ color: '#e4e4e7', fontSize: '11px', lineHeight: '1.5' }}>{pos.reason}</div>
         </div>
       )}
     </div>
@@ -414,7 +414,7 @@ export default function PortfolioPage() {
                           <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', background: sigBg, color: sigColor, letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>{sig}</span>
                         )}
                         {an?.conviction && (
-                          <span style={{ color: '#71717a', fontSize: '10px' }}>{an.conviction}</span>
+                          <span style={{ color: '#a1a1aa', fontSize: '10px' }}>{an.conviction}</span>
                         )}
                         <button onClick={() => removeFromWatchlist(item.ticker)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', padding: 0, display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
                           <X size={11} />
@@ -426,25 +426,25 @@ export default function PortfolioPage() {
                         <>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '7px' }}>
                             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
-                              <div style={{ color: '#71717a', fontSize: '9px' }}>ENTRY</div>
+                              <div style={{ color: '#a1a1aa', fontSize: '9px' }}>ENTRY</div>
                               <div style={{ color: '#e4e4e7', fontSize: '11px', fontWeight: 600 }}>${an.suggestedEntry}</div>
                             </div>
                             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
-                              <div style={{ color: '#71717a', fontSize: '9px' }}>STOP LOSS</div>
+                              <div style={{ color: '#a1a1aa', fontSize: '9px' }}>STOP LOSS</div>
                               <div style={{ color: '#f87171', fontSize: '11px', fontWeight: 600 }}>${an.stopLoss}</div>
                             </div>
                             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
-                              <div style={{ color: '#71717a', fontSize: '9px' }}>TARGET</div>
+                              <div style={{ color: '#a1a1aa', fontSize: '9px' }}>TARGET</div>
                               <div style={{ color: '#34d399', fontSize: '11px', fontWeight: 600 }}>${an.takeProfit}</div>
                             </div>
                             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '5px', padding: '4px 7px' }}>
-                              <div style={{ color: '#71717a', fontSize: '9px' }}>RSI · R/R</div>
+                              <div style={{ color: '#a1a1aa', fontSize: '9px' }}>RSI · R/R</div>
                               <div style={{ color: '#a5b4fc', fontSize: '11px', fontWeight: 600 }}>{an.rsi} · 1:{an.rr}</div>
                             </div>
                           </div>
                           <div style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '5px', padding: '6px 9px' }}>
-                            <div style={{ color: '#71717a', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>Strategy</div>
-                            <div style={{ color: '#c4b5fd', fontSize: '10px', lineHeight: '1.5' }}>{an.strategy}</div>
+                            <div style={{ color: '#a1a1aa', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>Strategy</div>
+                            <div style={{ color: '#e4e4e7', fontSize: '10px', lineHeight: '1.5' }}>{an.strategy}</div>
                           </div>
                         </>
                       )}

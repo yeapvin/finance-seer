@@ -41,7 +41,7 @@ export function getCurrentMarketSession(): 'NYSE' | 'CLOSED' {
 
   if (dayOfWeek === 0 || dayOfWeek === 6) return 'CLOSED'
 
-  const nyseOpen = time >= 2130 || time < 400   // 9:30PM-4AM SGT
+  const nyseOpen = time >= 2130 || time < 430   // 9:30PM-4:30AM SGT (buffer for close cron)
   return nyseOpen ? 'NYSE' : 'CLOSED'
 }
 

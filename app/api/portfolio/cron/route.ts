@@ -6,6 +6,47 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getLiveQuote } from '@/lib/market-data'
 
+async function getAICommentary(positions: any[], cashUSD: number, totalValue: number, totalReturnPct: number, spyPct: number, session: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY
+  const apiUrl = process.env.OPENAI_API_URL || 'https://api.groq.com/openai/v1/chat/completions'
+  if (!apiKey || positions.length === 0) return ''
+
+  const positionLines = positions.map(pos => {
+    const price = pos.currentPrice || pos.buyPrice
+    const cost = pos.avgCost || pos.buyPrice
+    const pnlPct = cost > 0 ? ((price - cost) / cost * 100) : 0
+    const distToTP = pos.takeProfit ? ((pos.takeProfit - price) / price * 100) : null
+    const distToSL = pos.stopLoss ? ((price - pos.stopLoss) / price * 100) : null
+    return `- ${pos.ticker}: $${price.toFixed(2)} | P&L ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}% | SL $${pos.stopLoss?.toFixed(2)} (${distToSL?.toFixed(1)}% away) | TP $${pos.takeProfit?.toFixed(2)} (${distToTP?.toFixed(1)}% away)`
+  }).join('\n')
+
+  const prompt = `You are a portfolio manager reviewing positions at ${session}.
+
+Portfolio: $${totalValue.toFixed(2)} | Return: ${totalReturnPct >= 0 ? '+' : ''}${totalReturnPct.toFixed(2)}% | Cash: $${cashUSD.toFixed(2)}
+Market: SPY ${spyPct >= 0 ? '+' : ''}${spyPct.toFixed(2)}% today
+
+Open positions:
+${positionLines}
+
+Write a concise FLAGS section (3-5 bullet points max). For each position near SL or TP, give specific actionable commentary — what to watch, whether to hold or exit, bull/bear case. Also comment on market conditions if relevant. Be direct and specific, like a senior trader briefing a client. No fluff. Use plain text, no markdown headers.`
+
+  try {
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.4,
+        max_tokens: 400
+      })
+    })
+    if (!res.ok) return ''
+    const data = await res.json()
+    return data.choices?.[0]?.message?.content?.trim() || ''
+  } catch { return '' }
+}
+
 export const dynamic = 'force-dynamic'
 
 async function sendTelegram(token: string, chatId: string, message: string) {
@@ -148,38 +189,10 @@ export async function GET(request: NextRequest) {
         msg += `No open positions.\n💵 Cash: $${cashUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n\n`
       }
 
-      // Flags — detailed per-position commentary
-      const flags: string[] = []
-      for (const pos of positions) {
-        const price = pos.currentPrice || pos.buyPrice
-        const cost = pos.avgCost || pos.buyPrice
-        const pnlPct = cost > 0 ? ((price - cost) / cost * 100) : 0
-        const sl = pos.stopLoss
-        const tp = pos.takeProfit
-        const distToTP = tp ? ((tp - price) / price * 100) : null
-        const distToSL = sl ? ((price - sl) / price * 100) : null
-
-        if (distToTP !== null && distToTP < 1) {
-          flags.push(`🔴 *${pos.ticker}* — ${distToTP.toFixed(2)}% from Take-Profit ($${tp.toFixed(2)}): Essentially at target. Consider whether to exit or let it run.`)
-        } else if (distToTP !== null && distToTP < 3) {
-          flags.push(`🎯 *${pos.ticker}* — ${distToTP.toFixed(2)}% from Take-Profit ($${tp.toFixed(2)}): Getting close. Watch for rejection at this level.`)
-        } else if (distToSL !== null && distToSL < 3) {
-          flags.push(`🚨 *${pos.ticker}* — ${distToSL.toFixed(2)}% above Stop-Loss ($${sl.toFixed(2)}): Danger zone. Be ready to exit.`)
-        } else if (distToSL !== null && distToSL < 6) {
-          flags.push(`🟡 *${pos.ticker}* — ${distToSL.toFixed(2)}% above Stop-Loss ($${sl.toFixed(2)}): Below SL could happen within a few sessions if weakness continues.`)
-        } else if (pnlPct > 15) {
-          flags.push(`✨ *${pos.ticker}* — Up ${pnlPct.toFixed(1)}%. Strong gain. Consider trailing stop to lock in profit.`)
-        } else if (pnlPct < -8) {
-          flags.push(`⚠️ *${pos.ticker}* — Down ${Math.abs(pnlPct).toFixed(1)}%. Watching closely for SL breach.`)
-        }
-      }
-
-      // Market flag
-      if (spyPct <= -2) flags.push(`📉 Broad market selloff today (SPY ${spyPct.toFixed(2)}%). Screener in conservative mode — only STRONG BUY signals qualify for new buys.`)
-
-      if (flags.length > 0) {
-        msg += `*⚠️ Flags:*\n`
-        flags.forEach(f => msg += `${f}\n\n`)
+      // AI-generated commentary
+      const aiCommentary = await getAICommentary(positions, cashUSD, totalValue, totalReturnPct, spyPct, currentSession)
+      if (aiCommentary) {
+        msg += `*⚠️ Flags:*\n${aiCommentary}\n\n`
       }
 
       msg += `_finance-seer.vercel.app/portfolio_`

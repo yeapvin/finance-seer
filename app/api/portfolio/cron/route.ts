@@ -4,31 +4,73 @@
  * Sends Telegram alerts for any actionable signals
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { getLiveQuote } from '@/lib/market-data'
+import { getLiveQuote, getHistoricalOHLCV } from '@/lib/market-data'
+import { calculateAllIndicators } from '@/lib/indicators'
+import { findSupportResistance, detectPatterns } from '@/lib/patterns'
+
+async function getPositionAnalysis(ticker: string): Promise<string> {
+  try {
+    const history = await getHistoricalOHLCV(ticker, '3mo')
+    if (!history || history.length < 30) return ''
+    const prices = history.map((h: any) => h.close)
+    const highs  = history.map((h: any) => h.high)
+    const lows   = history.map((h: any) => h.low)
+    const opens  = history.map((h: any) => h.open)
+    const ind = calculateAllIndicators(prices, highs, lows)
+    const { support, resistance } = findSupportResistance(prices)
+    const patterns = detectPatterns(prices, { open: opens, high: highs, low: lows, close: prices })
+
+    const last = (arr: number[] | undefined) => { const v = (arr || []).filter((x: number) => !isNaN(x)); return v[v.length-1] ?? 0 }
+    const rsi  = last(ind.rsi)
+    const macd = last(ind.macd)
+    const macdSig = last(ind.macdSignal)
+    const sma20 = last(ind.sma20)
+    const sma50 = last(ind.sma50)
+    const sma200 = last(ind.sma200)
+    const currentPrice = prices[prices.length - 1]
+
+    const topPatterns = patterns.slice(0, 3).map((p: any) => `${p.name} (${p.type})`).join(', ')
+    const nearSupport = support.filter((s: number) => s < currentPrice).sort((a: number, b: number) => b - a)[0]
+    const nearResist  = resistance.filter((r: number) => r > currentPrice).sort((a: number, b: number) => a - b)[0]
+
+    return [
+      `RSI ${rsi.toFixed(1)}${rsi < 30 ? ' (oversold)' : rsi > 70 ? ' (overbought)' : ''}`,
+      `MACD ${macd > macdSig ? 'bullish' : 'bearish'} cross`,
+      `SMA20 $${sma20.toFixed(2)} / SMA50 $${sma50.toFixed(2)} / SMA200 $${sma200.toFixed(2)}`,
+      nearSupport ? `Support $${nearSupport.toFixed(2)}` : '',
+      nearResist  ? `Resistance $${nearResist.toFixed(2)}` : '',
+      topPatterns ? `Patterns: ${topPatterns}` : '',
+    ].filter(Boolean).join(' | ')
+  } catch { return '' }
+}
 
 async function getAICommentary(positions: any[], cashUSD: number, totalValue: number, totalReturnPct: number, spyPct: number, session: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY
   const apiUrl = process.env.OPENAI_API_URL || 'https://api.groq.com/openai/v1/chat/completions'
   if (!apiKey || positions.length === 0) return ''
 
-  const positionLines = positions.map(pos => {
+  // Fetch technical analysis for each position
+  const analyses = await Promise.all(positions.map((pos: any) => getPositionAnalysis(pos.ticker)))
+
+  const positionLines = positions.map((pos: any, i: number) => {
     const price = pos.currentPrice || pos.buyPrice
     const cost = pos.avgCost || pos.buyPrice
     const pnlPct = cost > 0 ? ((price - cost) / cost * 100) : 0
     const distToTP = pos.takeProfit ? ((pos.takeProfit - price) / price * 100) : null
     const distToSL = pos.stopLoss ? ((price - pos.stopLoss) / price * 100) : null
-    return `- ${pos.ticker}: $${price.toFixed(2)} | P&L ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}% | SL $${pos.stopLoss?.toFixed(2)} (${distToSL?.toFixed(1)}% away) | TP $${pos.takeProfit?.toFixed(2)} (${distToTP?.toFixed(1)}% away)`
+    const tech = analyses[i] ? `\n  Technicals: ${analyses[i]}` : ''
+    return `- ${pos.ticker} (${pos.shares}sh): $${price.toFixed(2)} | P&L ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}% | SL $${pos.stopLoss?.toFixed(2)} (${distToSL?.toFixed(1)}% away) | TP $${pos.takeProfit?.toFixed(2)} (${distToTP?.toFixed(1)}% away)${tech}`
   }).join('\n')
 
-  const prompt = `You are a portfolio manager reviewing positions at ${session}.
+  const prompt = `You are a senior portfolio manager reviewing positions at ${session}.
 
 Portfolio: $${totalValue.toFixed(2)} | Return: ${totalReturnPct >= 0 ? '+' : ''}${totalReturnPct.toFixed(2)}% | Cash: $${cashUSD.toFixed(2)}
-Market: SPY ${spyPct >= 0 ? '+' : ''}${spyPct.toFixed(2)}% today
+Market today: SPY ${spyPct >= 0 ? '+' : ''}${spyPct.toFixed(2)}%
 
-Open positions:
+Open positions with full technical context:
 ${positionLines}
 
-Write a concise FLAGS section (3-5 bullet points max). For each position near SL or TP, give specific actionable commentary — what to watch, whether to hold or exit, bull/bear case. Also comment on market conditions if relevant. Be direct and specific, like a senior trader briefing a client. No fluff. Use plain text, no markdown headers.`
+Write a FLAGS section with 3-5 concise bullet points. For each relevant position give specific actionable commentary using the technical data — reference RSI, patterns, support/resistance levels by price. Say what to watch, whether to hold or consider exiting, bull/bear case. Comment on market conditions if relevant. Write like a senior trader briefing a client. Be specific, use actual numbers. Plain text only, no markdown.`
 
   try {
     const res = await fetch(apiUrl, {
@@ -38,7 +80,7 @@ Write a concise FLAGS section (3-5 bullet points max). For each position near SL
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.4,
-        max_tokens: 400
+        max_tokens: 500
       })
     })
     if (!res.ok) return ''

@@ -592,6 +592,9 @@ export async function POST() {
       nearMisses,
       positions: portfolio.positions,
       totalValue: newTotalUSD,
+      cashUSD: portfolio.cashByValue?.USD || 0,
+      startingCapital: portfolio.startingCapital || 100000,
+      startDate: portfolio.startDate || '',
     })
   } catch (error) {
     console.error('Monitor error:', error)

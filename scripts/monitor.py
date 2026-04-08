@@ -259,8 +259,16 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
     """Screen 100+ stocks via tvscreener bulk, confirm top pick with IBKR"""
     held = [p['ticker'] for p in portfolio.get('positions', [])]
 
+    # Also exclude tickers with pending proposals (not yet executed/rejected)
+    pending_tickers = [
+        v.get('ticker') for v in portfolio.get('pendingTrades', {}).values()
+        if v.get('status') == 'pending'
+    ]
+    excluded = list(set(held + pending_tickers))
+    log(f'  Held: {held} | Pending: {pending_tickers}')
+
     log('  Running tvscreener bulk scan (100+ stocks)...')
-    tv_results = tv_bulk_screen(held)
+    tv_results = tv_bulk_screen(excluded)
     log(f'  tvscreener: {len(tv_results)} candidates pass filters')
 
     if not tv_results:

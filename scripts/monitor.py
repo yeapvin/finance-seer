@@ -347,16 +347,8 @@ def process_pending_trades(p: dict) -> bool:
             continue
 
         created = trade.get('createdAt', '')
-        try:
-            from datetime import timezone as tz
-            created_ts = datetime.fromisoformat(created.replace('Z','+00:00')).timestamp()
-            age_secs = now - created_ts
-        except:
-            age_secs = 999  # unknown age — execute it
-
-        if age_secs < 30:
-            log(f'  Pending trade {trade_id} only {age_secs:.0f}s old, waiting...')
-            continue
+        # Execute any pending trade — if Vincent tapped Reject, status is already 'rejected'
+        # No time-based delay needed; heartbeat interval is the natural gate
 
         action = trade['action']
         ticker = trade['ticker']

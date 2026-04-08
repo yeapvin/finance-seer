@@ -170,7 +170,7 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
     """Screen using IBKR scanner + IBKR historical data for indicators"""
     held = [p['ticker'] for p in portfolio.get('positions', [])]
     candidates = []
-    MIN_RR = 1.5
+    MIN_RR = 2.0  # Min 1:2 R/R
 
     try:
         from ib_insync import IB, ScannerSubscription
@@ -179,9 +179,8 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
 
         # Run multiple IBKR scans to find candidates
         scan_codes = [
-            ('HIGH_VS_13W_HL', 'Breaking 13-week high'),   # momentum
-            ('TOP_PERC_GAIN',  'Top % gainer today'),       # momentum
-            ('HOT_BY_VOLUME',  'High volume activity'),     # volume surge
+            ('HIGH_VS_13W_HL', 'Breaking 13-week high — momentum'),
+            ('TOP_PERC_GAIN',  'Top % gainer — strong momentum'),
         ]
 
         scan_tickers = set()
@@ -189,8 +188,11 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
             try:
                 sub = ScannerSubscription(
                     instrument='STK', locationCode='STK.US.MAJOR',
-                    scanCode=code, numberOfRows=20,
-                    abovePrice=20, aboveVolume=500000,
+                    scanCode=code, numberOfRows=15,
+                    abovePrice=25,          # min $25
+                    aboveVolume=2000000,    # min 2M volume
+                    belowPrice=1000,        # exclude ultra-high-priced
+                    marketCapAbove=2000e6,  # min $2B market cap
                 )
                 results = ib.reqScannerData(sub)
                 for r in results:
@@ -217,12 +219,15 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
             sma200 = tech['sma200']
             atr    = tech['atr']
 
-            # Trend filter
-            above_sma50  = sma50  > 0 and price > sma50
+            # Stricter trend filter: must be above SMA200 OR clearly oversold (RSI<40)
             above_sma200 = sma200 > 0 and price > sma200
-            oversold     = rsi < 35
-            if not above_sma50 and not above_sma200 and not oversold:
-                log(f'  Skip {ticker}: below SMA50/200, RSI {rsi:.0f}')
+            oversold     = rsi < 40
+            if not above_sma200 and not oversold:
+                log(f'  Skip {ticker}: below SMA200, RSI {rsi:.0f}')
+                continue
+            # Also skip if RSI > 75 (overbought)
+            if rsi > 75:
+                log(f'  Skip {ticker}: overbought RSI {rsi:.0f}')
                 continue
 
             # ATR-based SL/TP
@@ -252,7 +257,7 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
         log(f'IBKR screener error: {e}')
 
     candidates.sort(key=lambda x: x['rr'], reverse=True)
-    return candidates
+    return candidates[:1]  # Only best candidate per run — avoid overwhelming
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────

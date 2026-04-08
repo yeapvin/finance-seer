@@ -3,13 +3,44 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 818735.51
+    "USD": 805795.51
   },
-  "positions": [],
-  "history": [],
+  "positions": [
+    {
+      "ticker": "AAPL",
+      "shares": 50,
+      "avgCost": 258.8,
+      "buyPrice": 258.8,
+      "currentPrice": 258.8,
+      "buyDate": "2026-04-08",
+      "stopLoss": 245.86,
+      "takeProfit": 284.68,
+      "signal": "BUY",
+      "currency": "USD",
+      "reason": "Test buy \u2014 AAPL +3.78% SPY rally day. RSI recovering. Contrarian entry.",
+      "ibkrOrderId": 16
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-04-08",
+      "action": "BUY",
+      "ticker": "AAPL",
+      "shares": 50,
+      "price": 258.8,
+      "total": 12940.0,
+      "reason": "Test buy via IBKR order #16",
+      "currency": "USD"
+    }
+  ],
   "closedPositions": [],
   "cooldowns": {},
-  "strategyNotes": [],
+  "strategyNotes": [
+    {
+      "date": "2026-04-08T22:21:44.607857",
+      "note": "Bought 50 AAPL @ $258.8 (-$12,940.00). SL $245.86 | TP $284.68. Cash now $805,795.51."
+    }
+  ],
   "monthlyReviews": [],
   "valueHistory": [
     {

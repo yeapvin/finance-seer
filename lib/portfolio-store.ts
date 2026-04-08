@@ -9,13 +9,15 @@ const PORTFOLIO_PATH = join(process.cwd(), 'data', 'portfolio.json')
 const KV_KEY = 'portfolio'
 
 function isVercel() {
-  return !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN
+  return !!(process.env.KV_REST_API_URL || '').trim() && !!(process.env.KV_REST_API_TOKEN || '').trim()
 }
 
 async function kvGet(key: string): Promise<any> {
-  const url = `${process.env.KV_REST_API_URL}/get/${key}`
+  const kvUrl   = (process.env.KV_REST_API_URL   || '').trim()
+  const kvToken = (process.env.KV_REST_API_TOKEN || '').trim()
+  const url = `${kvUrl}/get/${key}`
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` },
+    headers: { Authorization: `Bearer ${kvToken}` },
     cache: 'no-store',
   })
   const data = await res.json()
@@ -35,12 +37,13 @@ async function kvGet(key: string): Promise<any> {
 }
 
 async function kvSet(key: string, value: any): Promise<void> {
-  const url = `${process.env.KV_REST_API_URL}/set/${key}`
-  // Store as JSON object directly (not string-encoded)
+  const kvUrl   = (process.env.KV_REST_API_URL   || '').trim()
+  const kvToken = (process.env.KV_REST_API_TOKEN || '').trim()
+  const url = `${kvUrl}/set/${key}`
   await fetch(url, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+      Authorization: `Bearer ${kvToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(value),

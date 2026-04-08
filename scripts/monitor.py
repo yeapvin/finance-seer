@@ -30,6 +30,8 @@ MAX_POSITIONS    = 5
 MIN_CASH_RESERVE = 0.20  # 20% cash reserve
 MAX_POSITION_PCT = 0.20  # 20% max per position
 APPROVAL_TIMEOUT = 180   # 3 minutes
+GROQ_KEY = ''
+GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def log(msg): print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
@@ -113,6 +115,202 @@ def await_approval(signal_ts: float, ticker: str, action: str) -> str:
             if 'APPROVE' in m or 'EXECUTE' in m or 'YES' in m:
                 return 'APPROVE'
     return 'APPROVE'  # auto-execute after timeout
+
+# ── Local Screener (IBKR-native) ───────────────────────────────────────────────
+def calc_rsi(closes: list, period=14) -> float:
+    gains, losses = [], []
+    for i in range(1, len(closes)):
+        d = closes[i] - closes[i-1]
+        gains.append(max(d,0)); losses.append(max(-d,0))
+    if len(gains) < period: return 50.0
+    ag = sum(gains[-period:]) / period
+    al = sum(losses[-period:]) / period
+    return 100 - (100 / (1 + ag/al)) if al > 0 else 100.0
+
+def calc_sma(closes: list, period: int) -> float:
+    return sum(closes[-period:]) / period if len(closes) >= period else 0.0
+
+def calc_atr(bars: list, period=14) -> float:
+    trs = [max(b.high-b.low, abs(b.high-bars[i-1].close), abs(b.low-bars[i-1].close))
+           for i,b in enumerate(bars) if i > 0]
+    return sum(trs[-period:]) / period if len(trs) >= period else 0.0
+
+def get_ibkr_technicals(ib, ticker: str) -> dict | None:
+    """Get live quote + historical indicators from IBKR"""
+    try:
+        from ib_insync import Stock
+        contract = Stock(ticker, 'SMART', 'USD')
+        ib.qualifyContracts(contract)
+        # Historical bars for indicators
+        bars = ib.reqHistoricalData(contract, endDateTime='', durationStr='6 M',
+            barSizeSetting='1 day', whatToShow='ADJUSTED_LAST', useRTH=True)
+        if not bars or len(bars) < 30:
+            return None
+        closes = [b.close for b in bars]
+        price  = closes[-1]
+        return {
+            'price':  price,
+            'rsi':    calc_rsi(closes),
+            'sma50':  calc_sma(closes, 50),
+            'sma200': calc_sma(closes, 200),
+            'atr':    calc_atr(bars),
+            'sl_base': max(calc_sma(closes, 20) * 0.97, price * 0.92),
+            'tp_base': min(price + calc_atr(bars) * 3, price * 1.15),
+        }
+    except:
+        return None
+
+def get_technicals(ticker: str) -> dict | None:
+    """Fetch RSI, MACD, MAs from tvscreener"""
+    try:
+        from tvscreener import StockScreener, StockField, Market, FilterOperator
+        sc = StockScreener()
+        sc.set_markets(Market.AMERICA)
+        sc.add_filter(StockField.NAME, FilterOperator.EQUAL, ticker)
+        df = sc.get()
+        if df.empty:
+            return None
+        row = df.iloc[0].to_dict()
+        import math
+        def clean(v):
+            try:
+                return None if math.isnan(float(v)) else float(v)
+            except: return None
+        return {
+            'price':     clean(row.get('Price')),
+            'change':    clean(row.get('Change %')),
+            'rsi':       clean(row.get('Relative Strength Index (14)')),
+            'macd':      clean(row.get('MACD Level (12, 26)')),
+            'macd_sig':  clean(row.get('MACD Signal (12, 26)')),
+            'sma20':     clean(row.get('Simple Moving Average (20)')),
+            'sma50':     clean(row.get('Simple Moving Average (50)')),
+            'sma200':    clean(row.get('Simple Moving Average (200)')),
+            'bb_upper':  clean(row.get('Bollinger Upper Band (20)')),
+            'bb_lower':  clean(row.get('Bollinger Lower Band (20)')),
+            'atr':       clean(row.get('Average True Range (14)')),
+            'stoch_k':   clean(row.get('Stochastic %K (14, 3, 3)')),
+            'tv_rating': clean(row.get('Recommend.All')),
+        }
+    except Exception as e:
+        return None
+
+def groq_decision(ticker: str, tech: dict, portfolio_value: float) -> dict | None:
+    """Ask Groq LLM for BUY/SELL/HOLD decision"""
+    try:
+        p = tech
+        prompt = f"""Analyse {ticker} for a ${portfolio_value:,.0f} portfolio. Give a trading decision.
+
+Price: ${p.get('price',0):.2f} | Change: {p.get('change',0):+.2f}%
+RSI: {p.get('rsi',50):.1f} | MACD: {p.get('macd',0):.4f} vs Signal: {p.get('macd_sig',0):.4f}
+SMA20: ${p.get('sma20',0):.2f} | SMA50: ${p.get('sma50',0):.2f} | SMA200: ${p.get('sma200',0):.2f}
+BB Upper: ${p.get('bb_upper',0):.2f} | BB Lower: ${p.get('bb_lower',0):.2f}
+Stochastic K: {p.get('stoch_k',50):.1f} | ATR: {p.get('atr',0):.2f}
+TV Rating: {p.get('tv_rating',0):.2f} (-1=strong sell, +1=strong buy)
+
+Respond with JSON only: {{"action":"BUY"|"SELL"|"HOLD","stopLoss":<price>,"takeProfit":<price>,"reason":"<1 sentence with numbers>"}}""" 
+        data = json.dumps({{
+            'model': 'llama-3.3-70b-versatile',
+            'messages': [{{'role': 'user', 'content': prompt}}],
+            'temperature': 0.2, 'max_tokens': 200,
+            'response_format': {{'type': 'json_object'}}
+        }}).encode()
+        req = urllib.request.Request(GROQ_URL, data=data, headers={{
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {GROQ_KEY}'
+        }})
+        resp = json.loads(urllib.request.urlopen(req, timeout=15).read())
+        content = resp['choices'][0]['message']['content']
+        return json.loads(content)
+    except:
+        return None
+
+def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
+    """Screen using IBKR scanner + IBKR historical data for indicators"""
+    held = [p['ticker'] for p in portfolio.get('positions', [])]
+    candidates = []
+    MIN_RR = 1.5
+
+    try:
+        from ib_insync import IB, ScannerSubscription
+        ib = IB()
+        ib.connect(IBKR_HOST, IBKR_PORT, clientId=30, timeout=15)
+
+        # Run multiple IBKR scans to find candidates
+        scan_codes = [
+            ('HIGH_VS_13W_HL', 'Breaking 13-week high'),   # momentum
+            ('TOP_PERC_GAIN',  'Top % gainer today'),       # momentum
+            ('HOT_BY_VOLUME',  'High volume activity'),     # volume surge
+        ]
+
+        scan_tickers = set()
+        for code, label in scan_codes:
+            try:
+                sub = ScannerSubscription(
+                    instrument='STK', locationCode='STK.US.MAJOR',
+                    scanCode=code, numberOfRows=20,
+                    abovePrice=20, aboveVolume=500000,
+                )
+                results = ib.reqScannerData(sub)
+                for r in results:
+                    sym = r.contractDetails.contract.symbol
+                    if sym not in held and len(sym) <= 5 and sym.isalpha():
+                        scan_tickers.add(sym)
+                log(f'  Scan {code}: {len(results)} results')
+            except Exception as e:
+                log(f'  Scan {code} error: {e}')
+
+        log(f'  Total unique candidates from scanner: {len(scan_tickers)}')
+
+        # Analyse each candidate
+        for ticker in list(scan_tickers)[:20]:  # cap at 20
+            if len(candidates) >= 5:
+                break
+            tech = get_ibkr_technicals(ib, ticker)
+            if not tech:
+                continue
+
+            price  = tech['price']
+            rsi    = tech['rsi']
+            sma50  = tech['sma50']
+            sma200 = tech['sma200']
+            atr    = tech['atr']
+
+            # Trend filter
+            above_sma50  = sma50  > 0 and price > sma50
+            above_sma200 = sma200 > 0 and price > sma200
+            oversold     = rsi < 35
+            if not above_sma50 and not above_sma200 and not oversold:
+                log(f'  Skip {ticker}: below SMA50/200, RSI {rsi:.0f}')
+                continue
+
+            # ATR-based SL/TP
+            sl = round(max(price - atr * 1.5, price * 0.92), 2)
+            tp = round(min(price + atr * 3.0, price * 1.15), 2)
+            risk   = price - sl
+            reward = tp - price
+            rr     = round(reward / risk, 1) if risk > 0 else 0
+
+            if rr < MIN_RR:
+                log(f'  Skip {ticker}: R/R {rr} < {MIN_RR}')
+                continue
+
+            reason = (f'IBKR scanner pick. RSI {rsi:.0f}'
+                      f'{" (oversold)" if oversold else ""}'
+                      f'. {"Above SMA50" if above_sma50 else "Above SMA200" if above_sma200 else ""}'
+                      f'. ATR-based SL ${sl} | TP ${tp}. R/R 1:{rr}.')
+
+            candidates.append({'type':'BUY','ticker':ticker,'price':price,
+                                'sl':sl,'tp':tp,'reason':reason,'rr':rr})
+            log(f'  ✅ {ticker} @ ${price:.2f} | RSI {rsi:.0f} | R/R 1:{rr} | SL ${sl} TP ${tp}')
+
+        ib.disconnect()
+
+    except Exception as e:
+        log(f'IBKR screener error: {e}')
+
+    candidates.sort(key=lambda x: x['rr'], reverse=True)
+    return candidates
+
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
@@ -221,16 +419,10 @@ def main():
         log(f'Insufficient deployable cash (${deployable:.0f}), skipping buy scan')
         return
 
-    # Call Finance Seer screener API
-    log('Scanning market via Finance Seer screener...')
-    try:
-        req = urllib.request.Request(f'{FINANCE_SEER}/api/portfolio/monitor', method='POST')
-        resp = json.loads(urllib.request.urlopen(req, timeout=120).read())
-        candidates = resp.get('executedTrades', [])
-        log(f'Screener returned {len(candidates)} candidates')
-    except Exception as e:
-        log(f'Screener error: {e}')
-        return
+    # Local screener using tvscreener + Groq LLM
+    log('Scanning market locally via tvscreener...')
+    candidates = local_screen(p, cash_usd, total_usd)
+    log(f'Local screener found {len(candidates)} candidates')
 
     buys_done = 0
     for trade in candidates:
@@ -242,8 +434,8 @@ def main():
             break
 
         ticker = trade['ticker']
-        price  = get_live_price(ticker) or trade.get('price', 0)
-        if not price:
+        price  = trade.get('price') or get_live_price(ticker) or 0
+        if not price or price != price:  # check for NaN
             continue
 
         max_cost    = total_usd * MAX_POSITION_PCT

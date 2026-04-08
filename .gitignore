@@ -6,7 +6,7 @@ out/
 .env.*.local
 dist/
 build/
-data/
+
 *.db
 *.sqlite
 .DS_Store
@@ -17,3 +17,4 @@ yarn-error.log*
 .vercel
 .env*
 .env.production
+.env*.local

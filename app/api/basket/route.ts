@@ -161,6 +161,7 @@ export async function GET() {
     const buys = results
       .filter(r => r.signal === 'BUY' || r.signal === 'STRONG BUY')
       .sort((a, b) => parseFloat(b.rr) - parseFloat(a.rr))
+      .slice(0, 5)
 
     return NextResponse.json(buys)
   } catch (e) {

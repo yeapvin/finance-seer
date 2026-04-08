@@ -113,7 +113,7 @@ if __name__ == '__main__':
         f"",
         f"_{reason[:120]}_",
         f"",
-        f"Executing in 3 mins unless you reject.",
+        f"Executing in 30 secs unless you reject.",
     ]
 
     send('\n'.join(lines), buttons=[[

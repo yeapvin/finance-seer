@@ -429,7 +429,7 @@ export async function POST() {
         const bearMarket = await isMarketBearish()
         const signalThreshold = bearMarket ? 'STRONG_BUY' : 'BUY'
 
-        const screenResults = await screenMarket('NYSE', apiKey, 100)
+        const screenResults = await screenMarket('NYSE', apiKey, 60)
         const heldTickers = portfolio.positions.map((p: any) => p.ticker)
 
         // Rule 4: Build sector counts from current positions

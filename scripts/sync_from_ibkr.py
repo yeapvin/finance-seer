@@ -107,6 +107,20 @@ def main():
         with open(PORTFOLIO_PATH, 'w') as f:
             json.dump(portfolio, f, indent=2)
 
+        # Also push to Upstash KV so Vercel dashboard stays in sync
+        kv_url = 'https://clean-eagle-92052.upstash.io'
+        kv_token = 'gQAAAAAAAWeUAAIncDFiZmRiYzc1NDY1YjI0NjU3YTYwMzc4Y2Y4ZTIxZWUzNHAxOTIwNTI'
+        try:
+            import urllib.request as ur
+            req = ur.Request(f'{kv_url}/set/portfolio',
+                data=json.dumps(portfolio).encode(),
+                headers={'Authorization': f'Bearer {kv_token}', 'Content-Type': 'application/json'},
+                method='POST')
+            ur.urlopen(req, timeout=10)
+        except Exception as kv_err:
+            import sys
+            print(f'KV sync warning: {kv_err}', file=sys.stderr)
+
         print(json.dumps({
             'synced': True,
             'nlv_usd': nlv_usd,

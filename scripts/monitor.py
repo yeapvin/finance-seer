@@ -26,9 +26,9 @@ TG_TOKEN     = '8609316971:AAFhvA7fOyXRx5ch5Mm740ajcjMRD5brIr4'
 TG_CHAT      = '786437034'
 FINANCE_SEER = 'https://finance-seer.vercel.app'
 
-MAX_POSITIONS    = 5
-MIN_CASH_RESERVE = 0.20  # 20% cash reserve
-MAX_POSITION_PCT = 0.20  # 20% max per position
+MAX_POSITIONS    = 8
+MIN_CASH_RESERVE = 0.15  # 15% cash reserve
+MAX_POSITION_PCT = 0.15  # 15% max per position (matches Vercel screener settings)
 APPROVAL_TIMEOUT = 180   # 3 minutes
 
 
@@ -43,14 +43,18 @@ def kv_set(data: dict):
     urllib.request.urlopen(req, timeout=10)
 
 def send_telegram(msg: str, buttons=None) -> int | None:
-    body: dict = {'chat_id': TG_CHAT, 'text': msg, 'parse_mode': 'Markdown'}
-    if buttons:
-        body['reply_markup'] = {'inline_keyboard': buttons}
-    data = json.dumps(body).encode()
-    req = urllib.request.Request(f'https://api.telegram.org/bot{TG_TOKEN}/sendMessage',
-        data=data, headers={'Content-Type': 'application/json'})
-    resp = json.loads(urllib.request.urlopen(req, timeout=10).read())
-    return resp.get('result', {}).get('message_id')
+    try:
+        body: dict = {'chat_id': TG_CHAT, 'text': msg, 'parse_mode': 'Markdown'}
+        if buttons:
+            body['reply_markup'] = {'inline_keyboard': buttons}
+        data = json.dumps(body).encode()
+        req = urllib.request.Request(f'https://api.telegram.org/bot{TG_TOKEN}/sendMessage',
+            data=data, headers={'Content-Type': 'application/json'})
+        resp = json.loads(urllib.request.urlopen(req, timeout=10).read())
+        return resp.get('result', {}).get('message_id')
+    except Exception as e:
+        log(f'Telegram send failed: {e}')
+        return None
 
 def get_recent_messages(since_ts: float) -> list[str]:
     """Poll Telegram for recent messages since timestamp"""
@@ -383,7 +387,11 @@ def main():
 
         max_cost    = total_usd * MAX_POSITION_PCT
         position_sz = min(deployable, max_cost)
+        if not price or price != price or price <= 0:
+            continue
         shares      = int(position_sz / price)
+        if shares <= 0:
+            continue
         if shares <= 0:
             continue
 

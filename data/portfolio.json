@@ -1,96 +1,12 @@
 {
-  "startDate": "2026-04-08",
+  "startDate": "2026-04-09",
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": -316542.7
+    "USD": 818735.51,
+    "SGD": 0
   },
-  "positions": [
-    {
-      "ticker": "GOOGL",
-      "shares": 768,
-      "avgCost": 318.13,
-      "buyPrice": 318.13,
-      "currentPrice": null,
-      "buyDate": "2026-04-09",
-      "signal": "BUY",
-      "currency": "USD",
-      "reason": "[HIGH] 4/5 signals. RSI 62. Above SMA50+200. MACD bullish. 768sh total.",
-      "stopLoss": 302.22,
-      "takeProfit": 349.94,
-      "ibkrOrderId": null
-    },
-    {
-      "ticker": "NVDA",
-      "shares": 1344,
-      "avgCost": 181.68,
-      "buyPrice": 181.68,
-      "currentPrice": null,
-      "buyDate": "2026-04-08",
-      "signal": "BUY",
-      "currency": "USD",
-      "reason": "[MEDIUM] 3/5 signals. RSI 54. Above SMA200. 1344sh total.",
-      "stopLoss": 172.6,
-      "takeProfit": 199.85,
-      "ibkrOrderId": null
-    },
-    {
-      "ticker": "AAPL",
-      "shares": 50,
-      "avgCost": 258.8218,
-      "buyPrice": 258.8218,
-      "currentPrice": null,
-      "buyDate": "2026-04-08",
-      "signal": "BUY",
-      "currency": "USD",
-      "reason": "Test buy on SPY +3.78% rally day. RSI recovering from recent selloff. Entry $258.82. SL $245.86 (5% below) | TP $284.70 (10% above). R/R 1:2.0.",
-      "stopLoss": 245.88,
-      "takeProfit": 284.7,
-      "ibkrOrderId": null
-    },
-    {
-      "ticker": "GOOG",
-      "shares": 1930,
-      "avgCost": 315.8596,
-      "buyPrice": 315.8596,
-      "currentPrice": null,
-      "buyDate": "2026-04-09",
-      "signal": "BUY",
-      "currency": "USD",
-      "reason": "Bought via IBKR limit @ $316.91, filled @ $315.86",
-      "stopLoss": 290.59,
-      "takeProfit": 363.24,
-      "ibkrOrderId": null
-    },
-    {
-      "ticker": "GSG",
-      "shares": 400,
-      "avgCost": 31.0054,
-      "buyPrice": 31.0054,
-      "currentPrice": null,
-      "buyDate": "2026-04-08",
-      "signal": "BUY",
-      "currency": "USD",
-      "reason": "IBKR scanner: HIGH_VS_13W_HL. RSI 46, above SMA200. ATR-based SL $29.15 | TP $34.73. R/R 1:2.0.",
-      "stopLoss": 29.46,
-      "takeProfit": 34.11,
-      "ibkrOrderId": null
-    },
-    {
-      "ticker": "IMFL",
-      "shares": 400,
-      "avgCost": 32.9255,
-      "buyPrice": 32.9255,
-      "currentPrice": null,
-      "buyDate": "2026-04-08",
-      "signal": "BUY",
-      "currency": "USD",
-      "reason": "IBKR scanner: HOT_BY_VOLUME. RSI 61, above SMA50. ATR-based SL $30.95 | TP $36.88. R/R 1:2.0.",
-      "stopLoss": 31.28,
-      "takeProfit": 36.22,
-      "ibkrOrderId": null
-    }
-  ],
+  "positions": [],
   "history": [
     {
       "date": "2026-04-08",
@@ -259,7 +175,7 @@
     },
     {
       "date": "2026-04-09",
-      "value": 812836.76
+      "value": 812528.38
     }
   ],
   "atrMultipliers": {
@@ -369,110 +285,11 @@
   ],
   "note": "Reset 2026-04-08: matched to IBKR paper account DU7992310 NLV (SGD 1,042,178 @ 0.7854 = USD 818,527)",
   "ibkrNLV": {
-    "sgd": 1041839.29,
-    "usd": 812836.76,
+    "usd": -606.42,
+    "sgd": 0,
     "rate": 0.780194,
-    "syncedAt": "2026-04-08T17:35:12.045607Z"
+    "syncedAt": ""
   },
-  "pendingTrades": {
-    "BUY_GOOG_1775668458": {
-      "action": "BUY",
-      "ticker": "GOOG",
-      "shares": 386,
-      "price": 316.91,
-      "sl": 303.82,
-      "tp": 343.08,
-      "reason": "[HIGH] 4/5 signals. RSI 63. Above SMA50+200. R/R 1:2.0.",
-      "status": "rejected",
-      "createdAt": "2026-04-09T01:14:18.453767"
-    },
-    "BUY_GOOG_1775668500": {
-      "action": "BUY",
-      "ticker": "GOOG",
-      "shares": 386,
-      "price": 316.6,
-      "sl": 303.51,
-      "tp": 342.77,
-      "reason": "[HIGH] 4/5 signals. RSI 63. Above SMA50+200. R/R 1:2.0.",
-      "status": "rejected",
-      "createdAt": "2026-04-09T01:15:00.691006"
-    },
-    "BUY_GOOG_1775668540": {
-      "action": "BUY",
-      "ticker": "GOOG",
-      "shares": 386,
-      "price": 316.69,
-      "sl": 303.6,
-      "tp": 342.86,
-      "reason": "[HIGH] 4/5 signals. RSI 63. Above SMA50+200. R/R 1:2.0.",
-      "status": "rejected",
-      "createdAt": "2026-04-09T01:15:40.122476"
-    },
-    "BUY_GOOG_1775668580": {
-      "action": "BUY",
-      "ticker": "GOOG",
-      "shares": 386,
-      "price": 316.74,
-      "sl": 303.65,
-      "tp": 342.91,
-      "reason": "[HIGH] 4/5 signals. RSI 63. Above SMA50+200. R/R 1:2.0.",
-      "status": "rejected",
-      "createdAt": "2026-04-09T01:16:20.873731"
-    },
-    "BUY_GOOG_1775668623": {
-      "action": "BUY",
-      "ticker": "GOOG",
-      "shares": 386,
-      "price": 316.82,
-      "sl": 303.73,
-      "tp": 342.99,
-      "reason": "[HIGH] 4/5 signals. RSI 63. Above SMA50+200. R/R 1:2.0.",
-      "status": "rejected",
-      "createdAt": "2026-04-09T01:17:03.046981"
-    },
-    "BUY_AVGO_1775668828": {
-      "action": "BUY",
-      "ticker": "AVGO",
-      "shares": 350,
-      "price": 349.27,
-      "sl": 330.28,
-      "tp": 387.25,
-      "reason": "[HIGH] 4/5 signals. RSI 64. Above SMA50+200. R/R 1:2.0.",
-      "status": "rejected",
-      "createdAt": "2026-04-09T01:20:28.463011"
-    },
-    "BUY_AVGO_1775669110": {
-      "action": "BUY",
-      "ticker": "AVGO",
-      "shares": 350,
-      "price": 349.46,
-      "sl": 330.47,
-      "tp": 387.44,
-      "reason": "[HIGH] 4/5 signals. RSI 64. Above SMA50+200. R/R 1:2.0.",
-      "status": "rejected",
-      "createdAt": "2026-04-09T01:25:10.431126"
-    },
-    "BUY_AVGO_1775669127": {
-      "action": "BUY",
-      "ticker": "AVGO",
-      "shares": 350,
-      "price": 349.46,
-      "sl": 330.47,
-      "tp": 387.44,
-      "reason": "[HIGH] 4/5 signals. RSI 64. Above SMA50+200. R/R 1:2.0.",
-      "status": "rejected",
-      "createdAt": "2026-04-09T01:25:27.945255"
-    },
-    "BUY_TSM_1775669166": {
-      "action": "BUY",
-      "ticker": "TSM",
-      "shares": 334,
-      "price": 366.56,
-      "sl": 345.39,
-      "tp": 408.91,
-      "reason": "[HIGH] 4/5 signals. RSI 61. Above SMA50+200. R/R 1:2.0.",
-      "status": "rejected",
-      "createdAt": "2026-04-09T01:26:06.082657"
-    }
-  }
+  "pendingTrades": {},
+  "tradeHistory": []
 }

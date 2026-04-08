@@ -3,22 +3,9 @@
   "startingCapital": 100000,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 22615.76
+    "USD": 44480.82
   },
   "positions": [
-    {
-      "ticker": "NVDA",
-      "shares": 119,
-      "avgCost": 167.52,
-      "buyDate": "2026-03-29",
-      "buyPrice": 167.52,
-      "currentPrice": 176.64,
-      "currency": "USD",
-      "stopLoss": 160,
-      "takeProfit": 178,
-      "signal": "BUY",
-      "reason": "Contrarian buy at support $167. RSI oversold. High beta. Resistance $178."
-    },
     {
       "ticker": "AAPL",
       "shares": 80,
@@ -149,6 +136,18 @@
       "price": 151.34,
       "total": 19983.88,
       "reason": "Oversold (RSI 39.71) at support $153.84. Contrarian bounce setup."
+    },
+    {
+      "date": "2026-04-08",
+      "action": "SELL",
+      "ticker": "NVDA",
+      "shares": 119,
+      "price": 183.74,
+      "total": 21865.06,
+      "reason": "Take-profit hit at $183.74 (TP: $178.00). Profit: +$1930.18 (+9.68%)",
+      "pnl": 1930.1799999999998,
+      "pnlPct": 9.682425978987583,
+      "currency": "USD"
     }
   ],
   "closedPositions": [
@@ -190,6 +189,18 @@
       "pnl": 1228.0,
       "pnlPct": 6.16,
       "reason": "Take-profit hit."
+    },
+    {
+      "ticker": "NVDA",
+      "shares": 119,
+      "buyDate": "2026-03-29",
+      "buyPrice": 167.52,
+      "sellDate": "2026-04-08",
+      "sellPrice": 183.74,
+      "reason": "Take-profit hit at $183.74 (TP: $178.00). Profit: +$1930.18 (+9.68%)",
+      "pnl": 1930.1799999999998,
+      "pnlPct": 9.682425978987583,
+      "currency": "USD"
     }
   ],
   "cooldowns": {},

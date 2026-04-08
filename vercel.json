@@ -2,5 +2,12 @@
   "crons": [
     { "path": "/api/portfolio/midday", "schedule": "0 17 * * 1-5" },
     { "path": "/api/portfolio/close",  "schedule": "5 20 * * 1-5" }
-  ]
+  ],
+  "functions": {
+    "app/api/portfolio/monitor/route.ts": { "maxDuration": 60 },
+    "app/api/portfolio/midday/route.ts":  { "maxDuration": 60 },
+    "app/api/portfolio/close/route.ts":   { "maxDuration": 60 },
+    "app/api/watchlist/analyze/route.ts": { "maxDuration": 60 },
+    "app/api/basket/route.ts":            { "maxDuration": 60 }
+  }
 }

@@ -333,6 +333,54 @@ def is_market_open() -> bool:
     current_mins = h * 60 + m
     return open_mins <= current_mins < close_mins
 
+def cancel_stale_orders():
+    """Cancel any open IBKR orders older than 30 minutes."""
+    try:
+        from ib_insync import IB
+        ib = IB()
+        ib.connect(IBKR_HOST, IBKR_PORT, clientId=31, timeout=15)
+        open_orders = ib.openOrders()
+        now_utc = datetime.now(timezone.utc)
+        cancelled = []
+
+        for order in open_orders:
+            # Get trade for this order to check submission time
+            trades = [t for t in ib.trades() if t.order.orderId == order.orderId]
+            if not trades:
+                continue
+            trade = trades[0]
+            # Get time from first log entry
+            if not trade.log:
+                continue
+            submitted_at = trade.log[0].time  # datetime with tz
+            if submitted_at.tzinfo is None:
+                continue
+            age_mins = (now_utc - submitted_at).total_seconds() / 60
+            if age_mins >= 30:
+                ib.cancelOrder(order)
+                ib.sleep(1)
+                cancelled.append({
+                    'orderId': order.orderId,
+                    'ticker': trade.contract.symbol,
+                    'action': order.action,
+                    'shares': order.totalQuantity,
+                    'price': order.lmtPrice,
+                    'age_mins': round(age_mins, 1)
+                })
+                log(f'  Cancelled stale order: {order.action} {order.totalQuantity}x {trade.contract.symbol} @ ${order.lmtPrice} ({age_mins:.0f} min old)')
+
+        ib.disconnect()
+
+        for c in cancelled:
+            send_telegram(
+                f'⏰ Order #{c["orderId"]} cancelled — not filled within 30 min.\n'
+                f'{c["action"]} {int(c["shares"])}x *{c["ticker"]}* @ ${c["price"]:.2f}'
+            )
+
+    except Exception as e:
+        log(f'Cancel stale orders error: {e}')
+
+
 def process_pending_trades(p: dict) -> bool:
     """Auto-execute pending trades older than 30 seconds. Returns True if any executed."""
     pending = p.get('pendingTrades', {})
@@ -407,7 +455,7 @@ def process_pending_trades(p: dict) -> bool:
 def main():
     log('Starting monitor run')
 
-    # Always check for pending trades first (regardless of market hours)
+    # Always check for pending trades + stale orders (regardless of market hours)
     try:
         with open(PORTFOLIO) as f:
             p_check = json.load(f)
@@ -415,6 +463,9 @@ def main():
             push_portfolio(p_check)
     except Exception as e:
         log(f'Pending trade check error: {e}')
+
+    # Cancel any IBKR orders open > 30 min
+    cancel_stale_orders()
 
     # Guard: only run during NYSE hours (UTC)
     if not is_market_open():

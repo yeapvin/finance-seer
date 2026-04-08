@@ -18,3 +18,8 @@ yarn-error.log*
 .env*
 .env.production
 .env*.local
+__pycache__/
+*.pyc
+*.pyo
+.env.production
+.env.vercel

@@ -163,16 +163,16 @@ export async function GET() {
       return true
     }
 
-    const sgtNow = new Date(Date.now() + 8 * 60 * 60 * 1000) // UTC+8
-    const todaySGT = sgtNow.toISOString().split('T')[0]
-    const sgtHour = sgtNow.getUTCHours()
-    const sgtMin = sgtNow.getUTCMinutes()
-    const sgtTime = sgtHour * 100 + sgtMin
-    const sgtDow = sgtNow.getUTCDay() // 0=Sun, 6=Sat
+    const utcNow  = new Date()
+    const todayUTC = utcNow.toISOString().split('T')[0]
+    const utcHour  = utcNow.getUTCHours()
+    const utcMin   = utcNow.getUTCMinutes()
+    const utcTime  = utcHour * 100 + utcMin
+    const utcDow   = utcNow.getUTCDay() // 0=Sun, 6=Sat
+    const todaySGT = todayUTC // use UTC date for consistency
 
-    // NYSE trading hours in SGT: Mon-Fri 21:30-04:00 (next calendar day)
-    const inNYSE = (sgtDow >= 1 && sgtDow <= 5 && sgtTime >= 2130) ||
-                   (sgtDow >= 2 && sgtDow <= 6 && sgtTime < 400)
+    // NYSE trading hours: 13:30-20:05 UTC Mon-Fri
+    const inNYSE = utcDow >= 1 && utcDow <= 5 && utcTime >= 1330 && utcTime < 2005
     const marketsOpen = inNYSE
 
     // Strip non-trading days from history (in case any crept in)

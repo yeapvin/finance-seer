@@ -1,5 +1,5 @@
 /**
- * Close Cron — 16:05 ET (20:05 UTC) Mon-Fri
+ * Close Cron — 20:05 UTC Mon-Fri (NYSE close)
  * End-of-day summary — reporting only, no trading
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     const portfolio = await readPortfolio()
     const positions = portfolio.positions || []
     const today = new Date().toISOString().split('T')[0]
-    const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Singapore' })
+    const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) + ' (UTC)'
 
     // Fetch closing prices + technicals for all positions
     const positionDetails: any[] = []

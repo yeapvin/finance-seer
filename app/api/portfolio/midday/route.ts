@@ -1,5 +1,5 @@
 /**
- * Midday Cron — 12:00 ET (17:00 UTC) Mon-Fri
+ * Midday Cron — 17:00 UTC Mon-Fri (NYSE mid-session)
  * Deeper check with trailing stop logic, min hold days, signal flip
  */
 import { NextRequest, NextResponse } from 'next/server'

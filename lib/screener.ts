@@ -34,14 +34,15 @@ const US_LARGE_CAP = [
 
 export function getCurrentMarketSession(): 'NYSE' | 'CLOSED' {
   const now = new Date()
-  const sgtHour = (now.getUTCHours() + 8) % 24
-  const sgtMin = now.getUTCMinutes()
-  const time = sgtHour * 100 + sgtMin
+  const utcHour = now.getUTCHours()
+  const utcMin  = now.getUTCMinutes()
+  const utcTime = utcHour * 100 + utcMin
   const dayOfWeek = now.getUTCDay() // 0=Sun, 6=Sat
 
   if (dayOfWeek === 0 || dayOfWeek === 6) return 'CLOSED'
 
-  const nyseOpen = time >= 2130 || time < 430   // 9:30PM-4:30AM SGT (buffer for close cron)
+  // NYSE: 13:30-20:05 UTC (buffer to 20:05 so close cron at 20:05 runs)
+  const nyseOpen = utcTime >= 1330 && utcTime < 2005
   return nyseOpen ? 'NYSE' : 'CLOSED'
 }
 

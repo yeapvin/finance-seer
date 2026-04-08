@@ -82,11 +82,19 @@ def ibkr_trade(action: str, ticker: str, shares: int, price: float = None) -> di
         return {'error': result.stderr or result.stdout or 'Unknown'}
 
 def get_live_price(ticker: str) -> float | None:
+    """Get live price from IBKR"""
     try:
-        url = f'https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=1d'
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        data = json.loads(urllib.request.urlopen(req, timeout=8).read())
-        return data['chart']['result'][0]['meta']['regularMarketPrice']
+        from ib_insync import IB, Stock
+        ib = IB()
+        ib.connect(IBKR_HOST, IBKR_PORT, clientId=35, timeout=10)
+        contract = Stock(ticker, 'SMART', 'USD')
+        ib.qualifyContracts(contract)
+        ticker_data = ib.reqMktData(contract, '', False, False)
+        ib.sleep(2)
+        price = ticker_data.last or ticker_data.close or None
+        ib.cancelMktData(contract)
+        ib.disconnect()
+        return float(price) if price else None
     except:
         return None
 

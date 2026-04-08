@@ -3,7 +3,7 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 805583.73
+    "USD": 805578.23
   },
   "positions": [
     {
@@ -11,13 +11,14 @@
       "shares": 50,
       "avgCost": 258.8218,
       "buyPrice": 258.8218,
-      "currentPrice": 258.8218,
+      "currentPrice": null,
       "buyDate": "2026-04-08",
       "signal": "BUY",
       "currency": "USD",
       "reason": "Test buy on SPY +3.78% rally day. RSI recovering from recent selloff. Entry $258.82. SL $245.86 (5% below) | TP $284.70 (10% above). R/R 1:2.0.",
       "stopLoss": 245.88,
-      "takeProfit": 284.7
+      "takeProfit": 284.7,
+      "ibkrOrderId": null
     }
   ],
   "history": [
@@ -44,7 +45,7 @@
   "valueHistory": [
     {
       "date": "2026-04-08",
-      "value": 818508.64
+      "value": 818550.52
     }
   ],
   "atrMultipliers": {
@@ -154,10 +155,10 @@
   ],
   "note": "Reset 2026-04-08: matched to IBKR paper account DU7992310 NLV (SGD 1,042,178 @ 0.7854 = USD 818,527)",
   "ibkrNLV": {
-    "sgd": 1042155.13,
-    "usd": 818508.64,
+    "sgd": 1042208.46,
+    "usd": 818550.52,
     "rate": 0.7854,
-    "syncedAt": "2026-04-08T14:41:57.072732Z"
+    "syncedAt": "2026-04-08T15:11:50.514529Z"
   },
   "pendingTrades": {}
 }

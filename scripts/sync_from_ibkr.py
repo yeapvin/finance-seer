@@ -17,14 +17,8 @@ PORTFOLIO_PATH = Path(__file__).parent.parent / 'data' / 'portfolio.json'
 SGD_USD_FALLBACK = 0.7854
 
 def get_sgd_usd(ib=None) -> float:
-    try:
-        import urllib.request
-        url = 'https://query2.finance.yahoo.com/v8/finance/chart/SGDUSD=X?interval=1d&range=1d'
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        data = json.loads(urllib.request.urlopen(req, timeout=10).read())
-        return float(data['chart']['result'][0]['meta']['regularMarketPrice'])
-    except:
-        return SGD_USD_FALLBACK
+    """Return hardcoded SGD/USD rate (Forex not available on paper accounts)"""
+    return SGD_USD_FALLBACK
 
 def main():
     ib = IB()
@@ -45,6 +39,13 @@ def main():
         cash_sgd = summary.get('TotalCashValue', 0)
         nlv_usd = round(nlv_sgd * rate, 2)
         cash_usd = round(cash_sgd * rate, 2)
+
+        # Load existing portfolio first (needed to preserve position data)
+        try:
+            with open(PORTFOLIO_PATH) as f:
+                portfolio = json.load(f)
+        except:
+            portfolio = {}
 
         # Get positions
         ibkr_positions = ib.positions(ACCOUNT)
@@ -85,13 +86,6 @@ def main():
             })
 
         today = datetime.now().strftime('%Y-%m-%d')
-
-        # Load existing portfolio to preserve history, watchlist etc.
-        try:
-            with open(PORTFOLIO_PATH) as f:
-                portfolio = json.load(f)
-        except:
-            portfolio = {}
 
         # Update only positions and cash — preserve history, watchlist, settings
         portfolio['positions'] = positions

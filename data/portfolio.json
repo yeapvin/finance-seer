@@ -13,9 +13,9 @@
       "buyPrice": 258.8218,
       "currentPrice": 258.8218,
       "buyDate": "2026-04-08",
-      "signal": "HOLD",
+      "signal": "BUY",
       "currency": "USD",
-      "reason": "Synced from IBKR",
+      "reason": "Test buy on SPY +3.78% rally day. RSI recovering from recent selloff. Entry $258.82. SL $245.86 (5% below) | TP $284.70 (10% above). R/R 1:2.0.",
       "stopLoss": 245.88,
       "takeProfit": 284.7
     }

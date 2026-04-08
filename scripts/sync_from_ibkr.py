@@ -67,18 +67,21 @@ def main():
             except:
                 current_price = avg_cost
 
+            # Preserve existing position data (reason, SL, TP, signal, buyDate)
+            existing = next((x for x in (portfolio.get('positions') or []) if x.get('ticker') == ticker), {})
             positions.append({
                 'ticker': ticker,
                 'shares': shares,
-                'avgCost': avg_cost,
-                'buyPrice': avg_cost,
+                'avgCost': existing.get('avgCost', avg_cost),
+                'buyPrice': existing.get('buyPrice', avg_cost),
                 'currentPrice': current_price,
-                'buyDate': datetime.now().strftime('%Y-%m-%d'),
-                'signal': 'HOLD',
+                'buyDate': existing.get('buyDate', datetime.now().strftime('%Y-%m-%d')),
+                'signal': existing.get('signal', 'HOLD'),
                 'currency': 'USD',
-                'reason': 'Synced from IBKR',
-                'stopLoss': round(avg_cost * 0.95, 2),
-                'takeProfit': round(avg_cost * 1.10, 2),
+                'reason': existing.get('reason', f'Position synced from IBKR @ ${avg_cost:.2f}'),
+                'stopLoss': existing.get('stopLoss', round(avg_cost * 0.95, 2)),
+                'takeProfit': existing.get('takeProfit', round(avg_cost * 1.10, 2)),
+                'ibkrOrderId': existing.get('ibkrOrderId'),
             })
 
         today = datetime.now().strftime('%Y-%m-%d')

@@ -177,112 +177,142 @@ def get_ibkr_technicals(ib, ticker: str) -> dict | None:
     except:
         return None
 
-def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
-    """Screen using IBKR scanner + IBKR historical data for indicators"""
-    held = [p['ticker'] for p in portfolio.get('positions', [])]
-    candidates = []
-    MIN_RR = 2.0  # Min 1:2 R/R
-
+def tv_bulk_screen(held: list) -> list:
+    """Fast bulk screen using tvscreener — returns pre-filtered tickers with indicators."""
     try:
-        from ib_insync import IB, ScannerSubscription
+        from tvscreener import StockScreener, StockField, Market, FilterOperator
+        import math
+
+        def clean(v):
+            try: return None if math.isnan(float(v)) else float(v)
+            except: return None
+
+        sc = StockScreener()
+        sc.set_markets(Market.AMERICA)
+        # Filters: price $25+, volume 2M+, market cap $2B+
+        sc.add_filter(StockField.PRICE, FilterOperator.ABOVE, 25)
+        sc.add_filter(StockField.VOLUME, FilterOperator.ABOVE, 2000000)
+        sc.add_filter(StockField.MARKET_CAPITALIZATION, FilterOperator.ABOVE, 2e9)
+        df = sc.get()
+        if df.empty:
+            return []
+
+        results = []
+        for _, row in df.iterrows():
+            sym = str(row.get('Name', '')).strip()
+            if not sym or sym in held or not sym.isalpha() or len(sym) > 5:
+                continue
+
+            price  = clean(row.get('Price'))
+            rsi    = clean(row.get('Relative Strength Index (14)'))
+            sma50  = clean(row.get('Simple Moving Average (50)'))
+            sma200 = clean(row.get('Simple Moving Average (200)'))
+            macd   = clean(row.get('MACD Level (12, 26)'))
+            macd_s = clean(row.get('MACD Signal (12, 26)'))
+            atr    = clean(row.get('Average True Range (14)'))
+            volume = clean(row.get('Volume')) or 0
+
+            if not price or not rsi or not sma200 or not atr:
+                continue
+
+            # Filters
+            above_sma200 = price > sma200
+            above_sma50  = sma50 and price > sma50
+            oversold     = rsi < 40
+            if not above_sma200 and not oversold: continue
+            if rsi > 75: continue
+
+            # Confidence
+            bullish = sum([
+                above_sma200, above_sma50 or False, oversold,
+                rsi > 50, (macd or 0) > (macd_s or 0),
+            ])
+            if bullish < 2: continue
+            confidence = 'HIGH' if bullish >= 4 else 'MEDIUM'
+
+            # SL/TP
+            sl = round(max(price - atr * 1.5, price * 0.92), 2)
+            tp = round(min(price + atr * 3.0, price * 1.15), 2)
+            risk = price - sl; reward = tp - price
+            rr = round(reward / risk, 1) if risk > 0 else 0
+            if rr < 2.0: continue
+
+            results.append({'ticker': sym, 'price': price, 'rsi': rsi,
+                             'sl': sl, 'tp': tp, 'rr': rr, 'atr': atr,
+                             'volume': int(volume), 'confidence': confidence,
+                             'above_sma200': above_sma200, 'above_sma50': above_sma50 or False,
+                             'oversold': oversold, 'bullish': bullish,
+                             'macd_bullish': (macd or 0) > (macd_s or 0)})
+
+        results.sort(key=lambda x: x['rr'], reverse=True)
+        return results
+    except Exception as e:
+        log(f'tvscreener error: {e}')
+        return []
+
+def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
+    """Screen 100+ stocks via tvscreener bulk, confirm top pick with IBKR"""
+    held = [p['ticker'] for p in portfolio.get('positions', [])]
+
+    log('  Running tvscreener bulk scan (100+ stocks)...')
+    tv_results = tv_bulk_screen(held)
+    log(f'  tvscreener: {len(tv_results)} candidates pass filters')
+
+    if not tv_results:
+        return []
+
+    candidates = []
+    # Take top 5 by R/R and confirm with IBKR for price accuracy
+    try:
+        from ib_insync import IB
         ib = IB()
         ib.connect(IBKR_HOST, IBKR_PORT, clientId=30, timeout=15)
 
-        # Run multiple IBKR scans to find candidates
-        scan_codes = [
-            ('HIGH_VS_13W_HL', 'Breaking 13-week high — momentum'),
-            ('TOP_PERC_GAIN',  'Top % gainer — strong momentum'),
-        ]
-
-        scan_tickers = set()
-        for code, label in scan_codes:
-            try:
-                sub = ScannerSubscription(
-                    instrument='STK', locationCode='STK.US.MAJOR',
-                    scanCode=code, numberOfRows=15,
-                    abovePrice=25,          # min $25
-                    aboveVolume=2000000,    # min 2M volume
-                    belowPrice=1000,        # exclude ultra-high-priced
-                    marketCapAbove=2000e6,  # min $2B market cap
-                )
-                results = ib.reqScannerData(sub)
-                for r in results:
-                    sym = r.contractDetails.contract.symbol
-                    if sym not in held and len(sym) <= 5 and sym.isalpha():
-                        scan_tickers.add(sym)
-                log(f'  Scan {code}: {len(results)} results')
-            except Exception as e:
-                log(f'  Scan {code} error: {e}')
-
-        log(f'  Total unique candidates from scanner: {len(scan_tickers)}')
-
-        # Analyse each candidate
-        for ticker in list(scan_tickers)[:20]:  # cap at 20
-            if len(candidates) >= 5:
-                break
+        for r in tv_results[:5]:
+            ticker = r['ticker']
+            # Get precise price + ATR from IBKR historical data
             tech = get_ibkr_technicals(ib, ticker)
-            if not tech:
-                continue
+            price = tech['price'] if tech else r['price']
+            atr   = tech['atr']   if tech else r['atr']
+            if not price or price != price: continue
 
-            price  = tech['price']
-            rsi    = tech['rsi']
-            sma50  = tech['sma50']
-            sma200 = tech['sma200']
-            atr    = tech['atr']
-
-            # Stricter trend filter: must be above SMA200 OR clearly oversold (RSI<40)
-            above_sma200 = sma200 > 0 and price > sma200
-            above_sma50  = sma50  > 0 and price > sma50
-            oversold     = rsi < 40
-            if not above_sma200 and not oversold:
-                log(f'  Skip {ticker}: below SMA200, RSI {rsi:.0f}')
-                continue
-            # Skip if overbought
-            if rsi > 75:
-                log(f'  Skip {ticker}: overbought RSI {rsi:.0f}')
-                continue
-
-            # Confidence check: require at least 2 bullish signals (MEDIUM+)
-            bullish_signals = sum([
-                above_sma200,
-                above_sma50,
-                oversold,
-                rsi > 50,                       # RSI bullish territory
-                tech.get('macd', 0) > tech.get('macd_sig', 0) if tech.get('macd') else False,  # MACD bullish
-            ])
-            if bullish_signals < 2:
-                log(f'  Skip {ticker}: low confidence ({bullish_signals}/5 signals)')
-                continue
-            confidence = 'HIGH' if bullish_signals >= 4 else 'MEDIUM'
-
-            # ATR-based SL/TP
             sl = round(max(price - atr * 1.5, price * 0.92), 2)
             tp = round(min(price + atr * 3.0, price * 1.15), 2)
-            risk   = price - sl
-            reward = tp - price
-            rr     = round(reward / risk, 1) if risk > 0 else 0
+            risk = price - sl; reward = tp - price
+            rr = round(reward / risk, 1) if risk > 0 else 0
+            if rr < 2.0: continue
 
-            if rr < MIN_RR:
-                log(f'  Skip {ticker}: R/R {rr} < {MIN_RR}')
-                continue
+            rsi = r['rsi']
+            confidence = r['confidence']
+            bullish = r['bullish']
+            oversold = r['oversold']
+            above_sma200 = r['above_sma200']
+            above_sma50  = r['above_sma50']
 
-            reason = (f'[{confidence}] IBKR scanner. RSI {rsi:.0f}'
+            reason = (f'[{confidence}] {bullish}/5 signals. RSI {rsi:.0f}'
                       f'{" (oversold)" if oversold else ""}'
                       f'. {"Above SMA50+200" if above_sma50 and above_sma200 else "Above SMA200" if above_sma200 else ""}'
-                      f'. {bullish_signals}/5 bullish signals. R/R 1:{rr}.')
+                      f'. R/R 1:{rr}.')
 
             candidates.append({'type':'BUY','ticker':ticker,'price':price,
                                 'sl':sl,'tp':tp,'reason':reason,'rr':rr,
-                                'rsi':rsi,'volume':0,'confidence':confidence})
+                                'rsi':rsi,'volume':r['volume'],'confidence':confidence})
             log(f'  ✅ {ticker} @ ${price:.2f} | RSI {rsi:.0f} | {confidence} | R/R 1:{rr}')
 
         ib.disconnect()
-
     except Exception as e:
-        log(f'IBKR screener error: {e}')
+        log(f'IBKR confirmation error: {e}')
+        # Fall back to tvscreener prices if IBKR fails
+        for r in tv_results[:3]:
+            rsi = r['rsi']; price = r['price']; sl = r['sl']; tp = r['tp']; rr = r['rr']
+            confidence = r['confidence']; bullish = r['bullish']
+            reason = f'[{confidence}] {bullish}/5 signals. RSI {rsi:.0f}. R/R 1:{rr}.'
+            candidates.append({'type':'BUY','ticker':r['ticker'],'price':price,
+                                'sl':sl,'tp':tp,'reason':reason,'rr':rr,
+                                'rsi':rsi,'volume':r['volume'],'confidence':confidence})
 
     candidates.sort(key=lambda x: x['rr'], reverse=True)
-    return candidates[:1]  # Only best candidate per run — avoid overwhelming
+    return candidates[:1]  # Best candidate only
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────

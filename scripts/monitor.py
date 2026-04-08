@@ -154,14 +154,25 @@ def get_ibkr_technicals(ib, ticker: str) -> dict | None:
             return None
         closes = [b.close for b in bars]
         price  = closes[-1]
+        rsi_val  = calc_rsi(closes)
+        sma50    = calc_sma(closes, 50)
+        sma200   = calc_sma(closes, 200)
+        atr      = calc_atr(bars)
+        # Simple MACD: EMA12 - EMA26
+        def ema(data, p):
+            k = 2/(p+1); e = data[0]
+            for v in data[1:]: e = v*k + e*(1-k)
+            return e
+        macd     = ema(closes, 12) - ema(closes, 26)
+        macd_sig = ema([ema(closes[:i+1], 12) - ema(closes[:i+1], 26) for i in range(len(closes))], 9)
         return {
-            'price':  price,
-            'rsi':    calc_rsi(closes),
-            'sma50':  calc_sma(closes, 50),
-            'sma200': calc_sma(closes, 200),
-            'atr':    calc_atr(bars),
-            'sl_base': max(calc_sma(closes, 20) * 0.97, price * 0.92),
-            'tp_base': min(price + calc_atr(bars) * 3, price * 1.15),
+            'price':    price,
+            'rsi':      rsi_val,
+            'sma50':    sma50,
+            'sma200':   sma200,
+            'atr':      atr,
+            'macd':     macd,
+            'macd_sig': macd_sig,
         }
     except:
         return None
@@ -221,14 +232,28 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
 
             # Stricter trend filter: must be above SMA200 OR clearly oversold (RSI<40)
             above_sma200 = sma200 > 0 and price > sma200
+            above_sma50  = sma50  > 0 and price > sma50
             oversold     = rsi < 40
             if not above_sma200 and not oversold:
                 log(f'  Skip {ticker}: below SMA200, RSI {rsi:.0f}')
                 continue
-            # Also skip if RSI > 75 (overbought)
+            # Skip if overbought
             if rsi > 75:
                 log(f'  Skip {ticker}: overbought RSI {rsi:.0f}')
                 continue
+
+            # Confidence check: require at least 2 bullish signals (MEDIUM+)
+            bullish_signals = sum([
+                above_sma200,
+                above_sma50,
+                oversold,
+                rsi > 50,                       # RSI bullish territory
+                tech.get('macd', 0) > tech.get('macd_sig', 0) if tech.get('macd') else False,  # MACD bullish
+            ])
+            if bullish_signals < 2:
+                log(f'  Skip {ticker}: low confidence ({bullish_signals}/5 signals)')
+                continue
+            confidence = 'HIGH' if bullish_signals >= 4 else 'MEDIUM'
 
             # ATR-based SL/TP
             sl = round(max(price - atr * 1.5, price * 0.92), 2)
@@ -241,15 +266,15 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
                 log(f'  Skip {ticker}: R/R {rr} < {MIN_RR}')
                 continue
 
-            reason = (f'IBKR scanner pick. RSI {rsi:.0f}'
+            reason = (f'[{confidence}] IBKR scanner. RSI {rsi:.0f}'
                       f'{" (oversold)" if oversold else ""}'
-                      f'. {"Above SMA50" if above_sma50 else "Above SMA200" if above_sma200 else ""}'
-                      f'. ATR-based SL ${sl} | TP ${tp}. R/R 1:{rr}.')
+                      f'. {"Above SMA50+200" if above_sma50 and above_sma200 else "Above SMA200" if above_sma200 else ""}'
+                      f'. {bullish_signals}/5 bullish signals. R/R 1:{rr}.')
 
             candidates.append({'type':'BUY','ticker':ticker,'price':price,
                                 'sl':sl,'tp':tp,'reason':reason,'rr':rr,
-                                'rsi':rsi,'volume':0})
-            log(f'  ✅ {ticker} @ ${price:.2f} | RSI {rsi:.0f} | R/R 1:{rr} | SL ${sl} TP ${tp}')
+                                'rsi':rsi,'volume':0,'confidence':confidence})
+            log(f'  ✅ {ticker} @ ${price:.2f} | RSI {rsi:.0f} | {confidence} | R/R 1:{rr}')
 
         ib.disconnect()
 

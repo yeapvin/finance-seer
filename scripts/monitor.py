@@ -435,14 +435,6 @@ def main():
         reason = trade.get('reason', f'Screener buy signal @ ${price:.2f}')
         cost = shares * price
 
-        msg = (f"⚡ Buy Signal: BUY {shares}x *{ticker}* @ ${price:.2f}\n"
-               f"Cost: ~${cost:,.0f} | TP ${tp:.2f} | SL ${sl:.2f}\n"
-               f"_{reason[:120]}_\n"
-               f"Executing in 3 mins unless you reject.")
-        send_telegram(msg, buttons=[[
-            {'text': '✅ Execute Now', 'callback_data': f'APPROVE_BUY_{ticker}'},
-            {'text': '❌ Reject',      'callback_data': f'REJECT_BUY_{ticker}'},
-        ]])
         propose_trade('BUY', ticker, shares, price, sl, tp, reason,
                      rsi=trade.get('rsi', 0), volume=trade.get('volume', 0))
         log(f'Buy signal proposed: {shares}x {ticker} @ ${price:.2f}')

@@ -3,7 +3,7 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 289642.33
+    "USD": 45536.88
   },
   "positions": [
     {
@@ -16,8 +16,8 @@
       "signal": "BUY",
       "currency": "USD",
       "reason": "[HIGH] 4/5 signals. RSI 62. Above SMA50+200. MACD bullish. 768sh total.",
-      "stopLoss": 292.68,
-      "takeProfit": 365.85,
+      "stopLoss": 302.22,
+      "takeProfit": 349.94,
       "ibkrOrderId": null
     },
     {
@@ -30,8 +30,8 @@
       "signal": "BUY",
       "currency": "USD",
       "reason": "[MEDIUM] 3/5 signals. RSI 54. Above SMA200. 1344sh total.",
-      "stopLoss": 167.15,
-      "takeProfit": 208.93,
+      "stopLoss": 172.6,
+      "takeProfit": 199.85,
       "ibkrOrderId": null
     },
     {
@@ -58,8 +58,8 @@
       "signal": "BUY",
       "currency": "USD",
       "reason": "IBKR scanner: HIGH_VS_13W_HL. RSI 46, above SMA200. ATR-based SL $29.15 | TP $34.73. R/R 1:2.0.",
-      "stopLoss": 29.15,
-      "takeProfit": 34.73,
+      "stopLoss": 29.46,
+      "takeProfit": 34.11,
       "ibkrOrderId": null
     },
     {
@@ -72,9 +72,35 @@
       "signal": "BUY",
       "currency": "USD",
       "reason": "IBKR scanner: HOT_BY_VOLUME. RSI 61, above SMA50. ATR-based SL $30.95 | TP $36.88. R/R 1:2.0.",
-      "stopLoss": 30.95,
-      "takeProfit": 36.88,
+      "stopLoss": 31.28,
+      "takeProfit": 36.22,
       "ibkrOrderId": null
+    },
+    {
+      "ticker": "GOOG",
+      "shares": 386,
+      "avgCost": 315.8596,
+      "buyPrice": 315.8596,
+      "currentPrice": 315.8596,
+      "buyDate": "2026-04-09",
+      "stopLoss": 290.59,
+      "takeProfit": 363.24,
+      "signal": "BUY",
+      "currency": "USD",
+      "reason": "Bought via IBKR limit @ $316.91, filled @ $315.86"
+    },
+    {
+      "ticker": "GOOG",
+      "shares": 386,
+      "avgCost": 315.9,
+      "buyPrice": 315.9,
+      "currentPrice": 315.9,
+      "buyDate": "2026-04-09",
+      "stopLoss": 290.63,
+      "takeProfit": 363.28,
+      "signal": "BUY",
+      "currency": "USD",
+      "reason": "Bought via IBKR limit @ $316.60, filled @ $315.90"
     }
   ],
   "history": [
@@ -107,6 +133,30 @@
       "total": 122223.36000000002,
       "reason": "Approved by Vincent",
       "currency": "USD"
+    },
+    {
+      "date": "2026-04-09",
+      "action": "BUY",
+      "ticker": "GOOG",
+      "shares": 386,
+      "price": 315.8596,
+      "total": 121921.8056,
+      "commission": 2.1037,
+      "netCost": 121923.90930000001,
+      "currency": "USD",
+      "reason": "Limit order filled @ $315.86 (limit: $316.91). Commission: $2.1037"
+    },
+    {
+      "date": "2026-04-09",
+      "action": "BUY",
+      "ticker": "GOOG",
+      "shares": 386,
+      "price": 315.9,
+      "total": 121937.4,
+      "commission": 2.1037,
+      "netCost": 121939.5037,
+      "currency": "USD",
+      "reason": "Limit order filled @ $315.90 (limit: $316.60). Commission: $2.1037"
     }
   ],
   "closedPositions": [],
@@ -123,6 +173,14 @@
     {
       "date": "2026-04-09T16:08:00Z",
       "note": "Bought 384 GOOGL @ $318.29 (-$122,223). SL $292.83 | TP $366.03."
+    },
+    {
+      "date": "2026-04-09T01:26:30.101661",
+      "note": "BUY 386 GOOG @ $315.86 (-$121,923.91 incl. $2.10 commission). SL $290.59 | TP $363.24."
+    },
+    {
+      "date": "2026-04-09T01:26:40.580298",
+      "note": "BUY 386 GOOG @ $315.90 (-$121,939.50 incl. $2.10 commission). SL $290.63 | TP $363.28."
     }
   ],
   "monthlyReviews": [],
@@ -133,7 +191,7 @@
     },
     {
       "date": "2026-04-09",
-      "value": 813443.89
+      "value": 813116.35
     }
   ],
   "atrMultipliers": {
@@ -243,10 +301,10 @@
   ],
   "note": "Reset 2026-04-08: matched to IBKR paper account DU7992310 NLV (SGD 1,042,178 @ 0.7854 = USD 818,527)",
   "ibkrNLV": {
-    "sgd": 1042617.47,
-    "usd": 813443.89,
+    "sgd": 1042197.64,
+    "usd": 813116.35,
     "rate": 0.780194,
-    "syncedAt": "2026-04-08T17:16:44.067095Z"
+    "syncedAt": "2026-04-08T17:25:45.027618Z"
   },
   "pendingTrades": {
     "BUY_GOOG_1775668458": {
@@ -303,6 +361,50 @@
       "reason": "[HIGH] 4/5 signals. RSI 63. Above SMA50+200. R/R 1:2.0.",
       "status": "pending",
       "createdAt": "2026-04-09T01:17:03.046981"
+    },
+    "BUY_AVGO_1775668828": {
+      "action": "BUY",
+      "ticker": "AVGO",
+      "shares": 350,
+      "price": 349.27,
+      "sl": 330.28,
+      "tp": 387.25,
+      "reason": "[HIGH] 4/5 signals. RSI 64. Above SMA50+200. R/R 1:2.0.",
+      "status": "rejected",
+      "createdAt": "2026-04-09T01:20:28.463011"
+    },
+    "BUY_AVGO_1775669110": {
+      "action": "BUY",
+      "ticker": "AVGO",
+      "shares": 350,
+      "price": 349.46,
+      "sl": 330.47,
+      "tp": 387.44,
+      "reason": "[HIGH] 4/5 signals. RSI 64. Above SMA50+200. R/R 1:2.0.",
+      "status": "pending",
+      "createdAt": "2026-04-09T01:25:10.431126"
+    },
+    "BUY_AVGO_1775669127": {
+      "action": "BUY",
+      "ticker": "AVGO",
+      "shares": 350,
+      "price": 349.46,
+      "sl": 330.47,
+      "tp": 387.44,
+      "reason": "[HIGH] 4/5 signals. RSI 64. Above SMA50+200. R/R 1:2.0.",
+      "status": "pending",
+      "createdAt": "2026-04-09T01:25:27.945255"
+    },
+    "BUY_TSM_1775669166": {
+      "action": "BUY",
+      "ticker": "TSM",
+      "shares": 334,
+      "price": 366.56,
+      "sl": 345.39,
+      "tp": 408.91,
+      "reason": "[HIGH] 4/5 signals. RSI 61. Above SMA50+200. R/R 1:2.0.",
+      "status": "pending",
+      "createdAt": "2026-04-09T01:26:06.082657"
     }
   }
 }

@@ -235,9 +235,9 @@ def tv_bulk_screen(held: list) -> list:
             if bullish < 2: continue
             confidence = 'HIGH' if bullish >= 4 else 'MEDIUM'
 
-            # SL/TP
-            sl = round(max(price - atr * 1.5, price * 0.92), 2)
-            tp = round(min(price + atr * 3.0, price * 1.15), 2)
+            # SL/TP — fixed 5% SL, 10% TP (R/R 1:2)
+            sl = round(price * 0.95, 2)
+            tp = round(price * 1.10, 2)
             risk = price - sl; reward = tp - price
             rr = round(reward / risk, 1) if risk > 0 else 0
             if rr < 2.0: continue
@@ -289,11 +289,10 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
             atr   = tech['atr']   if tech else r['atr']
             if not price or price != price: continue
 
-            sl = round(max(price - atr * 1.5, price * 0.92), 2)
-            tp = round(min(price + atr * 3.0, price * 1.15), 2)
-            risk = price - sl; reward = tp - price
-            rr = round(reward / risk, 1) if risk > 0 else 0
-            if rr < 2.0: continue
+            # Fixed 5% SL, 10% TP (R/R 1:2)
+            sl = round(price * 0.95, 2)
+            tp = round(price * 1.10, 2)
+            rr = 2.0  # always 1:2
 
             rsi = r['rsi']
             confidence = r['confidence']
@@ -410,9 +409,18 @@ def process_pending_trades(p: dict) -> bool:
         ticker = trade['ticker']
         shares = trade['shares']
         price  = trade['price']
-        sl     = trade.get('sl', round(price * 0.92, 2))
-        tp     = trade.get('tp', round(price * 1.15, 2))
+        sl     = trade.get('sl', round(price * 0.95, 2))
+        tp     = trade.get('tp', round(price * 1.10, 2))
         reason = trade.get('reason', '')
+
+        # Calculate age in seconds from proposal time
+        created = trade.get('createdAt', '')
+        try:
+            created_dt = datetime.fromisoformat(created)
+            age_secs = (now - created_dt).total_seconds()
+        except:
+            log(f'  Error calculating age for {ticker}, using 0')
+            age_secs = 0
 
         log(f'Auto-executing {action} {shares}x {ticker} @ ${price:.2f} (age: {age_secs:.0f}s)')
         p['pendingTrades'][trade_id]['status'] = 'executing'

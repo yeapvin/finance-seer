@@ -113,12 +113,13 @@ def push_portfolio(p: dict):
     except:
         pass
 
-def propose_trade(action: str, ticker: str, shares: int, price: float, sl: float, tp: float, reason: str):
+def propose_trade(action: str, ticker: str, shares: int, price: float, sl: float, tp: float, reason: str, rsi: float = 0, volume: int = 0):
     """Send trade proposal via Telegram — execution handled by main OpenClaw session."""
     import subprocess
     script = str(Path(__file__).parent / 'propose_trade.py')
     subprocess.run([sys.executable, script, action, ticker, str(shares),
-                    str(price), str(sl), str(tp), reason[:120]],
+                    str(price), str(sl), str(tp), reason[:120],
+                    str(round(rsi, 1)), str(int(volume))],
                    capture_output=True, timeout=15)
 
 # ── Local Screener (IBKR-native) ───────────────────────────────────────────────
@@ -241,7 +242,8 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
                       f'. ATR-based SL ${sl} | TP ${tp}. R/R 1:{rr}.')
 
             candidates.append({'type':'BUY','ticker':ticker,'price':price,
-                                'sl':sl,'tp':tp,'reason':reason,'rr':rr})
+                                'sl':sl,'tp':tp,'reason':reason,'rr':rr,
+                                'rsi':rsi,'volume':0})
             log(f'  ✅ {ticker} @ ${price:.2f} | RSI {rsi:.0f} | R/R 1:{rr} | SL ${sl} TP ${tp}')
 
         ib.disconnect()
@@ -360,7 +362,8 @@ def main():
             {'text': '✅ Execute Now', 'callback_data': f'APPROVE_BUY_{ticker}'},
             {'text': '❌ Reject',      'callback_data': f'REJECT_BUY_{ticker}'},
         ]])
-        propose_trade('BUY', ticker, shares, price, sl, tp, reason)
+        propose_trade('BUY', ticker, shares, price, sl, tp, reason,
+                     rsi=trade.get('rsi', 0), volume=trade.get('volume', 0))
         log(f'Buy signal proposed: {shares}x {ticker} @ ${price:.2f}')
         buys_done += 1
         deployable -= cost

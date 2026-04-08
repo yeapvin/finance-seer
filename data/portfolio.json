@@ -3,7 +3,7 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 781373.06
+    "USD": 774827.82
   },
   "positions": [
     {
@@ -36,7 +36,7 @@
     },
     {
       "ticker": "IMFL",
-      "shares": 200,
+      "shares": 400,
       "avgCost": 32.9255,
       "buyPrice": 32.9255,
       "currentPrice": null,
@@ -73,7 +73,7 @@
   "valueHistory": [
     {
       "date": "2026-04-08",
-      "value": 813041.62
+      "value": 813014.68
     }
   ],
   "atrMultipliers": {
@@ -183,10 +183,10 @@
   ],
   "note": "Reset 2026-04-08: matched to IBKR paper account DU7992310 NLV (SGD 1,042,178 @ 0.7854 = USD 818,527)",
   "ibkrNLV": {
-    "sgd": 1042101.86,
-    "usd": 813041.62,
+    "sgd": 1042067.33,
+    "usd": 813014.68,
     "rate": 0.780194,
-    "syncedAt": "2026-04-08T15:36:41.903051Z"
+    "syncedAt": "2026-04-08T15:39:20.513829Z"
   },
   "pendingTrades": {}
 }

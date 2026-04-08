@@ -19,6 +19,7 @@ import { calculateAllIndicators } from '@/lib/indicators'
 import { detectPatterns, findSupportResistance } from '@/lib/patterns'
 import { screenMarket, getCurrentMarketSession } from '@/lib/screener'
 import { getHistoricalOHLCV, getNews } from '@/lib/market-data'
+import { sendTelegram } from '@/lib/telegram'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,18 +31,7 @@ function nowISO() { return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z') }
 function getCurrency(_ticker: string) { return 'USD' }
 function fmt(n: number, currency = 'USD') { return `${currency} $${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
 
-async function sendTelegram(message: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_CHAT_ID
-  if (!token || !chatId) return
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
-    })
-  } catch (e) { console.error('Telegram failed:', e) }
-}
+
 
 // ── Trading Rules Constants ──────────────────────────────────────────────────
 const MAX_POSITIONS = 5

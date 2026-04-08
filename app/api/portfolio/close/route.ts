@@ -7,26 +7,9 @@ import { getLiveQuote, getHistoricalOHLCV } from '@/lib/market-data'
 import { calculateAllIndicators } from '@/lib/indicators'
 import { findSupportResistance, detectPatterns } from '@/lib/patterns'
 import { readPortfolio, writePortfolio } from '@/lib/portfolio-store'
+import { sendTelegram, NYSE_HOLIDAYS } from '@/lib/telegram'
 
 export const dynamic = 'force-dynamic'
-
-const NYSE_HOLIDAYS = [
-  '2025-01-01','2025-01-20','2025-02-17','2025-04-18','2025-05-26',
-  '2025-06-19','2025-07-04','2025-09-01','2025-11-27','2025-12-25',
-  '2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25',
-  '2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25'
-]
-
-async function sendTelegram(message: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_CHAT_ID
-  if (!token || !chatId) return
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
-  })
-}
 
 async function getPositionAnalysis(ticker: string): Promise<string> {
   try {

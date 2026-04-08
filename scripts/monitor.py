@@ -347,8 +347,18 @@ def process_pending_trades(p: dict) -> bool:
             continue
 
         created = trade.get('createdAt', '')
-        # Execute any pending trade — if Vincent tapped Reject, status is already 'rejected'
-        # No time-based delay needed; heartbeat interval is the natural gate
+        # Minimum 2-minute window before auto-executing
+        # Gives Vincent time to reject even if heartbeat fires quickly after proposal
+        MIN_DECISION_SECS = 120  # 2 minutes
+        try:
+            created_ts = datetime.fromisoformat(created.replace('Z','+00:00')).astimezone(timezone.utc).timestamp()
+            age_secs = now - created_ts
+        except:
+            age_secs = MIN_DECISION_SECS + 1  # unknown age — safe to execute
+
+        if age_secs < MIN_DECISION_SECS:
+            log(f'  Pending {ticker}: only {age_secs:.0f}s old, waiting for {MIN_DECISION_SECS}s minimum window')
+            continue
 
         action = trade['action']
         ticker = trade['ticker']

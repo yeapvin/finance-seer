@@ -6,7 +6,9 @@ Execution is handled by the main OpenClaw session.
 Usage: python3 propose_trade.py BUY AAPL 50 258.82 245.00 284.00 "RSI oversold at support" 62.5 1234567
        args: action ticker shares price sl tp reason rsi volume
 """
-import sys, json, urllib.request
+import sys, json, urllib.request, time
+from datetime import datetime
+from pathlib import Path
 
 TG_TOKEN = '8609316971:AAFhvA7fOyXRx5ch5Mm740ajcjMRD5brIr4'
 TG_CHAT  = '786437034'
@@ -120,6 +122,22 @@ if __name__ == '__main__':
         {'text': '✅ Execute Now', 'callback_data': f'APPROVE_{action}_{ticker}'},
         {'text': '❌ Reject',      'callback_data': f'REJECT_{action}_{ticker}'},
     ]])
+    # Store pending trade so approval_handler.py can execute it
+    try:
+        portfolio_path = Path(__file__).parent.parent / 'data' / 'portfolio.json'
+        with open(portfolio_path) as f:
+            p = json.load(f)
+        trade_id = f'{action}_{ticker}_{int(time.time())}'
+        p.setdefault('pendingTrades', {})[trade_id] = {
+            'action': action, 'ticker': ticker, 'shares': shares,
+            'price': price, 'sl': sl, 'tp': tp, 'reason': reason,
+            'status': 'pending', 'createdAt': datetime.now().isoformat()
+        }
+        with open(portfolio_path, 'w') as f:
+            json.dump(p, f, indent=2)
+    except Exception as e:
+        print(f'Warning: could not store pending trade: {e}', file=sys.stderr)
+
     print(json.dumps({'sent': True, 'action': action, 'ticker': ticker,
                       'shares': shares, 'price': price, 'sl': sl, 'tp': tp,
                       'reason': reason, 'name': name}))

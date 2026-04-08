@@ -3,12 +3,12 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 531904.59
+    "USD": 289356.71
   },
   "positions": [
     {
       "ticker": "GOOGL",
-      "shares": 384,
+      "shares": 768,
       "avgCost": 318.2924,
       "buyPrice": 318.2924,
       "currentPrice": null,
@@ -22,7 +22,7 @@
     },
     {
       "ticker": "NVDA",
-      "shares": 672,
+      "shares": 1344,
       "avgCost": 181.9055,
       "buyPrice": 181.9055,
       "currentPrice": null,
@@ -133,7 +133,7 @@
     },
     {
       "date": "2026-04-09",
-      "value": 813008.09
+      "value": 813300.26
     }
   ],
   "atrMultipliers": {
@@ -243,10 +243,10 @@
   ],
   "note": "Reset 2026-04-08: matched to IBKR paper account DU7992310 NLV (SGD 1,042,178 @ 0.7854 = USD 818,527)",
   "ibkrNLV": {
-    "sgd": 1042058.88,
-    "usd": 813008.09,
+    "sgd": 1042433.37,
+    "usd": 813300.26,
     "rate": 0.780194,
-    "syncedAt": "2026-04-08T16:08:18.733950Z"
+    "syncedAt": "2026-04-08T16:34:17.546763Z"
   },
   "pendingTrades": {}
 }

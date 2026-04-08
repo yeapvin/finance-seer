@@ -333,8 +333,96 @@ def is_market_open() -> bool:
     current_mins = h * 60 + m
     return open_mins <= current_mins < close_mins
 
+def process_pending_trades(p: dict) -> bool:
+    """Auto-execute pending trades older than 30 seconds. Returns True if any executed."""
+    pending = p.get('pendingTrades', {})
+    if not pending:
+        return False
+
+    executed_any = False
+    now = datetime.now(timezone.utc).timestamp()
+
+    for trade_id, trade in list(pending.items()):
+        if trade.get('status') != 'pending':
+            continue
+
+        created = trade.get('createdAt', '')
+        try:
+            from datetime import timezone as tz
+            created_ts = datetime.fromisoformat(created.replace('Z','+00:00')).timestamp()
+            age_secs = now - created_ts
+        except:
+            age_secs = 999  # unknown age — execute it
+
+        if age_secs < 30:
+            log(f'  Pending trade {trade_id} only {age_secs:.0f}s old, waiting...')
+            continue
+
+        action = trade['action']
+        ticker = trade['ticker']
+        shares = trade['shares']
+        price  = trade['price']
+        sl     = trade.get('sl', round(price * 0.92, 2))
+        tp     = trade.get('tp', round(price * 1.15, 2))
+        reason = trade.get('reason', '')
+
+        log(f'Auto-executing {action} {shares}x {ticker} @ ${price:.2f} (age: {age_secs:.0f}s)')
+        p['pendingTrades'][trade_id]['status'] = 'executing'
+
+        result = subprocess.run(
+            [sys.executable, str(SCRIPTS / 'ibkr_execute.py'), action, ticker, str(shares), str(price)],
+            capture_output=True, text=True, timeout=60
+        )
+        try:
+            ibkr = json.loads(result.stdout)
+        except:
+            log(f'  IBKR error: {result.stderr}')
+            p['pendingTrades'][trade_id]['status'] = 'failed'
+            continue
+
+        if ibkr.get('error'):
+            log(f'  IBKR error: {ibkr["error"]}')
+            p['pendingTrades'][trade_id]['status'] = 'failed'
+            send_telegram(f'⚠️ IBKR error on {action} {ticker}: {ibkr["error"]}')
+            continue
+
+        filled   = ibkr.get('filled', 0)
+        avg_fill = ibkr.get('avgFillPrice', price)
+        commission = ibkr.get('commission', 0)
+
+        # Record trade
+        subprocess.run(
+            [sys.executable, str(SCRIPTS / 'record_trade.py'),
+             action, ticker, str(int(filled)), str(price), str(avg_fill), str(commission)],
+            capture_output=True, timeout=30
+        )
+
+        p['pendingTrades'][trade_id]['status'] = 'executed'
+        executed_any = True
+
+        emoji = '🟢' if action == 'BUY' else '🔴'
+        cost_k = (avg_fill * shares) / 1000
+        send_telegram(
+            f'{emoji} *Auto-executed: {action} {int(filled)}x {ticker}* @ ${avg_fill:.2f}\n'
+            f'Cost: ~${cost_k:.1f}K | SL ${sl:.2f} | TP ${tp:.2f}\n'
+            f'Commission: ${commission:.4f}'
+        )
+        log(f'  Executed: {int(filled)}x {ticker} @ ${avg_fill:.2f}')
+
+    return executed_any
+
+
 def main():
     log('Starting monitor run')
+
+    # Always check for pending trades first (regardless of market hours)
+    try:
+        with open(PORTFOLIO) as f:
+            p_check = json.load(f)
+        if process_pending_trades(p_check):
+            push_portfolio(p_check)
+    except Exception as e:
+        log(f'Pending trade check error: {e}')
 
     # Guard: only run during NYSE hours (UTC)
     if not is_market_open():

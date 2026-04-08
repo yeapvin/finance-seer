@@ -104,6 +104,18 @@ def main():
             history[-1]['value'] = nlv_usd
         portfolio['valueHistory'] = history
 
+        # Sanitize: replace NaN/Inf with None before writing
+        import math
+        def sanitize(obj):
+            if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+                return None
+            if isinstance(obj, dict):
+                return {k: sanitize(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [sanitize(v) for v in obj]
+            return obj
+        portfolio = sanitize(portfolio)
+
         with open(PORTFOLIO_PATH, 'w') as f:
             json.dump(portfolio, f, indent=2)
 

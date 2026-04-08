@@ -1,51 +1,11 @@
 {
-  "startDate": "2026-03-29",
-  "startingCapital": 100000,
+  "startDate": "2026-04-08",
+  "startingCapital": 105462.56,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 44480.82
+    "USD": 105462.56
   },
-  "positions": [
-    {
-      "ticker": "AAPL",
-      "shares": 80,
-      "avgCost": 248.8,
-      "buyDate": "2026-03-29",
-      "buyPrice": 248.8,
-      "currentPrice": 254.69,
-      "currency": "USD",
-      "stopLoss": 245,
-      "takeProfit": 258,
-      "signal": "BUY",
-      "reason": "Blue chip at tight support $248. Near 52-week low. Resistance $258."
-    },
-    {
-      "ticker": "CRM",
-      "shares": 109,
-      "avgCost": 183.53,
-      "buyDate": "2026-04-02",
-      "buyPrice": 183.53,
-      "currentPrice": 183.53,
-      "currency": "USD",
-      "stopLoss": 175.72,
-      "takeProfit": 200.85,
-      "signal": "BUY",
-      "reason": "Deeply oversold (RSI 22) at support $179.31. Contrarian entry. Resistance $200.85."
-    },
-    {
-      "ticker": "SNOW",
-      "shares": 132,
-      "avgCost": 151.34,
-      "buyDate": "2026-04-02",
-      "buyPrice": 151.34,
-      "currentPrice": 151.34,
-      "currency": "USD",
-      "stopLoss": 144,
-      "takeProfit": 168,
-      "signal": "BUY",
-      "reason": "Oversold (RSI 39.71) at 52-week support $153.84. Contrarian reversal setup. Trend target $168."
-    }
-  ],
+  "positions": [],
   "history": [
     {
       "date": "2026-03-29",
@@ -148,6 +108,42 @@
       "pnl": 1930.1799999999998,
       "pnlPct": 9.682425978987583,
       "currency": "USD"
+    },
+    {
+      "date": "2026-04-08",
+      "action": "SELL",
+      "ticker": "AAPL",
+      "shares": 80,
+      "price": 258.62,
+      "total": 20689.6,
+      "reason": "Portfolio reset \u2014 closed at $258.62. PnL: +785.60 (+3.95%)",
+      "pnl": 785.5999999999995,
+      "pnlPct": 3.9469453376205754,
+      "currency": "USD"
+    },
+    {
+      "date": "2026-04-08",
+      "action": "SELL",
+      "ticker": "CRM",
+      "shares": 109,
+      "price": 183.46,
+      "total": 19997.14,
+      "reason": "Portfolio reset \u2014 closed at $183.46. PnL: -7.63 (-0.04%)",
+      "pnl": -7.6299999999992565,
+      "pnlPct": -0.038140903394536685,
+      "currency": "USD"
+    },
+    {
+      "date": "2026-04-08",
+      "action": "SELL",
+      "ticker": "SNOW",
+      "shares": 132,
+      "price": 153.75,
+      "total": 20295.0,
+      "reason": "Portfolio reset \u2014 closed at $153.75. PnL: +318.12 (+1.59%)",
+      "pnl": 318.11999999999955,
+      "pnlPct": 1.592440861636049,
+      "currency": "USD"
     }
   ],
   "closedPositions": [
@@ -201,6 +197,42 @@
       "pnl": 1930.1799999999998,
       "pnlPct": 9.682425978987583,
       "currency": "USD"
+    },
+    {
+      "ticker": "AAPL",
+      "shares": 80,
+      "buyDate": "2026-03-29",
+      "buyPrice": 248.8,
+      "sellDate": "2026-04-08",
+      "sellPrice": 258.62,
+      "reason": "Portfolio reset \u2014 closed at $258.62. PnL: +785.60 (+3.95%)",
+      "pnl": 785.5999999999995,
+      "pnlPct": 3.9469453376205754,
+      "currency": "USD"
+    },
+    {
+      "ticker": "CRM",
+      "shares": 109,
+      "buyDate": "2026-04-02",
+      "buyPrice": 183.53,
+      "sellDate": "2026-04-08",
+      "sellPrice": 183.46,
+      "reason": "Portfolio reset \u2014 closed at $183.46. PnL: -7.63 (-0.04%)",
+      "pnl": -7.6299999999992565,
+      "pnlPct": -0.038140903394536685,
+      "currency": "USD"
+    },
+    {
+      "ticker": "SNOW",
+      "shares": 132,
+      "buyDate": "2026-04-02",
+      "buyPrice": 151.34,
+      "sellDate": "2026-04-08",
+      "sellPrice": 153.75,
+      "reason": "Portfolio reset \u2014 closed at $153.75. PnL: +318.12 (+1.59%)",
+      "pnl": 318.11999999999955,
+      "pnlPct": 1.592440861636049,
+      "currency": "USD"
     }
   ],
   "cooldowns": {},
@@ -237,20 +269,8 @@
   "monthlyReviews": [],
   "valueHistory": [
     {
-      "date": "2026-03-29",
-      "value": 100000.0
-    },
-    {
-      "date": "2026-03-31",
-      "value": 102407.64
-    },
-    {
-      "date": "2026-04-01",
-      "value": 103893.54
-    },
-    {
-      "date": "2026-04-02",
-      "value": 103979.64
+      "date": "2026-04-08",
+      "value": 105462.56
     }
   ],
   "atrMultipliers": {
@@ -357,5 +377,6 @@
       "note": "SIA Engineering",
       "alertThreshold": 5
     }
-  ]
+  ],
+  "note": "Reset 2026-04-08: synced with IBKR paper account DU7992310. Sub-portfolio USD 105,462.56"
 }

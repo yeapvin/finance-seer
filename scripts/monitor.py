@@ -29,7 +29,6 @@ FINANCE_SEER = 'https://finance-seer.vercel.app'
 MAX_POSITIONS    = 8
 MIN_CASH_RESERVE = 0.15  # 15% cash reserve
 MAX_POSITION_PCT = 0.15  # 15% max per position (matches Vercel screener settings)
-APPROVAL_TIMEOUT = 180   # 3 minutes
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -114,18 +113,13 @@ def push_portfolio(p: dict):
     except:
         pass
 
-def await_approval(signal_ts: float, ticker: str, action: str) -> str:
-    """Wait up to 3 mins for APPROVE/REJECT. Default: APPROVE."""
-    deadline = signal_ts + APPROVAL_TIMEOUT
-    while time.time() < deadline:
-        time.sleep(10)
-        msgs = get_recent_messages(signal_ts)
-        for m in msgs:
-            if 'REJECT' in m or 'CANCEL' in m or ticker in m and 'NO' in m:
-                return 'REJECT'
-            if 'APPROVE' in m or 'EXECUTE' in m or 'YES' in m:
-                return 'APPROVE'
-    return 'APPROVE'  # auto-execute after timeout
+def propose_trade(action: str, ticker: str, shares: int, price: float, sl: float, tp: float, reason: str):
+    """Send trade proposal via Telegram — execution handled by main OpenClaw session."""
+    import subprocess
+    script = str(Path(__file__).parent / 'propose_trade.py')
+    subprocess.run([sys.executable, script, action, ticker, str(shares),
+                    str(price), str(sl), str(tp), reason[:120]],
+                   capture_output=True, timeout=15)
 
 # ── Local Screener (IBKR-native) ───────────────────────────────────────────────
 def calc_rsi(closes: list, period=14) -> float:
@@ -304,55 +298,13 @@ def main():
 
         if trigger:
             shares = pos['shares']
-            emoji  = '🟢' if price >= pos['buyPrice'] else '🔴'
-            pnl    = (price - pos['buyPrice']) * shares
-            signal_ts = time.time()
-
-            msg = (f"⚡ Trade Signal: SELL {shares}x *{pos['ticker']}* @ ${price:.2f}\n"
-                   f"Reason: {reason}\n"
-                   f"P&L: {'+' if pnl>=0 else ''}${pnl:.0f}\n"
-                   f"Executing in 3 mins unless you reject.")
-            send_telegram(msg, buttons=[[
-                {'text': '✅ Execute Now', 'callback_data': f'APPROVE_SELL_{pos["ticker"]}'},
-                {'text': '❌ Reject',      'callback_data': f'REJECT_SELL_{pos["ticker"]}'},
-            ]])
-            log(f'SL/TP triggered: SELL {shares}x {pos["ticker"]} @ ${price:.2f}')
-
-            decision = await_approval(signal_ts, pos['ticker'], 'SELL')
-
-            if decision == 'REJECT':
-                send_telegram(f'❌ Trade cancelled: SELL {shares}x *{pos["ticker"]}*')
-                log('Trade rejected by user')
-                continue
-
-            # Execute
-            ibkr = ibkr_trade('SELL', pos['ticker'], shares, price)
-            if ibkr.get('error'):
-                send_telegram(f'⚠️ IBKR error: {ibkr["error"]}')
-                log(f'IBKR error: {ibkr["error"]}')
-                continue
-
-            today = datetime.now().strftime('%Y-%m-%d')
-            proceeds = price * shares
-            p['cashByValue']['USD'] = round(cash_usd + proceeds, 2)
-            p['positions'] = [x for x in p['positions'] if x['ticker'] != pos['ticker']]
-            p.setdefault('closedPositions', []).append({
-                'ticker': pos['ticker'], 'shares': shares,
-                'buyDate': pos.get('buyDate'), 'buyPrice': pos['buyPrice'],
-                'sellDate': today, 'sellPrice': price,
-                'reason': reason, 'pnl': pnl, 'pnlPct': pnl/(pos['buyPrice']*shares)*100,
-                'currency': 'USD'
-            })
-            p.setdefault('history', []).append({
-                'date': today, 'action': 'SELL', 'ticker': pos['ticker'],
-                'shares': shares, 'price': price, 'total': proceeds,
-                'reason': reason, 'currency': 'USD'
-            })
-            push_portfolio(p)
-            valueK = (p['cashByValue']['USD'] + sum(x.get('currentPrice',x['buyPrice'])*x['shares'] for x in p['positions'])) / 1000
-            send_telegram(f'{emoji} Portfolio Trade: SELL {shares}x *{pos["ticker"]}* @ ${price:.2f} — {reason}. P&L: {"+" if pnl>=0 else ""}${abs(pnl):.0f}. Portfolio: ${valueK:.1f}K')
-            log(f'SELL executed: {shares}x {pos["ticker"]} @ ${price:.2f}')
-            cash_usd = p['cashByValue']['USD']
+            pnl = (price - pos['buyPrice']) * shares
+            full_reason = f"{reason} P&L if sold: {'+' if pnl>=0 else ''}${pnl:.0f}"
+            propose_trade('SELL', pos['ticker'], shares, price,
+                          pos.get('stopLoss', round(price*0.95,2)),
+                          pos.get('takeProfit', round(price*1.08,2)),
+                          full_reason)
+            log(f'SL/TP signal proposed: SELL {shares}x {pos["ticker"]} @ ${price:.2f}')
 
     # 3. Scan for buy opportunities
     n_positions = len(p['positions'])
@@ -400,7 +352,6 @@ def main():
         reason = trade.get('reason', f'Screener buy signal @ ${price:.2f}')
         cost = shares * price
 
-        signal_ts = time.time()
         msg = (f"⚡ Buy Signal: BUY {shares}x *{ticker}* @ ${price:.2f}\n"
                f"Cost: ~${cost:,.0f} | TP ${tp:.2f} | SL ${sl:.2f}\n"
                f"_{reason[:120]}_\n"
@@ -409,43 +360,8 @@ def main():
             {'text': '✅ Execute Now', 'callback_data': f'APPROVE_BUY_{ticker}'},
             {'text': '❌ Reject',      'callback_data': f'REJECT_BUY_{ticker}'},
         ]])
-        log(f'Buy signal: {shares}x {ticker} @ ${price:.2f}')
-
-        decision = await_approval(signal_ts, ticker, 'BUY')
-
-        if decision == 'REJECT':
-            send_telegram(f'❌ Trade cancelled: BUY {shares}x *{ticker}*')
-            log('Buy rejected by user')
-            continue
-
-        ibkr = ibkr_trade('BUY', ticker, shares, price)
-        if ibkr.get('error'):
-            send_telegram(f'⚠️ IBKR error: {ibkr["error"]}')
-            log(f'IBKR error: {ibkr["error"]}')
-            continue
-
-        today = datetime.now().strftime('%Y-%m-%d')
-        p['positions'].append({
-            'ticker': ticker, 'shares': shares,
-            'avgCost': price, 'buyPrice': price, 'currentPrice': price,
-            'buyDate': today, 'stopLoss': sl, 'takeProfit': tp,
-            'signal': 'BUY', 'currency': 'USD', 'reason': reason,
-            'ibkrOrderId': ibkr.get('orderId'),
-        })
-        p['cashByValue']['USD'] = round(p['cashByValue']['USD'] - cost, 2)
-        p.setdefault('history', []).append({
-            'date': today, 'action': 'BUY', 'ticker': ticker,
-            'shares': shares, 'price': price, 'total': cost,
-            'reason': reason, 'currency': 'USD'
-        })
-        p.setdefault('strategyNotes', []).append({
-            'date': datetime.now().isoformat(),
-            'note': f'Bought {shares} {ticker} @ ${price:.2f} (-${cost:,.0f}). SL ${sl} | TP ${tp}. Cash now ${p["cashByValue"]["USD"]:,.0f}.'
-        })
-        push_portfolio(p)
-        valueK = (p['cashByValue']['USD'] + sum(x.get('currentPrice',x['buyPrice'])*x['shares'] for x in p['positions'])) / 1000
-        send_telegram(f'🟢 Portfolio Trade: BUY {shares}x *{ticker}* @ ${price:.2f} — {reason[:100]}. TP ${tp:.2f} | SL ${sl:.2f}. Portfolio: ${valueK:.1f}K')
-        log(f'BUY executed: {shares}x {ticker} @ ${price:.2f}')
+        propose_trade('BUY', ticker, shares, price, sl, tp, reason)
+        log(f'Buy signal proposed: {shares}x {ticker} @ ${price:.2f}')
         buys_done += 1
         deployable -= cost
         n_positions += 1

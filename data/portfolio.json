@@ -3,7 +3,7 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 800241.4
+    "USD": 781373.06
   },
   "positions": [
     {
@@ -18,6 +18,34 @@
       "reason": "Test buy on SPY +3.78% rally day. RSI recovering from recent selloff. Entry $258.82. SL $245.86 (5% below) | TP $284.70 (10% above). R/R 1:2.0.",
       "stopLoss": 245.88,
       "takeProfit": 284.7,
+      "ibkrOrderId": null
+    },
+    {
+      "ticker": "GSG",
+      "shares": 400,
+      "avgCost": 31.0054,
+      "buyPrice": 31.0054,
+      "currentPrice": null,
+      "buyDate": "2026-04-08",
+      "signal": "BUY",
+      "currency": "USD",
+      "reason": "IBKR scanner: HIGH_VS_13W_HL. RSI 46, above SMA200. ATR-based SL $29.15 | TP $34.73. R/R 1:2.0.",
+      "stopLoss": 29.15,
+      "takeProfit": 34.73,
+      "ibkrOrderId": null
+    },
+    {
+      "ticker": "IMFL",
+      "shares": 200,
+      "avgCost": 32.9255,
+      "buyPrice": 32.9255,
+      "currentPrice": null,
+      "buyDate": "2026-04-08",
+      "signal": "BUY",
+      "currency": "USD",
+      "reason": "IBKR scanner: HOT_BY_VOLUME. RSI 61, above SMA50. ATR-based SL $30.95 | TP $36.88. R/R 1:2.0.",
+      "stopLoss": 30.95,
+      "takeProfit": 36.88,
       "ibkrOrderId": null
     }
   ],
@@ -45,7 +73,7 @@
   "valueHistory": [
     {
       "date": "2026-04-08",
-      "value": 813069.32
+      "value": 813041.62
     }
   ],
   "atrMultipliers": {
@@ -155,10 +183,10 @@
   ],
   "note": "Reset 2026-04-08: matched to IBKR paper account DU7992310 NLV (SGD 1,042,178 @ 0.7854 = USD 818,527)",
   "ibkrNLV": {
-    "sgd": 1042137.36,
-    "usd": 813069.32,
+    "sgd": 1042101.86,
+    "usd": 813041.62,
     "rate": 0.780194,
-    "syncedAt": "2026-04-08T15:28:35.063510Z"
+    "syncedAt": "2026-04-08T15:36:41.903051Z"
   },
   "pendingTrades": {}
 }

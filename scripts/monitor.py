@@ -402,6 +402,15 @@ def process_pending_trades(p: dict) -> bool:
             continue
 
         created = trade.get('createdAt', '')
+        # MARGIN CHECK: verify enough cash before executing
+        cost = trade['shares'] * trade['price']
+        current_cash = p['cashByValue'].get('USD', 0)
+        if trade['action'] == 'BUY' and current_cash < cost:
+            log(f'  MARGIN PROTECTION: not enough cash (${current_cash:,.0f}) for {trade["action"]} {trade["ticker"]} (${cost:,.0f})')
+            p['pendingTrades'][trade_id]['status'] = 'rejected'
+            send_telegram(f'⛔ {trade["action"]} {trade["ticker"]} rejected — insufficient cash (${current_cash:,.0f} < ${cost:,.0f})')
+            continue
+
         # Proposal was sent by previous heartbeat run.
         # This heartbeat fires ~5 min later — that's the natural decision window.
 
@@ -541,6 +550,12 @@ def main():
     n_positions = len(p['positions'])
     if n_positions >= MAX_POSITIONS:
         log(f'Max positions ({MAX_POSITIONS}) reached, skipping buy scan')
+        return
+
+    # HARD RULE: Never go on margin — cash must be positive before any buy
+    if cash_usd <= 0:
+        log(f'MARGIN PROTECTION: cash is ${cash_usd:,.2f} — no buys allowed')
+        send_telegram('⛔ Margin protection triggered — no new buys until cash is positive.')
         return
 
     min_cash   = total_usd * MIN_CASH_RESERVE

@@ -296,13 +296,14 @@ export default function PortfolioPage() {
 
 
           {/* Closed Positions */}
-          {closedPositions.length > 0 && (
+          {(
             <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
                 <TrendingDown size={14} style={{ color: '#a78bfa' }} />
                 <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Closed Positions</span>
                 <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '4px' }}>{closedPositions.length} trades</span>
               </div>
+              {closedPositions.length === 0 && <p style={{ color: '#71717a', fontSize: '13px', margin: 0 }}>No closed positions yet.</p>}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {closedPositions.slice().reverse().map((cp, i) => (
                   <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${cp.pnl >= 0 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: '10px', padding: '12px 14px' }}>
@@ -332,12 +333,13 @@ export default function PortfolioPage() {
           )}
 
           {/* Strategy Notes */}
-          {strategyNotes.length > 0 && (
+          {(
             <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
                 <FileText size={14} style={{ color: '#f59e0b' }} />
                 <span style={{ color: '#a5b4fc', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Strategy Notes</span>
               </div>
+              {strategyNotes.length === 0 && <p style={{ color: '#71717a', fontSize: '13px', margin: 0 }}>No strategy notes yet.</p>}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {strategyNotes.slice().reverse().map((note: any, i: number) => (
                   <div key={i} style={{ borderLeft: '2px solid rgba(99,102,241,0.3)', paddingLeft: '10px' }}>

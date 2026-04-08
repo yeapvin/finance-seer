@@ -18,7 +18,7 @@ IBKR_PORT    = 4002
 IBKR_ACCOUNT = 'DU7992310'
 PORTFOLIO    = Path(__file__).parent.parent / 'data' / 'portfolio.json'
 SCRIPTS      = Path(__file__).parent
-IBKR_CLI     = SCRIPTS / 'ibkr_trade.py'
+IBKR_CLI     = SCRIPTS / 'ibkr_execute.py'  # uses limit orders + commission tracking
 SYNC_SCRIPT  = SCRIPTS / 'sync_from_ibkr.py'
 KV_URL       = 'https://clean-eagle-92052.upstash.io'
 KV_TOKEN     = 'gQAAAAAAAWeUAAIncDFiZmRiYzc1NDY1YjI0NjU3YTYwMzc4Y2Y4ZTIxZWUzNHAxOTIwNTI'
@@ -77,11 +77,12 @@ def get_recent_messages(since_ts: float) -> list[str]:
     except:
         return []
 
-def ibkr_trade(action: str, ticker: str, shares: int, price: float = None) -> dict:
-    args = [sys.executable, str(IBKR_CLI), action, ticker, str(shares)]
-    if price:
-        args.append(str(round(price, 2)))
-    result = subprocess.run(args, capture_output=True, text=True, timeout=30)
+def ibkr_trade(action: str, ticker: str, shares: int, price: float) -> dict:
+    """Execute limit order via IBKR. price is required (no market orders)."""
+    if not price or price <= 0:
+        return {'error': 'Price required for limit orders'}
+    args = [sys.executable, str(IBKR_CLI), action, ticker, str(shares), str(round(price, 2))]
+    result = subprocess.run(args, capture_output=True, text=True, timeout=60)
     try:
         return json.loads(result.stdout)
     except:

@@ -115,7 +115,7 @@ if __name__ == '__main__':
         f"",
         f"_{reason[:120]}_",
         f"",
-        f"Executing in 30 secs unless you reject.",
+        f"Tap ❌ to cancel, otherwise auto-executes at next scan.",
     ]
 
     send('\n'.join(lines), buttons=[[

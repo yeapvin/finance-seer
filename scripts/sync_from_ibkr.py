@@ -17,7 +17,19 @@ PORTFOLIO_PATH = Path(__file__).parent.parent / 'data' / 'portfolio.json'
 SGD_USD_FALLBACK = 0.7854
 
 def get_sgd_usd(ib=None) -> float:
-    """Return hardcoded SGD/USD rate (Forex not available on paper accounts)"""
+    """Get live SGD/USD rate via exchange-rates skill (XE.com)"""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ['node', '/home/joobi/.openclaw/workspace/skills/exchange-rates/scripts/xe-rate.mjs', 'SGD', 'USD'],
+            capture_output=True, text=True, timeout=15
+        )
+        data = json.loads(result.stdout)
+        rate = float(data.get('rate', 0))
+        if rate > 0:
+            return rate
+    except:
+        pass
     return SGD_USD_FALLBACK
 
 def main():

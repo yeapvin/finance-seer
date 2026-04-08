@@ -209,14 +209,16 @@ export default function Home() {
                 type='text' value={query}
                 onChange={e => searchStocks(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && query.trim()) selectStock(query.trim()) }}
-                onFocus={() => results.length > 0 && setOpen(true)}
+                onFocus={e => { results.length > 0 && setOpen(true); setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300) }}
                 placeholder='Search ticker or company name...'
+                inputMode='search'
+                autoCapitalize='characters'
                 style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '16px' }}
               />
               {searchLoading && <Loader size={14} className='animate-spin' style={{ color: '#3b82f6', flexShrink: 0 }} />}
             </div>
             {open && results.length > 0 && (
-              <div style={{ position: 'absolute', left: 0, right: 0, top: 'calc(100% + 4px)', background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', zIndex: 50, overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 'calc(100% + 4px)', background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', zIndex: 9999, overflow: 'hidden', boxShadow: '0 -4px 24px rgba(0,0,0,0.7)', maxHeight: '50vh', overflowY: 'auto' }}>
                 {results.map((s, i) => (
                   <div key={i} onClick={() => selectStock(s.ticker)}
                     style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}

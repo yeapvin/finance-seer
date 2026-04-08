@@ -3,9 +3,23 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 774827.82
+    "USD": 653396.93
   },
   "positions": [
+    {
+      "ticker": "NVDA",
+      "shares": 672,
+      "avgCost": 181.9055,
+      "buyPrice": 181.9055,
+      "currentPrice": null,
+      "buyDate": "2026-04-08",
+      "signal": "BUY",
+      "currency": "USD",
+      "reason": "[MEDIUM] tvscreener: 3/5 signals. RSI 54. Above SMA200. R/R 1:2.0.",
+      "stopLoss": 167.35,
+      "takeProfit": 209.19,
+      "ibkrOrderId": null
+    },
     {
       "ticker": "AAPL",
       "shares": 50,
@@ -59,6 +73,16 @@
       "total": 12940.0,
       "reason": "Test buy via IBKR order #16",
       "currency": "USD"
+    },
+    {
+      "date": "2026-04-09",
+      "action": "BUY",
+      "ticker": "NVDA",
+      "shares": 672,
+      "price": 181.9,
+      "total": 122236.8,
+      "reason": "Approved by Vincent",
+      "currency": "USD"
     }
   ],
   "closedPositions": [],
@@ -67,13 +91,17 @@
     {
       "date": "2026-04-08T22:21:44.607857",
       "note": "Bought 50 AAPL @ $258.8 (-$12,940.00). SL $245.86 | TP $284.68. Cash now $805,795.51."
+    },
+    {
+      "date": "2026-04-09T15:56:00Z",
+      "note": "Bought 672 NVDA @ $181.90 (-$122,237). SL $167.35 | TP $209.19."
     }
   ],
   "monthlyReviews": [],
   "valueHistory": [
     {
       "date": "2026-04-08",
-      "value": 813014.68
+      "value": 812972.53
     }
   ],
   "atrMultipliers": {
@@ -183,10 +211,10 @@
   ],
   "note": "Reset 2026-04-08: matched to IBKR paper account DU7992310 NLV (SGD 1,042,178 @ 0.7854 = USD 818,527)",
   "ibkrNLV": {
-    "sgd": 1042067.33,
-    "usd": 813014.68,
+    "sgd": 1042013.31,
+    "usd": 812972.53,
     "rate": 0.780194,
-    "syncedAt": "2026-04-08T15:39:20.513829Z"
+    "syncedAt": "2026-04-08T15:56:31.993456Z"
   },
   "pendingTrades": {}
 }

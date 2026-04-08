@@ -34,11 +34,11 @@ function fmt(n: number, currency = 'USD') { return `${currency} $${n.toLocaleStr
 
 
 // ── Trading Rules Constants ──────────────────────────────────────────────────
-const MAX_POSITIONS = 5
-const MIN_CASH_RESERVE_PCT = 0.20   // Keep 20% cash
-const MAX_POSITION_PCT = 0.20       // Max 20% per position
-const MAX_SECTOR_POSITIONS = 2      // Max 2 per sector
-const MIN_RISK_REWARD = 2.0         // Min 1:2 R/R
+const MAX_POSITIONS = 8            // Allow up to 8 open positions
+const MIN_CASH_RESERVE_PCT = 0.15  // Keep 15% cash reserve
+const MAX_POSITION_PCT = 0.15      // Max 15% per position (more diversified)
+const MAX_SECTOR_POSITIONS = 3     // Allow 3 per sector
+const MIN_RISK_REWARD = 1.5        // Min 1:1.5 R/R (was 1:2)
 const MARKET_BEAR_THRESHOLD = -1.5  // % drop to trigger conservative mode
 
 // Sector mapping
@@ -429,7 +429,7 @@ export async function POST() {
         const bearMarket = await isMarketBearish()
         const signalThreshold = bearMarket ? 'STRONG_BUY' : 'BUY'
 
-        const screenResults = await screenMarket('NYSE', apiKey, 60)
+        const screenResults = await screenMarket('NYSE', apiKey, 100)
         const heldTickers = portfolio.positions.map((p: any) => p.ticker)
 
         // Rule 4: Build sector counts from current positions
@@ -470,14 +470,17 @@ export async function POST() {
           if (!analysis?.llmDecision) continue
 
           const { llmDecision, currentPrice, rsi } = analysis
-          if (llmDecision.action !== 'BUY' || llmDecision.conviction === 'LOW') continue
+          if (llmDecision.action !== 'BUY') continue  // Accept any conviction level
 
           // Rule 6: Trend filter — only buy if price > SMA200 OR RSI < 30
+          const sma50  = analysis.indicators.sma50
           const sma200 = analysis.indicators.sma200
+          const aboveSMA50  = sma50  > 0 && currentPrice > sma50
           const aboveSMA200 = sma200 > 0 && currentPrice > sma200
-          const oversold = rsi < 30
-          if (!aboveSMA200 && !oversold) {
-            console.log(`Skipping ${candidate.ticker} — below SMA200 and not oversold (RSI ${rsi.toFixed(0)})`)
+          const oversold = rsi < 35  // Widened from 30 to 35
+          // Accept: above SMA50, or above SMA200, or oversold
+          if (!aboveSMA50 && !aboveSMA200 && !oversold) {
+            console.log(`Skipping ${candidate.ticker} — below SMA50/200 and not oversold (RSI ${rsi.toFixed(0)})`)
             continue
           }
 

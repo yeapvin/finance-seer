@@ -1,72 +1,59 @@
 #!/usr/bin/env python3
 """
-Fetch TradingView technical data for a US stock ticker.
-Usage: python3 tv_quote.py AAPL
-Output: JSON with full technical indicators
+Fetch TradingView technical data for a US stock ticker via tvscreener.
+Usage: python3 tv_quote.py NVDA
+Output: JSON with key technical indicators
 """
 import sys
 import json
+import math
+
+def clean(v):
+    if v is None: return None
+    try:
+        if math.isnan(float(v)): return None
+    except: pass
+    return v
 
 def get_tv_data(ticker: str) -> dict:
     try:
-        from tvscreener import ScreenerClient, Market
-        client = ScreenerClient()
-        # Try NASDAQ first, then NYSE
-        for exchange in ['NASDAQ', 'NYSE', 'AMEX']:
-            symbol = f"{exchange}:{ticker}"
-            try:
-                result = client.query(
-                    market=Market.AMERICA,
-                    symbols=[symbol],
-                    fields=[
-                        'name', 'close', 'change', 'change_abs', 'volume',
-                        'Relative_Strength_Index_14',
-                        'MACD_macd_12_26',
-                        'MACD_signal_12_26',
-                        'MACD_hist_12_26',
-                        'SMA_20', 'SMA_50', 'SMA_200',
-                        'EMA_20', 'EMA_50', 'EMA_200',
-                        'BB_upper_20', 'BB_lower_20',
-                        'Stoch_K_14_3_3', 'Stoch_D_14_3_3',
-                        'ATR_14',
-                        'Recommend.All',
-                        'Recommend.MA',
-                        'Recommend.Other',
-                        'price_52_week_high',
-                        'price_52_week_low',
-                    ]
-                )
-                if result and len(result) > 0:
-                    row = result.iloc[0]
-                    return {
-                        'ticker': ticker,
-                        'exchange': exchange,
-                        'price': row.get('close'),
-                        'change_pct': row.get('change'),
-                        'volume': row.get('volume'),
-                        'rsi': row.get('Relative_Strength_Index_14'),
-                        'macd': row.get('MACD_macd_12_26'),
-                        'macd_signal': row.get('MACD_signal_12_26'),
-                        'macd_hist': row.get('MACD_hist_12_26'),
-                        'sma20': row.get('SMA_20'),
-                        'sma50': row.get('SMA_50'),
-                        'sma200': row.get('SMA_200'),
-                        'ema20': row.get('EMA_20'),
-                        'ema200': row.get('EMA_200'),
-                        'bb_upper': row.get('BB_upper_20'),
-                        'bb_lower': row.get('BB_lower_20'),
-                        'stoch_k': row.get('Stoch_K_14_3_3'),
-                        'stoch_d': row.get('Stoch_D_14_3_3'),
-                        'atr': row.get('ATR_14'),
-                        'tv_rating': row.get('Recommend.All'),  # -1 strong sell to +1 strong buy
-                        'week52_high': row.get('price_52_week_high'),
-                        'week52_low': row.get('price_52_week_low'),
-                    }
-            except Exception:
-                continue
-        return {'error': f'No data found for {ticker}'}
-    except ImportError:
-        return {'error': 'tvscreener not installed'}
+        from tvscreener import StockScreener, StockField, Market, FilterOperator
+        sc = StockScreener()
+        sc.set_markets(Market.AMERICA)
+        sc.add_filter(StockField.NAME, FilterOperator.EQUAL, ticker.upper())
+        df = sc.get()
+        if df.empty:
+            return {'error': f'No data for {ticker}'}
+
+        row = df.iloc[0].to_dict()
+        return {
+            'ticker': ticker.upper(),
+            'price':        clean(row.get('Price', row.get('close', row.get('Close')))),
+            'change_pct':   clean(row.get('change', row.get('Change %'))),
+            'volume':       clean(row.get('volume', row.get('Volume'))),
+            'rsi':          clean(row.get('Relative Strength Index (14)')),
+            'macd':         clean(row.get('MACD Level (12, 26)')),
+            'macd_signal':  clean(row.get('MACD Signal (12, 26)')),
+            'macd_hist':    clean(row.get('MACD Histogram (12, 26)')),
+            'sma20':        clean(row.get('Simple Moving Average (20)')),
+            'sma50':        clean(row.get('Simple Moving Average (50)')),
+            'sma200':       clean(row.get('Simple Moving Average (200)')),
+            'ema20':        clean(row.get('Exponential Moving Average (20)')),
+            'ema200':       clean(row.get('Exponential Moving Average (200)')),
+            'bb_upper':     clean(row.get('Bollinger Upper Band (20)')),
+            'bb_lower':     clean(row.get('Bollinger Lower Band (20)')),
+            'stoch_k':      clean(row.get('Stochastic %K (14, 3, 3)')),
+            'stoch_d':      clean(row.get('Stochastic %D (14, 3, 3)')),
+            'atr':          clean(row.get('Average True Range (14)')),
+            'week52_high':  clean(row.get('52 Week High')),
+            'week52_low':   clean(row.get('52 Week Low')),
+            'tv_rating':    clean(row.get('Recommend.All')),      # -1=strong sell, +1=strong buy
+            'ma_rating':    clean(row.get('Recommend.MA')),
+            'osc_rating':   clean(row.get('Recommend.Other')),
+            'analyst_rating': clean(row.get('Analyst Rating')),
+            # Candlestick patterns detected (non-zero = active)
+            'patterns': {k.replace('Candle.',''):v for k,v in row.items() if k.startswith('Candle.') and v and v != 0},
+        }
     except Exception as e:
         return {'error': str(e)}
 

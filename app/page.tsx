@@ -39,6 +39,8 @@ export default function Home() {
   const [stockLoading, setStockLoading] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState<any>(null)
+  const [tvData, setTvData] = useState<any>(null)
+  const [fundamentals, setFundamentals] = useState<any>(null)
   const periodCache = useRef<Record<string, Partial<Record<Period, PeriodData>>>>({})
   const [currentData, setCurrentData] = useState<PeriodData | null>(null)
   const [loadingPeriods, setLoadingPeriods] = useState<Set<Period>>(new Set())
@@ -84,7 +86,7 @@ export default function Home() {
   const selectStock = (ticker: string) => {
     setQuery(''); setResults([]); setOpen(false)
     setSelectedTicker(ticker.toUpperCase())
-    setAnalysis(null); setPeriod('1d'); setCurrentData(null)
+    setAnalysis(null); setPeriod('1d'); setCurrentData(null); setTvData(null); setFundamentals(null)
   }
 
   const fetchPeriod = async (ticker: string, p: Period): Promise<PeriodData | null> => {
@@ -114,9 +116,21 @@ export default function Home() {
       if (defaultData) setCurrentData(defaultData)
       setStockLoading(false)
       setAnalyzing(true)
-      fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticker: selectedTicker }) })
-        .then(r => r.ok ? r.json() : null).then(data => { if (!cancelled && data) setAnalysis(data) })
-        .catch(() => {}).finally(() => { if (!cancelled) setAnalyzing(false) })
+      // Fetch analysis + TradingView data + fundamentals in parallel
+      Promise.all([
+        fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticker: selectedTicker }) })
+          .then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`/api/stock/${selectedTicker}/tv`)
+          .then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`/api/stock/${selectedTicker}/fundamentals`)
+          .then(r => r.ok ? r.json() : null).catch(() => null),
+      ]).then(([analysisData, tvRes, fundRes]) => {
+        if (!cancelled) {
+          if (analysisData) setAnalysis(analysisData)
+          if (tvRes && !tvRes.error) setTvData(tvRes)
+          if (fundRes && !fundRes.error) setFundamentals(fundRes)
+        }
+      }).finally(() => { if (!cancelled) setAnalyzing(false) })
       const remaining = PERIODS.filter(p => p !== '1d')
       setLoadingPeriods(new Set(remaining))
       await Promise.all(remaining.map(async (p) => {
@@ -356,6 +370,54 @@ export default function Home() {
                     })}
                   </div>
                 </div>
+
+                {/* Fundamentals & Analyst Banner */}
+                {fundamentals && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '6px', marginBottom: '10px' }}>
+                    {/* Analyst consensus */}
+                    {fundamentals.recommendation && (() => {
+                      const rec = fundamentals.recommendation.replace('_',' ').toUpperCase()
+                      const recColor = rec.includes('BUY') ? '#34d399' : rec.includes('SELL') ? '#f87171' : '#f59e0b'
+                      const recBg = rec.includes('BUY') ? 'rgba(16,185,129,0.12)' : rec.includes('SELL') ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)'
+                      return (
+                        <div style={{ background: recBg, border: `1px solid ${recColor}40`, borderRadius: '8px', padding: '7px 10px', textAlign: 'center' }}>
+                          <div style={{ color: '#a1a1aa', fontSize: '9px', fontWeight: 500, marginBottom: '2px' }}>ANALYSTS ({fundamentals.numberOfAnalysts})</div>
+                          <div style={{ color: recColor, fontSize: '11px', fontWeight: 700 }}>{rec}</div>
+                        </div>
+                      )
+                    })()}
+                    {fundamentals.targetPrice && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '7px 10px', textAlign: 'center' }}>
+                        <div style={{ color: '#a1a1aa', fontSize: '9px', fontWeight: 500, marginBottom: '2px' }}>TARGET</div>
+                        <div style={{ color: '#ffffff', fontSize: '11px', fontWeight: 700 }}>${fundamentals.targetPrice.toFixed(2)}</div>
+                      </div>
+                    )}
+                    {fundamentals.forwardPE && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '7px 10px', textAlign: 'center' }}>
+                        <div style={{ color: '#a1a1aa', fontSize: '9px', fontWeight: 500, marginBottom: '2px' }}>FWD P/E</div>
+                        <div style={{ color: '#e4e4e7', fontSize: '11px', fontWeight: 700 }}>{fundamentals.forwardPE.toFixed(1)}x</div>
+                      </div>
+                    )}
+                    {fundamentals.revenueGrowth != null && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '7px 10px', textAlign: 'center' }}>
+                        <div style={{ color: '#a1a1aa', fontSize: '9px', fontWeight: 500, marginBottom: '2px' }}>REV GROWTH</div>
+                        <div style={{ color: fundamentals.revenueGrowth >= 0 ? '#34d399' : '#f87171', fontSize: '11px', fontWeight: 700 }}>{(fundamentals.revenueGrowth * 100).toFixed(1)}%</div>
+                      </div>
+                    )}
+                    {fundamentals.profitMargins != null && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '7px 10px', textAlign: 'center' }}>
+                        <div style={{ color: '#a1a1aa', fontSize: '9px', fontWeight: 500, marginBottom: '2px' }}>NET MARGIN</div>
+                        <div style={{ color: '#e4e4e7', fontSize: '11px', fontWeight: 700 }}>{(fundamentals.profitMargins * 100).toFixed(1)}%</div>
+                      </div>
+                    )}
+                    {fundamentals.beta != null && (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '7px 10px', textAlign: 'center' }}>
+                        <div style={{ color: '#a1a1aa', fontSize: '9px', fontWeight: 500, marginBottom: '2px' }}>BETA</div>
+                        <div style={{ color: '#e4e4e7', fontSize: '11px', fontWeight: 700 }}>{fundamentals.beta.toFixed(2)}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Chart */}
                 {isPeriodLoading ? (

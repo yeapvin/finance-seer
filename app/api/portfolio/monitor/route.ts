@@ -21,6 +21,26 @@ import { screenMarket, getCurrentMarketSession } from '@/lib/screener'
 import { getHistoricalOHLCV, getNews } from '@/lib/market-data'
 
 export const dynamic = 'force-dynamic'
+
+// ── Trade Execution Mode ─────────────────────────────────────────────────────
+// APPROVAL: sends Telegram approval request, executes after Vincent confirms
+// PAPER: updates portfolio.json only (no IBKR)
+const EXECUTION_MODE = process.env.EXECUTION_MODE || 'APPROVAL'
+const APP_URL = process.env.APP_URL || 'https://finance-seer.vercel.app'
+
+async function requestApproval(action: 'BUY' | 'SELL', ticker: string, shares: number, price: number, sl: number, tp: number, reason: string): Promise<void> {
+  const tradeId = `${action}_${ticker}_${Date.now()}`
+  try {
+    await fetch(`${APP_URL}/api/portfolio/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ticker, shares, price, sl, tp, reason, tradeId })
+    })
+  } catch (e) {
+    console.error('Approval request failed:', e)
+  }
+}
+
 function today() { return new Date().toISOString().split('T')[0] }
 function nowISO() { return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z') }
 function getCurrency(_ticker: string) { return 'USD' }
@@ -603,6 +623,12 @@ export async function POST() {
 }
 
 async function executeTrade(portfolio: any, type: 'SELL', pos: any, price: number, reason: string, executedTrades: any[]) {
+  // Route through approval if APPROVAL mode
+  if (EXECUTION_MODE === 'APPROVAL') {
+    await requestApproval('SELL', pos.ticker, pos.shares, price, pos.stopLoss || price * 0.95, pos.takeProfit || price * 1.08, reason)
+    executedTrades.push({ type: 'SELL', ticker: pos.ticker, shares: pos.shares, price, currency: 'USD', reason, status: 'pending_approval' })
+    return
+  }
   const todayStr = today()
   const currency = getCurrency(pos.ticker)
   const proceeds = price * pos.shares
@@ -638,6 +664,12 @@ async function executeTrade(portfolio: any, type: 'SELL', pos: any, price: numbe
 }
 
 async function executeBuy(portfolio: any, ticker: string, shares: number, price: number, sl: number, tp: number, currency: string, reason: string, strategy: string, executedTrades: any[]) {
+  // Route through approval if APPROVAL mode
+  if (EXECUTION_MODE === 'APPROVAL') {
+    await requestApproval('BUY', ticker, shares, price, sl, tp, reason)
+    executedTrades.push({ type: 'BUY', ticker, shares, price, sl, tp, currency, reason, strategy, status: 'pending_approval' })
+    return
+  }
   const todayStr = today()
   const cost = price * shares
 

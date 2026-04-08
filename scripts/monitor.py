@@ -26,9 +26,13 @@ TG_TOKEN     = '8609316971:AAFhvA7fOyXRx5ch5Mm740ajcjMRD5brIr4'
 TG_CHAT      = '786437034'
 FINANCE_SEER = 'https://finance-seer.vercel.app'
 
+# NYSE market hours (all UTC)
+NYSE_OPEN_UTC  = (13, 30)  # 13:30 UTC
+NYSE_CLOSE_UTC = (20,  0)  # 20:00 UTC
+
 MAX_POSITIONS    = 8
 MIN_CASH_RESERVE = 0.15  # 15% cash reserve
-MAX_POSITION_PCT = 0.15  # 15% max per position (matches Vercel screener settings)
+MAX_POSITION_PCT = 0.15  # 15% max per position
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -316,8 +320,25 @@ def local_screen(portfolio: dict, cash_usd: float, total_usd: float) -> list:
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+def is_market_open() -> bool:
+    """Check if NYSE is open based on UTC time."""
+    now = datetime.now(timezone.utc)
+    dow = now.weekday()  # 0=Mon, 6=Sun
+    if dow >= 5:  # Saturday or Sunday
+        return False
+    h, m = now.hour, now.minute
+    open_mins  = NYSE_OPEN_UTC[0]  * 60 + NASDAQ_OPEN_UTC[1]  if False else NYSE_OPEN_UTC[0]  * 60 + NYSE_OPEN_UTC[1]
+    close_mins = NYSE_CLOSE_UTC[0] * 60 + NYSE_CLOSE_UTC[1]
+    current_mins = h * 60 + m
+    return open_mins <= current_mins < close_mins
+
 def main():
     log('Starting monitor run')
+
+    # Guard: only run during NYSE hours (UTC)
+    if not is_market_open():
+        log('Market closed (UTC check) — skipping')
+        return
 
     # 1. Sync from IBKR
     log('Syncing from IBKR...')

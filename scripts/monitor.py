@@ -327,7 +327,7 @@ def is_market_open() -> bool:
     if dow >= 5:  # Saturday or Sunday
         return False
     h, m = now.hour, now.minute
-    open_mins  = NYSE_OPEN_UTC[0]  * 60 + NASDAQ_OPEN_UTC[1]  if False else NYSE_OPEN_UTC[0]  * 60 + NYSE_OPEN_UTC[1]
+    open_mins  = NYSE_OPEN_UTC[0]  * 60 + NYSE_OPEN_UTC[1]
     close_mins = NYSE_CLOSE_UTC[0] * 60 + NYSE_CLOSE_UTC[1]
     current_mins = h * 60 + m
     return open_mins <= current_mins < close_mins

@@ -3,7 +3,7 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 837514.72
+    "USD": 837514.59
   },
   "positions": [
     {
@@ -303,10 +303,10 @@
     "sgd": 1041973.19,
     "usd": 817799.95,
     "rate": 0.784857,
-    "syncedAt": "2026-04-09T02:06:23.736529Z"
+    "syncedAt": "2026-04-09T02:11:47.288893Z"
   },
   "pendingTrades": {},
   "tradeHistory": [],
   "lastUpdated": "2026-04-08T18:34:12.862164+00:00",
-  "totalValue": 817772.56
+  "totalValue": 817772.43
 }

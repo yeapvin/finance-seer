@@ -3,7 +3,7 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 837097.29
+    "USD": 837095.99
   },
   "positions": [
     {
@@ -12,7 +12,7 @@
       "avgCost": 372.78,
       "buyPrice": 372.78,
       "currentPrice": 372.78,
-      "buyDate": "2026-04-09",
+      "buyDate": "2026-04-10",
       "signal": "HOLD",
       "currency": "USD",
       "reason": "IBKR position @ $372.78",
@@ -27,7 +27,7 @@
       "avgCost": 32.9036,
       "buyPrice": 32.9036,
       "currentPrice": 32.9036,
-      "buyDate": "2026-04-09",
+      "buyDate": "2026-04-10",
       "signal": "HOLD",
       "currency": "USD",
       "reason": "IBKR position @ $32.90",
@@ -206,6 +206,10 @@
     {
       "date": "2026-04-09",
       "value": 817838.79
+    },
+    {
+      "date": "2026-04-10",
+      "value": 817829.36
     }
   ],
   "atrMultipliers": {
@@ -315,14 +319,14 @@
   ],
   "note": "Reset 2026-04-08: matched to IBKR paper account DU7992310 NLV (SGD 1,042,178 @ 0.7854 = USD 818,527)",
   "ibkrNLV": {
-    "sgd": 1042022.67,
-    "usd": 817838.79,
+    "sgd": 1042010.66,
+    "usd": 817829.36,
     "rate": 0.784857,
-    "syncedAt": "2026-04-09T15:55:26.651903Z"
+    "syncedAt": "2026-04-09T16:00:15.384641Z"
   },
   "pendingTrades": {},
   "tradeHistory": [],
   "lastUpdated": "2026-04-08T18:34:12.862164+00:00",
-  "totalValue": 817727.91,
+  "totalValue": 817726.61,
   "openOrders": []
 }

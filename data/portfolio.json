@@ -3,7 +3,7 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 837504.55
+    "USD": 837504.14
   },
   "positions": [
     {
@@ -303,12 +303,12 @@
     "sgd": 1041973.32,
     "usd": 817800.05,
     "rate": 0.784857,
-    "syncedAt": "2026-04-09T02:54:42.680635Z"
+    "syncedAt": "2026-04-09T02:58:54.817757Z"
   },
   "pendingTrades": {},
   "tradeHistory": [],
   "lastUpdated": "2026-04-08T18:34:12.862164+00:00",
-  "totalValue": 817762.39,
+  "totalValue": 817761.98,
   "openOrders": [
     {
       "orderId": 44,
@@ -319,7 +319,8 @@
       "tif": "GTC",
       "lmtPrice": null,
       "status": "PreSubmitted",
-      "filled": 0.0
+      "filled": 0.0,
+      "reason": ""
     }
   ]
 }

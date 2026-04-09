@@ -3,27 +3,12 @@
   "startingCapital": 818735.51,
   "baseCurrency": "USD",
   "cashByValue": {
-    "USD": 837092.88
+    "USD": 830891.05
   },
   "positions": [
     {
-      "ticker": "MSFT",
-      "shares": 1,
-      "avgCost": 372.78,
-      "buyPrice": 372.78,
-      "currentPrice": 372.78,
-      "buyDate": "2026-04-10",
-      "signal": "HOLD",
-      "currency": "USD",
-      "reason": "IBKR position @ $372.78",
-      "stopLoss": 354.14,
-      "takeProfit": 410.06,
-      "unrealizedPnL": 0.0,
-      "ibkrOrderId": null
-    },
-    {
       "ticker": "IMFL",
-      "shares": -600,
+      "shares": -400,
       "avgCost": 32.9036,
       "buyPrice": 32.9036,
       "currentPrice": 32.9036,
@@ -209,7 +194,7 @@
     },
     {
       "date": "2026-04-10",
-      "value": 817796.42
+      "value": 817785.58
     }
   ],
   "atrMultipliers": {
@@ -319,14 +304,27 @@
   ],
   "note": "Reset 2026-04-08: matched to IBKR paper account DU7992310 NLV (SGD 1,042,178 @ 0.7854 = USD 818,527)",
   "ibkrNLV": {
-    "sgd": 1041968.69,
-    "usd": 817796.42,
+    "sgd": 1041954.88,
+    "usd": 817785.58,
     "rate": 0.784857,
-    "syncedAt": "2026-04-09T17:00:40.426998Z"
+    "syncedAt": "2026-04-09T17:02:44.736302Z"
   },
   "pendingTrades": {},
   "tradeHistory": [],
   "lastUpdated": "2026-04-08T18:34:12.862164+00:00",
-  "totalValue": 817723.5,
-  "openOrders": []
+  "totalValue": 817729.61,
+  "openOrders": [
+    {
+      "orderId": 50,
+      "ticker": "IMFL",
+      "action": "BUY",
+      "quantity": 600,
+      "orderType": "MKT",
+      "tif": "GTC",
+      "lmtPrice": null,
+      "status": "Submitted",
+      "filled": 200.0,
+      "reason": ""
+    }
+  ]
 }

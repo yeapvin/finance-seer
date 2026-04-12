@@ -107,7 +107,7 @@ export async function getLiveQuote(ticker: string) {
   // SGX tickers: Finnhub free tier doesn't support them, use Yahoo directly
   if (ticker.endsWith('.SI')) {
     const data = await getYahooQuote(ticker)
-    if (data) quoteCache.set(ticker, { data, ts: Date.now() })
+    // Cache disabled — do not cache even for SGX
     return data
   }
 
@@ -223,17 +223,13 @@ export async function getHistoricalOHLCV(ticker: string, period: string): Promis
       adjClose: adj[i] || q.close?.[i] || 0,
     })).filter((d: any) => d.close > 0)
 
-    historyCache.set(`${ticker}:${period}`, { data, ts: Date.now() })
+    // Cache disabled — always return fresh data
     return data
   } catch (e) {
     console.error(`History fetch failed for ${ticker}:`, e)
     return []
   }
 }
-
-// Cache disabled — skip caching
-// historyCache.set(`${ticker}:${period}`, { data, ts: Date.now() })
-// return data
 
 // ─── Intraday (Yahoo — 1D chart) ──────────────────────────────────────────────
 

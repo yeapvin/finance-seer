@@ -52,11 +52,11 @@ export interface StockData {
 const FINNHUB_BASE = 'https://finnhub.io/api/v1'
 const FINNHUB_KEY = process.env.FINNHUB_API_KEY || ''
 
-// Cache
-const quoteCache = new Map<string, { data: any; ts: number }>()
-const historyCache = new Map<string, { data: any[]; ts: number }>()
-const QUOTE_TTL = 60 * 1000       // 1 min
-const HISTORY_TTL = 60 * 60 * 1000 // 1 hour
+// Cache disabled — always fetch fresh data
+// const quoteCache = new Map<string, { data: any; ts: number }>()
+// const historyCache = new Map<string, { data: any[]; ts: number }>()
+// const QUOTE_TTL = 60 * 1000       // 1 min
+// const HISTORY_TTL = 60 * 60 * 1000 // 1 hour
 
 function finnhubSymbol(ticker: string) {
   return ticker.endsWith('.SI') ? ticker.replace('.SI', ':SP') : ticker
@@ -100,8 +100,9 @@ async function getYahooQuote(ticker: string) {
 }
 
 export async function getLiveQuote(ticker: string) {
-  const cached = quoteCache.get(ticker)
-  if (cached && Date.now() - cached.ts < QUOTE_TTL) return cached.data
+  // Cache disabled — always fetch fresh
+  // const cached = quoteCache.get(ticker)
+  // if (cached && Date.now() - cached.ts < QUOTE_TTL) return cached.data
 
   // SGX tickers: Finnhub free tier doesn't support them, use Yahoo directly
   if (ticker.endsWith('.SI')) {
@@ -146,7 +147,8 @@ export async function getLiveQuote(ticker: string) {
     weburl: p.weburl || '',
   }
 
-  quoteCache.set(ticker, { data, ts: Date.now() })
+  // Cache disabled — skip caching
+  // quoteCache.set(ticker, { data, ts: Date.now() })
   return data
 }
 
@@ -193,8 +195,9 @@ export async function searchTickers(query: string): Promise<{ symbol: string; de
 // ─── Historical OHLCV (Yahoo — Finnhub free tier doesn't provide this) ────────
 
 export async function getHistoricalOHLCV(ticker: string, period: string): Promise<any[]> {
-  const cached = historyCache.get(`${ticker}:${period}`)
-  if (cached && Date.now() - cached.ts < HISTORY_TTL) return cached.data
+  // Cache disabled — always fetch fresh
+  // const cached = historyCache.get(`${ticker}:${period}`)
+  // if (cached && Date.now() - cached.ts < HISTORY_TTL) return cached.data
 
   try {
     const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=${period}`
@@ -227,6 +230,10 @@ export async function getHistoricalOHLCV(ticker: string, period: string): Promis
     return []
   }
 }
+
+// Cache disabled — skip caching
+// historyCache.set(`${ticker}:${period}`, { data, ts: Date.now() })
+// return data
 
 // ─── Intraday (Yahoo — 1D chart) ──────────────────────────────────────────────
 

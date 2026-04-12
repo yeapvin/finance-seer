@@ -172,6 +172,7 @@ export default function PortfolioPage() {
 
   const summary = data.summary || {}
   const positions: Position[] = data.positions || []
+  const openOrders: any[] = data.openOrders || []
   const history: Trade[] = data.history || []
   const watchlist = data.watchlist || []
   const strategyNotes = data.strategyNotes || []
@@ -294,6 +295,63 @@ export default function PortfolioPage() {
           </div>
 
 
+
+          {/* Pending Orders */}
+          {openOrders.length > 0 && (
+            <div style={{ background: '#0a0a0a', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
+                <span style={{ fontSize: '14px' }}>⏳</span>
+                <span style={{ color: '#fbbf24', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pending Orders</span>
+                <span style={{ color: '#e4e4e7', fontSize: '11px', marginLeft: '4px' }}>{openOrders.length} order{openOrders.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {openOrders.map((o: any, i: number) => {
+                  const mktPrice = o.lmtPrice || null
+                  const estCost  = mktPrice ? mktPrice * o.quantity : null
+                  const actionColor = o.action === 'BUY' ? '#10b981' : '#ef4444'
+                  return (
+                    <div key={i} style={{ background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)', borderRadius: '10px', padding: '14px' }}>
+                      {/* Row 1: ticker + action badge + status */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div>
+                          <span style={{ background: actionColor, color: 'white', fontWeight: 700, fontSize: '10px', borderRadius: '4px', padding: '2px 6px', marginRight: '8px' }}>{o.action}</span>
+                          <span style={{ color: 'white', fontWeight: 800, fontSize: '16px' }}>{o.ticker}</span>
+                          {o.companyName && o.companyName !== o.ticker && (
+                            <span style={{ color: '#a1a1aa', fontSize: '11px', marginLeft: '6px' }}>{o.companyName}</span>
+                          )}
+                        </div>
+                        <span style={{ color: '#fbbf24', fontSize: '11px', fontWeight: 600, background: 'rgba(251,191,36,0.1)', borderRadius: '4px', padding: '2px 8px' }}>{o.status}</span>
+                      </div>
+                      {/* Row 2: key stats */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: o.reason ? '10px' : '0' }}>
+                        <div>
+                          <div style={{ color: '#71717a', fontSize: '10px', marginBottom: '2px' }}>Quantity</div>
+                          <div style={{ color: '#e4e4e7', fontSize: '13px', fontWeight: 600 }}>{o.quantity} shares</div>
+                        </div>
+                        <div>
+                          <div style={{ color: '#71717a', fontSize: '10px', marginBottom: '2px' }}>Order Type</div>
+                          <div style={{ color: '#e4e4e7', fontSize: '13px' }}>{o.orderType} · {o.tif}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: '#71717a', fontSize: '10px', marginBottom: '2px' }}>{o.lmtPrice ? 'Limit Price' : 'Est. Cost'}</div>
+                          <div style={{ color: '#e4e4e7', fontSize: '13px', fontWeight: 600 }}>
+                            {o.lmtPrice ? `$${o.lmtPrice.toFixed(2)}` : 'At Market'}
+                            {estCost && <span style={{ color: '#71717a', fontSize: '11px', marginLeft: '4px' }}>≈ {fmt(estCost)}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Row 3: reason */}
+                      {o.reason && (
+                        <div style={{ color: '#a5b4fc', fontSize: '11px', fontStyle: 'italic', lineHeight: '1.5', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+                          💡 {o.reason}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Closed Positions */}
           {(

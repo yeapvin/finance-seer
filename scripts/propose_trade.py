@@ -68,9 +68,10 @@ if __name__ == '__main__':
     price  = float(sys.argv[4])
     sl     = float(sys.argv[5])
     tp     = float(sys.argv[6])
-    reason = sys.argv[7] if len(sys.argv) > 7 else ''
-    rsi    = float(sys.argv[8]) if len(sys.argv) > 8 else 0
-    volume = int(sys.argv[9]) if len(sys.argv) > 9 else 0
+    reason       = sys.argv[7] if len(sys.argv) > 7 else ''
+    rsi          = float(sys.argv[8]) if len(sys.argv) > 8 else 0
+    volume       = int(sys.argv[9]) if len(sys.argv) > 9 else 0
+    news_context = sys.argv[10] if len(sys.argv) > 10 else ''
 
     cost = shares * price
     risk = abs(price - sl)
@@ -114,8 +115,12 @@ if __name__ == '__main__':
     lines += [
         f"",
         f"_{reason[:120]}_",
+    ]
+    if news_context:
+        lines.append(f"📰 _{news_context[:200]}_")
+    lines += [
         f"",
-        f"Tap ❌ to cancel within 2-5 mins, otherwise auto-executes.",
+        f"Tap ✅ to execute or ❌ to reject. Expires in 30 min if no action.",
     ]
 
     send('\n'.join(lines), buttons=[[

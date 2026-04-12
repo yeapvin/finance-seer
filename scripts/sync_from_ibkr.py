@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
 Sync Finance Seer portfolio.json from IBKR paper account.
+IBKR is the single source of truth — positions are WIPED and rebuilt entirely.
 Run this to pull actual positions + cash from IBKR and overwrite portfolio.json.
 
 Usage: python3 sync_from_ibkr.py
 """
-import json, sys
+import json, sys, os, subprocess
+import time, math
 from datetime import datetime
 from pathlib import Path
 from ib_insync import IB, Stock
@@ -14,11 +16,15 @@ HOST = '172.23.160.1'
 PORT = 4002
 ACCOUNT = 'DU7992310'
 PORTFOLIO_PATH = Path(__file__).parent.parent / 'data' / 'portfolio.json'
+KV_URL   = 'https://clean-eagle-92052.upstash.io'
+KV_TOKEN = 'gQAAAAAAAWeUAAIncDFiZmRiYzc1NDY1YjI0NjU3YTYwMzc4Y2Y4ZTIxZWUzNHAxOTIwNTI'
 SGD_USD_FALLBACK = 0.7854
 
-def get_sgd_usd(ib=None) -> float:
+CLIENT_ID = 4  # fixed clientId for sync
+
+
+def get_sgd_usd() -> float:
     """Get live SGD/USD rate via exchange-rates skill (XE.com)"""
-    import subprocess
     try:
         result = subprocess.run(
             ['node', '/home/joobi/.openclaw/workspace/skills/exchange-rates/scripts/xe-rate.mjs', 'SGD', 'USD'],
@@ -28,84 +34,220 @@ def get_sgd_usd(ib=None) -> float:
         rate = float(data.get('rate', 0))
         if rate > 0:
             return rate
-    except:
+    except Exception:
         pass
     return SGD_USD_FALLBACK
 
+
+def sanitize(obj):
+    """Replace NaN/Inf with None recursively."""
+    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    if isinstance(obj, dict):
+        return {k: sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize(v) for v in obj]
+    return obj
+
+
+def atomic_write(path: Path, data: dict):
+    """Write JSON atomically via temp file + rename."""
+    tmp = path.with_suffix('.json.tmp')
+    with open(tmp, 'w') as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp, path)
+
+
+def push_kv(data: dict):
+    import urllib.request as ur
+    req = ur.Request(
+        f'{KV_URL}/set/portfolio',
+        data=json.dumps(data).encode(),
+        headers={'Authorization': f'Bearer {KV_TOKEN}', 'Content-Type': 'application/json'},
+        method='POST'
+    )
+    ur.urlopen(req, timeout=10)
+
+
+def push_git(repo: Path):
+    try:
+        subprocess.run(['git', 'add', '-f', 'data/portfolio.json'], cwd=repo, capture_output=True)
+        subprocess.run(['git', 'commit', '-m', 'Portfolio sync from IBKR [auto]'], cwd=repo, capture_output=True)
+        subprocess.run(['git', 'push', 'origin', 'master'], cwd=repo, capture_output=True)
+    except Exception:
+        pass
+
+
 def main():
     ib = IB()
-    try:
-        ib.connect(HOST, PORT, clientId=20, timeout=15)
-    except Exception as e:
-        print(json.dumps({'error': f'Connection failed: {e}'}))
-        sys.exit(1)
-
-    try:
-        # Get account summary
-        summary = {s.tag: float(s.value) for s in ib.accountSummary(ACCOUNT)
-                   if s.currency in ('SGD', 'USD', '') and s.tag in
-                   ('NetLiquidation', 'TotalCashValue', 'UnrealizedPnL', 'RealizedPnL')}
-
-        rate = get_sgd_usd(ib)
-        nlv_sgd = summary.get('NetLiquidation', 0)
-        cash_sgd = summary.get('TotalCashValue', 0)
-        nlv_usd = round(nlv_sgd * rate, 2)
-        cash_usd = round(cash_sgd * rate, 2)
-
-        # Load existing portfolio first (needed to preserve position data)
+    for attempt in range(1, 4):
         try:
-            with open(PORTFOLIO_PATH) as f:
-                portfolio = json.load(f)
-        except:
-            portfolio = {}
+            ib.connect(HOST, PORT, clientId=CLIENT_ID, timeout=30)
+            break
+        except Exception as e:
+            if attempt < 3:
+                time.sleep(10)
+            else:
+                print(json.dumps({'error': f'Connection failed after 3 attempts: {e}'}))
+                sys.exit(1)
 
-        # Get positions
+    try:
+        # ── Account summary ───────────────────────────────────────────────────
+        summary_raw = ib.accountSummary(ACCOUNT)
+        # Collect tags — this paper account reports in SGD, so handle USD > SGD > BASE
+        summary_usd  = {}
+        summary_sgd  = {}
+        summary_base = {}
+        for s in summary_raw:
+            if s.tag in ('NetLiquidation', 'TotalCashValue', 'UnrealizedPnL', 'RealizedPnL'):
+                try:
+                    val = float(s.value)
+                except (ValueError, TypeError):
+                    continue
+                if s.currency == 'USD':
+                    summary_usd[s.tag] = val
+                elif s.currency == 'SGD':
+                    summary_sgd[s.tag] = val
+                elif s.currency == 'BASE':
+                    summary_base[s.tag] = val
+
+        rate = get_sgd_usd()
+
+        def get_usd(tag):
+            """Return tag value in USD (prefer USD native, then SGD*rate, then BASE*rate)."""
+            if tag in summary_usd:
+                return summary_usd[tag]
+            if tag in summary_sgd:
+                return round(summary_sgd[tag] * rate, 2)
+            if tag in summary_base:
+                return round(summary_base[tag] * rate, 2)
+            return 0.0
+
+        nlv_usd  = get_usd('NetLiquidation')
+        cash_usd = get_usd('TotalCashValue')
+
+        # ── Positions — FULL REPLACE ──────────────────────────────────────────
         ibkr_positions = ib.positions(ACCOUNT)
         positions = []
         for pos in ibkr_positions:
             if pos.position == 0:
                 continue
-            ticker = pos.contract.symbol
-            shares = int(pos.position)
+            ticker   = pos.contract.symbol
+            shares   = int(pos.position)
             avg_cost = round(pos.avgCost, 4)
 
-            # Get current price
+            # Get current price from live market data
             try:
                 contract = Stock(ticker, 'SMART', 'USD')
                 ib.qualifyContracts(contract)
                 mkt = ib.reqMktData(contract, '', False, False)
-                ib.sleep(1)
-                current_price = round(mkt.last or mkt.close or avg_cost, 4)
+                ib.sleep(1.5)
+                # Explicitly filter out NaN/Inf — IBKR uses NaN for missing data
+                def _clean(v):
+                    try:
+                        f = float(v)
+                        return f if math.isfinite(f) and f > 0 else None
+                    except (TypeError, ValueError):
+                        return None
+                current_price = _clean(mkt.last) or _clean(mkt.close) or avg_cost
+                current_price = round(float(current_price), 4)
                 ib.cancelMktData(contract)
-            except:
+            except Exception:
                 current_price = avg_cost
 
-            # Preserve existing position data (reason, SL, TP, signal, buyDate)
-            existing = next((x for x in (portfolio.get('positions') or []) if x.get('ticker') == ticker), {})
+            unrealized_pnl = round((current_price - avg_cost) * shares, 2)
+
+            # Default SL/TP based on avg cost — monitor.py does not override these
+            stop_loss   = round(avg_cost * 0.95, 2)
+            take_profit = round(avg_cost * 1.10, 2)
+
             positions.append({
-                'ticker': ticker,
-                'shares': shares,
-                'avgCost': existing.get('avgCost', avg_cost),
-                'buyPrice': existing.get('buyPrice', avg_cost),
+                'ticker':       ticker,
+                'shares':       shares,
+                'avgCost':      avg_cost,
+                'buyPrice':     avg_cost,
                 'currentPrice': current_price,
-                'buyDate': existing.get('buyDate', datetime.now().strftime('%Y-%m-%d')),
-                'signal': existing.get('signal', 'HOLD'),
-                'currency': 'USD',
-                'reason': existing.get('reason', f'Position synced from IBKR @ ${avg_cost:.2f}'),
-                'stopLoss': existing.get('stopLoss', round(avg_cost * 0.95, 2)),
-                'takeProfit': existing.get('takeProfit', round(avg_cost * 1.10, 2)),
-                'ibkrOrderId': existing.get('ibkrOrderId'),
+                'buyDate':      datetime.now().strftime('%Y-%m-%d'),
+                'signal':       'HOLD',
+                'currency':     'USD',
+                'reason':       f'IBKR position @ ${avg_cost:.2f}',
+                'stopLoss':     stop_loss,
+                'takeProfit':   take_profit,
+                'unrealizedPnL': unrealized_pnl,
+                'ibkrOrderId':  None,
             })
+
+        # ── Open orders ───────────────────────────────────────────────────────
+        ib.reqAllOpenOrders()
+        ib.sleep(2)
+        # Load existing portfolio to carry over reasons from pendingTrades
+        try:
+            with open(PORTFOLIO_PATH) as _pf:
+                _existing = json.load(_pf)
+        except Exception:
+            _existing = {}
+        # Build reason map from pendingTrades: orderId -> reason
+        reason_map = {}
+        for pt in _existing.get('pendingTrades', {}).values():
+            oid = pt.get('ibkrOrderId')
+            if oid and pt.get('reason'):
+                reason_map[int(oid)] = pt['reason']
+
+        open_orders = []
+        for t in ib.trades():
+            if t.orderStatus.status in ('PreSubmitted', 'Submitted', 'ApiPending'):
+                lmt = t.order.lmtPrice
+                open_orders.append({
+                    'orderId':   t.order.orderId,
+                    'ticker':    t.contract.symbol,
+                    'action':    t.order.action,
+                    'quantity':  int(t.order.totalQuantity),
+                    'orderType': t.order.orderType,
+                    'tif':       t.order.tif,
+                    'lmtPrice':  round(lmt, 2) if lmt and lmt > 0 else None,
+                    'status':    t.orderStatus.status,
+                    'filled':    t.orderStatus.filled,
+                    'reason':    reason_map.get(t.order.orderId, ''),
+                })
+
+        # ── Load existing portfolio to preserve non-position data ─────────────
+        try:
+            with open(PORTFOLIO_PATH) as f:
+                portfolio = json.load(f)
+        except Exception:
+            portfolio = {}
 
         today = datetime.now().strftime('%Y-%m-%d')
 
-        # Update only positions and cash — preserve history, watchlist, settings
-        portfolio['positions'] = positions
-        portfolio['cashByValue'] = {'USD': cash_usd}
-        portfolio['startingCapital'] = portfolio.get('startingCapital', nlv_usd)
-        portfolio['ibkrNLV'] = {'sgd': nlv_sgd, 'usd': nlv_usd, 'rate': rate, 'syncedAt': datetime.utcnow().isoformat() + 'Z'}
+        # WIPE positions — rebuild entirely from IBKR
+        portfolio['positions']  = positions
+        portfolio['openOrders'] = open_orders
 
-        # Update value history
+        # Update cash from IBKR (USD)
+        cbv = portfolio.get('cashByValue', {})
+        cbv['USD'] = cash_usd
+        portfolio['cashByValue'] = cbv
+
+        # Compute total value: cash + market value of positions
+        market_value = sum(
+            (p.get('currentPrice') or p.get('avgCost') or 0) * p['shares']
+            for p in positions
+        )
+        portfolio['totalValue'] = round(cash_usd + market_value, 2)
+
+        # Update NLV metadata
+        nlv_sgd = summary_sgd.get('NetLiquidation', summary_usd.get('NetLiquidation', 0))
+        portfolio['ibkrNLV'] = {
+            'sgd': round(nlv_sgd, 2),
+            'usd': nlv_usd,
+            'rate': rate,
+            'syncedAt': datetime.utcnow().isoformat() + 'Z'
+        }
+
+        # Update starting capital only if not already set
+        portfolio.setdefault('startingCapital', nlv_usd)
+
+        # Update value history (one entry per day)
         history = portfolio.get('valueHistory', [])
         if not history or history[-1]['date'] != today:
             history.append({'date': today, 'value': nlv_usd})
@@ -113,48 +255,45 @@ def main():
             history[-1]['value'] = nlv_usd
         portfolio['valueHistory'] = history
 
-        # Sanitize: replace NaN/Inf with None before writing
-        import math
-        def sanitize(obj):
-            if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
-                return None
-            if isinstance(obj, dict):
-                return {k: sanitize(v) for k, v in obj.items()}
-            if isinstance(obj, list):
-                return [sanitize(v) for v in obj]
-            return obj
+        # Ensure required keys exist (never wiped)
+        portfolio.setdefault('pendingTrades', {})
+        portfolio.setdefault('tradeHistory', [])
+
+        # Sanitize NaN/Inf
         portfolio = sanitize(portfolio)
 
-        with open(PORTFOLIO_PATH, 'w') as f:
-            json.dump(portfolio, f, indent=2)
+        # ── Atomic write ──────────────────────────────────────────────────────
+        atomic_write(PORTFOLIO_PATH, portfolio)
 
-        # Also push to Upstash KV so Vercel dashboard stays in sync
-        kv_url = 'https://clean-eagle-92052.upstash.io'
-        kv_token = 'gQAAAAAAAWeUAAIncDFiZmRiYzc1NDY1YjI0NjU3YTYwMzc4Y2Y4ZTIxZWUzNHAxOTIwNTI'
+        # ── Push to KV ───────────────────────────────────────────────────────
         try:
-            import urllib.request as ur
-            req = ur.Request(f'{kv_url}/set/portfolio',
-                data=json.dumps(portfolio).encode(),
-                headers={'Authorization': f'Bearer {kv_token}', 'Content-Type': 'application/json'},
-                method='POST')
-            ur.urlopen(req, timeout=10)
+            push_kv(portfolio)
         except Exception as kv_err:
-            import sys
             print(f'KV sync warning: {kv_err}', file=sys.stderr)
 
+        # ── Push to git ───────────────────────────────────────────────────────
+        push_git(PORTFOLIO_PATH.parent.parent)
+
+        # ── Summary output ────────────────────────────────────────────────────
         print(json.dumps({
             'synced': True,
-            'nlv_usd': nlv_usd,
-            'cash_usd': cash_usd,
             'positions': len(positions),
-            'rate': rate,
+            'tickers': [p['ticker'] for p in positions],
+            'cash_usd': cash_usd,
+            'nlv_usd': nlv_usd,
+            'total_value': portfolio['totalValue'],
+            'syncedAt': portfolio['ibkrNLV']['syncedAt'],
         }))
 
     except Exception as e:
         print(json.dumps({'error': str(e)}))
         sys.exit(1)
     finally:
-        ib.disconnect()
+        try:
+            ib.disconnect()
+        except Exception:
+            pass
+
 
 if __name__ == '__main__':
     main()

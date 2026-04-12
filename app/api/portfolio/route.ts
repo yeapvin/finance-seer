@@ -228,8 +228,15 @@ export async function GET() {
       companyName: COMPANY_NAMES[pos.ticker] || pos.ticker,
     }))
 
+    // Open orders from portfolio.json (populated by sync_from_ibkr.py)
+    const openOrders = (portfolio.openOrders || []).map((o: any) => ({
+      ...o,
+      companyName: COMPANY_NAMES[o.ticker] || o.ticker,
+    }))
+
     return NextResponse.json({
       ...portfolio,
+      openOrders,
       positions: enrichedPositions,
       history: enrichedHistory,
       closedPositions: enrichedClosed,

@@ -2,13 +2,15 @@
 """
 IBKR Trade Executor with commission tracking.
 Places a limit order, waits for fill, returns fill price + commission.
+After any fill (BUY or SELL), automatically syncs portfolio.json from IBKR.
 
 Usage:
   python3 ibkr_execute.py BUY AAPL 50 250.00
   python3 ibkr_execute.py SELL AAPL 50 260.00
 Returns JSON with: orderId, filled, avgFillPrice, commission, totalCost
 """
-import sys, json, time
+import sys, json, time, subprocess
+from pathlib import Path
 from ib_insync import IB, Stock, LimitOrder
 
 HOST    = '172.23.160.1'
@@ -17,10 +19,14 @@ ACCOUNT = 'DU7992310'
 FILL_WAIT_SECS = 10   # wait up to 10s for fill confirmation
 CANCEL_AFTER   = 30 * 60  # auto-cancel after 30 min
 
+SYNC_SCRIPT = Path(__file__).parent / 'sync_from_ibkr.py'
+
+
 def connect(client_id=15):
     ib = IB()
     ib.connect(HOST, PORT, clientId=client_id, timeout=15)
     return ib
+
 
 def get_commission(ib, order_id: int) -> float:
     """Sum commission from all fills for this order."""
@@ -31,6 +37,24 @@ def get_commission(ib, order_id: int) -> float:
             if c and c == c:  # not NaN
                 total += c
     return round(total, 4)
+
+
+def sync_portfolio():
+    """Sync portfolio.json from IBKR — called after any fill."""
+    try:
+        result = subprocess.run(
+            [sys.executable, str(SYNC_SCRIPT)],
+            capture_output=True, text=True, timeout=120
+        )
+        if result.returncode == 0:
+            return True
+        else:
+            print(f'[sync] Warning: {result.stderr or result.stdout}', file=sys.stderr)
+            return False
+    except Exception as e:
+        print(f'[sync] Error: {e}', file=sys.stderr)
+        return False
+
 
 def main():
     if len(sys.argv) < 5:
@@ -56,18 +80,17 @@ def main():
         trade = ib.placeOrder(contract, order)
         ib.sleep(FILL_WAIT_SECS)
 
-        order_id  = trade.order.orderId
-        status    = trade.orderStatus.status
-        filled    = trade.orderStatus.filled
-        avg_price = trade.orderStatus.avgFillPrice or price
+        order_id   = trade.order.orderId
+        status     = trade.orderStatus.status
+        filled     = trade.orderStatus.filled
+        avg_price  = trade.orderStatus.avgFillPrice or price
         commission = get_commission(ib, order_id)
 
         # Calculate total cost including commission
         if action == 'BUY':
             total_cost = round(avg_price * filled + commission, 2)
         else:
-            total_proceeds = round(avg_price * filled - commission, 2)
-            total_cost = total_proceeds  # for SELL, this is net proceeds
+            total_cost = round(avg_price * filled - commission, 2)  # net proceeds for SELL
 
         result = {
             'success':      True,
@@ -79,12 +102,17 @@ def main():
             'filled':       filled,
             'avgFillPrice': round(avg_price, 4) if avg_price else 0,
             'commission':   commission,
-            'totalCost':    total_cost,  # BUY: cost+commission, SELL: proceeds-commission
+            'totalCost':    total_cost,
             'status':       status,
             'orderType':    'LMT',
             'autoCancel':   '30 min' if filled < shares else 'n/a',
         }
         print(json.dumps(result))
+
+        # ── Sync portfolio from IBKR immediately after any fill ───────────────
+        # IBKR is master — let sync rebuild portfolio.json from actual positions
+        if filled > 0:
+            sync_portfolio()
 
         # Schedule auto-cancel if partial/unfilled
         if filled < shares:
@@ -106,7 +134,8 @@ def main():
                                 data=msg.encode(), headers={'Content-Type': 'application/json'})
                             urllib.request.urlopen(req, timeout=10)
                     ib2.disconnect()
-                except: pass
+                except Exception:
+                    pass
             t = threading.Thread(target=cancel_later, daemon=True)
             t.start()
             t.join(timeout=1)
@@ -115,6 +144,7 @@ def main():
         print(json.dumps({'error': str(e)}))
     finally:
         ib.disconnect()
+
 
 if __name__ == '__main__':
     main()

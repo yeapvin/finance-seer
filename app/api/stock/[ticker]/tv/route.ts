@@ -52,29 +52,34 @@ function calculateRatings(
 
 function calculateTechnicalIndicators(history: any[]): any {
   try {
-    const indicators = calculateAllIndicators(history)
+    const indicators = calculateAllIndicators(
+      history.map(d => d.close),
+      history.map(d => d.high),
+      history.map(d => d.low)
+    )
     const patterns = detectPatterns(history)
 
-    // Extract latest values
+    // Extract latest values from flat indicator structure
     const latest = history[history.length - 1]
+    const idx = history.length - 1
 
     return {
-      rsi: clean(indicators.rsi?.[0]),
-      macd: clean(indicators.macd?.[0]?.macd),
-      macd_signal: clean(indicators.macd?.[0]?.signal),
-      macd_hist: clean(indicators.macd?.[0]?.histogram),
-      sma20: clean(indicators.sma?.[0]),
-      sma50: clean(indicators.sma?.[1]),
-      sma200: clean(indicators.sma?.[2]),
-      ema20: clean(indicators.ema?.[0]),
-      ema200: clean(indicators.ema?.[1]),
-      bb_upper: clean(indicators.bollinger?.[0]?.upper),
-      bb_lower: clean(indicators.bollinger?.[0]?.lower),
-      stoch_k: clean(indicators.stochastic?.[0]?.k),
-      stoch_d: clean(indicators.stochastic?.[0]?.d),
-      atr: clean(indicators.atr?.[0]),
-      week52_high: clean(latest?.high || latest?.week52High),
-      week52_low: clean(latest?.low || latest?.week52Low),
+      rsi: clean(indicators.rsi[idx]),
+      macd: clean(indicators.macd[idx]),
+      macd_signal: clean(indicators.macdSignal[idx]),
+      macd_hist: clean(indicators.macdHistogram[idx]),
+      sma20: clean(indicators.sma20[idx]),
+      sma50: clean(indicators.sma50[idx]),
+      sma200: clean(indicators.sma200[idx]),
+      ema20: clean(indicators.ema12[idx]),
+      ema200: clean(indicators.ema26[idx]),
+      bb_upper: clean(indicators.bollingerBands[idx]?.upper),
+      bb_lower: clean(indicators.bollingerBands[idx]?.lower),
+      stoch_k: clean(indicators.stochastic[idx]?.k),
+      stoch_d: clean(indicators.stochastic[idx]?.d),
+      atr: clean(latest?.atr),
+      week52_high: clean(latest?.week52High),
+      week52_low: clean(latest?.week52Low),
       patterns: Object.keys(patterns).reduce((acc, key) => {
         if (patterns[key] && patterns[key] !== 'none') {
           acc[key] = 1

@@ -52,12 +52,12 @@ function calculateRatings(
 
 function calculateTechnicalIndicators(history: any[]): any {
   try {
-    const indicators = calculateAllIndicators(
-      history.map(d => d.close),
-      history.map(d => d.high),
-      history.map(d => d.low)
-    )
-    const patterns = detectPatterns(history)
+    const prices = history.map(d => d.close)
+    const highs = history.map(d => d.high)
+    const lows = history.map(d => d.low)
+    
+    const indicators = calculateAllIndicators(prices, highs, lows)
+    const patterns = detectPatterns(prices)
 
     // Extract latest values from flat indicator structure
     const latest = history[history.length - 1]

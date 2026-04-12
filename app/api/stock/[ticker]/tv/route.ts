@@ -5,7 +5,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { getLiveQuote, getHistoricalOHLCV } from '@/lib/market-data'
-import { calculateAllIndicators, detectPatterns } from '@/lib/indicators'
+import { calculateAllIndicators } from '@/lib/indicators'
+import { detectPatterns } from '@/lib/patterns'
 
 const cache = new Map<string, { data: any; ts: number }>()
 const CACHE_TTL = 10 * 60 * 1000 // 10 min

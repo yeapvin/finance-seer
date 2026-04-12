@@ -44,10 +44,14 @@ export async function GET(request: NextRequest, { params }: { params: { ticker: 
       endDate: patternHistory[p.endIndex]?.date ? new Date(patternHistory[p.endIndex].date).toISOString().split('T')[0] : null,
     }))
 
-    const cacheMax = period === '1d' ? 900 : 3600
-    const response = NextResponse.json({ ticker, period, history, indicators, patterns })
-    response.headers.set('Cache-Control', `public, max-age=${cacheMax}`)
-    return response
+    // Disable all caching — always fetch fresh data
+    const headers = {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+      'Surrogate-Control': 'no-store',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    }
+    return NextResponse.json({ ticker, period, history, indicators, patterns }, { headers })
   } catch (error) {
     console.error(`History error for ${params.ticker}:`, error)
     return NextResponse.json({ error: 'Failed to fetch history' }, { status: 500 })

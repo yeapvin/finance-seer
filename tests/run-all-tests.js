@@ -849,11 +849,6 @@ console.log(`Failed: ${failed} ${failed > 0 ? '❌' : '✅'}`);
 console.log(`Pass Rate: ${passRate}%`);
 console.log();
 
-// ===== CI GATE TEST =====
-test('CI gate: this should fail to test the pipeline', () => {
-  assert(false, 'Deliberate failure for CI/CD testing');
-});
-
 if (failed === 0) {
   console.log('🎉 ALL TESTS PASSED!\n');
   process.exit(0);

@@ -15,9 +15,9 @@ from datetime import datetime, timezone, timedelta
 FINNHUB_KEY  = 'cq35tlpr01qkgf3jbhkgcq35tlpr01qkgf3jbhl0'
 TAVILY_KEY   = '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'
 TAVILY_URL   = 'https://api.tavily.com/search'
-GROQ_KEY     = 'ollama'  # no auth needed for local Ollama
-GROQ_URL     = 'http://192.168.10.163:11434/api/chat'  # native Ollama API supports think=false
-GROQ_MODEL   = 'qwen3.5:122b'
+GROQ_KEY     = 'lm-studio'  # LM Studio local auth
+GROQ_URL     = 'http://192.168.10.163:1234/v1/chat/completions'  # LM Studio OpenAI-compat API
+GROQ_MODEL   = 'qwen3.5-122b-a10b'
 IBKR_HOST    = '172.23.160.1'
 IBKR_PORT    = 4002
 
@@ -193,18 +193,21 @@ def get_market_news(limit: int = 8) -> list[dict]:
 
 def groq_summarise(prompt: str, max_tokens: int = 300) -> str:
     """Call Groq LLM. Uses browser UA to avoid Cloudflare block."""
-    # Use Ollama native API with think=false for fast responses
+    # Use LM Studio OpenAI-compatible API
     body = json.dumps({
         'model': GROQ_MODEL,
         'messages': [{'role': 'user', 'content': prompt}],
-        'think': False,
         'stream': False,
-        'options': {'temperature': 0.3, 'num_predict': max_tokens},
+        'temperature': 0.3,
+        'max_tokens': max_tokens,
     }).encode()
-    req = urllib.request.Request(GROQ_URL, data=body, headers={'Content-Type': 'application/json'})
+    req = urllib.request.Request(GROQ_URL, data=body, headers={
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {GROQ_KEY}',
+    })
     try:
         resp = json.loads(urllib.request.urlopen(req, timeout=60).read())
-        return resp['message']['content'].strip()
+        return resp['choices'][0]['message']['content'].strip()
     except:
         return ''
 

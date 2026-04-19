@@ -87,11 +87,9 @@ jobs:
         echo "failed=${FAILED}" >> $GITHUB_OUTPUT
         # Extract failure details
         FAILURES=$(grep -A1 '❌' /tmp/unit-test-output.txt | sed 's/^[[:space:]]*//;s/❌ //;s/:.*//' | tr '\n' ' | ' | sed 's/ | $//')
-        if [ -n "$FAILURES" ]; then
-          echo "failures<<EOF" >> $GITHUB_OUTPUT
-          echo "$FAILURES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        fi
+        echo "failures<<EOF" >> $GITHUB_OUTPUT
+        echo "${FAILURES:-}" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
         echo "Unit tests: ${PASSED}/${TOTAL}"
 
   # ====== PHASE 3: INTEGRATION TESTS ======
@@ -145,11 +143,9 @@ jobs:
         echo "total=${TOTAL}" >> $GITHUB_OUTPUT
         echo "failed=${FAILED}" >> $GITHUB_OUTPUT
         FAILURES=$(grep -A1 '❌' /tmp/int-test-output.txt | sed 's/^[[:space:]]*//;s/❌ //;s/:.*//' | tr '\n' ' | ' | sed 's/ | $//')
-        if [ -n "$FAILURES" ]; then
-          echo "failures<<EOF" >> $GITHUB_OUTPUT
-          echo "$FAILURES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        fi
+        echo "failures<<EOF" >> $GITHUB_OUTPUT
+        echo "${FAILURES:-}" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
         echo "Integration tests: ${PASSED}/${TOTAL}"
 
   # ====== PHASE 4: DEPLOY (gated on tests passing) ======

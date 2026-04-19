@@ -115,8 +115,8 @@ async function main() {
     
     // Build failure details section
     let failureDetails = '';
-    if (result.unitFailures) {
-      const unitFailList = result.unitFailures.split('|').map(f => f.trim()).filter(Boolean);
+    if (unitFailures) {
+      const unitFailList = unitFailures.split('|').map(f => f.trim()).filter(Boolean);
       if (unitFailList.length > 0) {
         failureDetails += '\n\n🔴 *Unit Test Failures:*\n';
         unitFailList.forEach((name, i) => {
@@ -124,8 +124,8 @@ async function main() {
         });
       }
     }
-    if (result.intFailures) {
-      const intFailList = result.intFailures.split('|').map(f => f.trim()).filter(Boolean);
+    if (intFailures) {
+      const intFailList = intFailures.split('|').map(f => f.trim()).filter(Boolean);
       if (intFailList.length > 0) {
         failureDetails += '\n\n🔴 *Integration Test Failures:*\n';
         intFailList.forEach((name, i) => {

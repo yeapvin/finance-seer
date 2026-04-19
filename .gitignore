@@ -60,3 +60,7 @@ backup/
 # Live portfolio data (runtime) — stored in KV, not git
 data/portfolio.json
 # portfolio.seed.json IS tracked (schema reference + dev default)
+
+# Production env (contains secrets - never commit)
+.env.production
+.env.vercel

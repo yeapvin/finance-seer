@@ -94,7 +94,7 @@ function getTestResults() {
  */
 async function main() {
   try {
-    const { total, passed, failed, unitPassed, unitTotal, intPassed, intTotal } = getTestResults();
+    const { total, passed, failed, unitPassed, unitTotal, unitFailed, intPassed, intTotal, intFailed, unitFailures, intFailures } = getTestResults();
     
     // Determine status
     const deployResult = process.env.DEPLOYMENT_RESULT || 'failure';

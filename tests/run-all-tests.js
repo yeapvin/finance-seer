@@ -856,3 +856,8 @@ if (failed === 0) {
   console.log(`⚠️  ${failed} TEST(S) FAILED\n`);
   process.exit(1);
 }
+
+// ===== CI GATE TEST =====
+test('CI gate: this should fail to test the pipeline', () => {
+  assert(false, 'Deliberate failure for CI/CD testing');
+});

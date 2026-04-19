@@ -73,14 +73,20 @@ function sendTelegramMessage(text) {
 function getTestResults() {
   const unitPassed  = parseInt(process.env.UNIT_PASSED)  || 0;
   const unitTotal   = parseInt(process.env.UNIT_TOTAL)   || 0;
+  const unitFailed  = parseInt(process.env.UNIT_FAILED)  || 0;
   const intPassed   = parseInt(process.env.INT_PASSED)   || 0;
   const intTotal    = parseInt(process.env.INT_TOTAL)    || 0;
+  const intFailed   = parseInt(process.env.INT_FAILED)   || 0;
 
   const passed = unitPassed + intPassed;
   const total  = unitTotal  + intTotal;
   const failed = total - passed;
 
-  return { total, passed, failed, unitPassed, unitTotal, intPassed, intTotal };
+  // Parse failure details
+  const unitFailures = (process.env.UNIT_FAILURES || '').trim();
+  const intFailures = (process.env.INT_FAILURES || '').trim();
+
+  return { total, passed, failed, unitPassed, unitTotal, unitFailed, intPassed, intTotal, intFailed, unitFailures, intFailures };
 }
 
 /**
@@ -106,6 +112,28 @@ async function main() {
     // Build message
     const unitLine = unitTotal  > 0 ? `\n  • Unit:        ${unitPassed}/${unitTotal}` : '';
     const intLine  = intTotal   > 0 ? `\n  • Integration: ${intPassed}/${intTotal}` : '';
+    
+    // Build failure details section
+    let failureDetails = '';
+    if (result.unitFailures) {
+      const unitFailList = result.unitFailures.split('|').map(f => f.trim()).filter(Boolean);
+      if (unitFailList.length > 0) {
+        failureDetails += '\n\n🔴 *Unit Test Failures:*\n';
+        unitFailList.forEach((name, i) => {
+          failureDetails += `  ${i + 1}. \`${name}\`\n`;
+        });
+      }
+    }
+    if (result.intFailures) {
+      const intFailList = result.intFailures.split('|').map(f => f.trim()).filter(Boolean);
+      if (intFailList.length > 0) {
+        failureDetails += '\n\n🔴 *Integration Test Failures:*\n';
+        intFailList.forEach((name, i) => {
+          failureDetails += `  ${i + 1}. \`${name}\`\n`;
+        });
+      }
+    }
+    
     const message = `
 🤖 *Finance Seer CI/CD Status*
 
@@ -114,7 +142,7 @@ async function main() {
 📅 *Time:* ${timestamp}
 
 ${statusEmoji} *${statusText}*
-🧪 *Tests:* ${passed}/${total} passing${failed > 0 ? ` (${failed} failed)` : ''}${unitLine}${intLine}
+🧪 *Tests:* ${passed}/${total} passing${failed > 0 ? ` (${failed} failed)` : ''}${unitLine}${intLine}${failureDetails}
 
 ${deployLine}
 🔍 *View Logs:* ${SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}

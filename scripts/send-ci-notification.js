@@ -96,14 +96,30 @@ async function main() {
   try {
     const { total, passed, failed, unitPassed, unitTotal, unitFailed, intPassed, intTotal, intFailed, unitFailures, intFailures } = getTestResults();
     
-    // Determine status
-    const deployResult = process.env.DEPLOYMENT_RESULT || 'failure';
-    const isPassing = failed === 0 && deployResult === 'success';
-    const statusEmoji = isPassing ? '✅' : '❌';
-    const statusText = isPassing ? 'ALL TESTS PASSED' : 'TESTS FAILED \u2014 Deployment blocked';
-    const deployLine = isPassing
-      ? '🚀 *Deployed to production*'
-      : '🚫 *Deployment blocked \u2014 fix tests first*';
+    // Determine status based on test results only (deployment outcome is separate)
+    const testsPassed = failed === 0;
+    const deployResult = process.env.DEPLOYMENT_RESULT || null; // may be null if not set
+    
+    let statusEmoji, statusText, deployLine;
+    
+    if (testsPassed && deployResult === 'success') {
+      // Tests passed AND deployment succeeded
+      statusEmoji = '✅';
+      statusText = 'ALL TESTS PASSED';
+      deployLine = '🚀 *Deployed to production*';
+    } else if (testsPassed) {
+      // Tests passed but deployment unknown/failed
+      statusEmoji = '⚠️';
+      statusText = 'TESTS PASSED';
+      deployLine = deployResult === 'failure' 
+        ? '🚫 *Deployment failed*'
+        : 'ℹ️ *Deployment status: pending or skipped*';
+    } else {
+      // Tests failed — deployment blocked
+      statusEmoji = '❌';
+      statusText = 'TESTS FAILED — Deployment blocked';
+      deployLine = '🚫 *Deployment blocked — fix tests first*';
+    }
 
     // Get timestamp
     const now = new Date();

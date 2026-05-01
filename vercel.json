@@ -1,6 +1,4 @@
 {
-  // Crons removed — market-time actions now driven by OpenClaw heartbeat (SGT-aware)
-  // See: scripts/heartbeat.js
   "functions": {
     "app/api/portfolio/monitor/route.ts": { "maxDuration": 60 },
     "app/api/portfolio/midday/route.ts":  { "maxDuration": 60 },
